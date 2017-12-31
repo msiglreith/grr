@@ -1,0 +1,13 @@
+[package]
+name = "grr"
+version = "0.1.0"
+authors = ["msiglreith <m.siglreith@gmail.com>"]
+
+[dependencies]
+bitflags = "1"
+
+[dev-dependencies]
+glutin = "0.12"
+
+[build-dependencies]
+gl_generator = "0.7"
