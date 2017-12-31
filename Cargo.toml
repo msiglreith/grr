@@ -11,6 +11,7 @@ license = "MPL 2.0"
 exclude = [
     "info/*",
 ]
+build = "build.rs"
 
 [dependencies]
 bitflags = "1"

@@ -1,4 +1,7 @@
 
+use __gl;
+use __gl::types::GLenum;
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     NoError,
