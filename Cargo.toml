@@ -7,7 +7,7 @@ homepage = "https://github.com/msiglreith/grr"
 repository = "https://github.com/msiglreith/grr"
 keywords = ["graphics"]
 documentation = "https://docs.rs/grr"
-license = "MPL 2.0"
+license = "MPL-2.0"
 exclude = [
     "info/*",
 ]
