@@ -42,6 +42,7 @@ fn main() {
         .with_srgb(true);
 
     let window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
+    let (w, h) = window.get_inner_size().unwrap();
 
     unsafe { window.make_current().unwrap(); }
 
@@ -114,6 +115,13 @@ fn main() {
                 stride: (std::mem::size_of::<f32>() * 5) as _,
             }]
         );
+
+        grr.set_viewport(0, &[
+            grr::Viewport { x: 0.0, y: 0.0, w: w as _, h: h as _ , n: 0.0, f: 1.0 },
+        ]);
+        grr.set_scissor(0, &[
+            grr::Scissor { x: 0, y: 0, w: w as _, h: h as _ },
+        ]);
 
         grr.clear_attachment(grr::Framebuffer::DEFAULT, grr::ClearAttachment::ColorFloat(0, [0.5, 0.5, 0.5, 1.0]));
         grr.draw(grr::Primitive::Triangles, 0..3, 0..1);

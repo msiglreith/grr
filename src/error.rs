@@ -2,6 +2,8 @@
 use __gl;
 use __gl::types::GLenum;
 
+use device::Device;
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     NoError,
@@ -28,6 +30,15 @@ impl From<GLenum> for Error {
             __gl::STACK_UNDERFLOW => Error::StackUnderflow,
             __gl::STACK_OVERFLOW => Error::StackOverflow,
             _ => Error::Unknown,
+        }
+    }
+}
+
+impl Device {
+    pub(crate) fn get_error(&self, msg: &str) {
+        let err: Error = (unsafe { self.0.GetError() }).into();
+        if err != Error::NoError {
+            println!("Error: {} ({:?})", msg, err);
         }
     }
 }

@@ -4,28 +4,20 @@
 use __gl::types::{GLbitfield, GLenum, GLuint};
 
 use std::ops::Range;
-use std::os::raw::c_void;
 use std::ptr;
 
 mod __gl;
+
+mod buffer;
+mod device;
 mod error;
+mod sampler;
 
+pub use device::Device;
 pub use error::Error;
-
-/// Logical device, representation one or multiple physical devices (hardware or software).
-///
-/// This wraps an existing GL context and acts as the main API interface.
-/// It's the responsibility of the user to keep the context alive.
-pub struct Device(__gl::Gl);
+pub use sampler::{Filter, Sampler, SamplerAddress, SamplerDesc};
 
 impl Device {
-    fn get_error(&self, msg: &str) {
-        let err: Error = (unsafe { self.0.GetError() }).into();
-        if err != Error::NoError {
-            println!("Error: {} ({:?})", msg, err);
-        }
-    }
-
     fn check_pipeline_log(&self, pipeline: GLuint) {
         let log = {
             let mut len = unsafe {
@@ -55,20 +47,6 @@ impl Device {
         if !log.is_empty() {
             println!("Pipeline Info Log: {}", log);
         }
-    }
-
-    /// Create a new device from an existing context.
-    ///
-    /// The context must be initialized with GL 4.5+ core.
-    /// The passed `loader` is used to obtain the function pointers from the context.
-    pub fn new<F>(loader: F) -> Self
-    where
-        F: FnMut(&str) -> *const c_void,
-    {
-        let ctxt = __gl::Gl::load_with(loader);
-        unsafe { ctxt.Enable(__gl::FRAMEBUFFER_SRGB); }
-
-        Device(ctxt)
     }
 
     /// Create a new empty buffer.
@@ -360,7 +338,7 @@ impl Device {
             Double,
         }
 
-        for (i, desc) in attributes.iter().enumerate() {
+        for desc in attributes {
             let divisor = match desc.input_rate {
                 InputRate::Vertex => 0,
                 InputRate::Instance(rate) => rate,
@@ -466,7 +444,7 @@ impl Device {
             };
 
             unsafe {
-                self.0.EnableVertexArrayAttrib(vao, i as _);
+                self.0.EnableVertexArrayAttrib(vao, desc.location);
                 self.get_error("EnableVertexArrayAttrib");
 
                 match base {
@@ -503,7 +481,7 @@ impl Device {
                     }
                 }
 
-                self.0.VertexAttribDivisor(i as _, divisor as _);
+                self.0.VertexAttribDivisor(desc.location, divisor as _);
                 self.get_error("VertexAttribDivisor");
 
                 self.0.VertexArrayAttribBinding(vao, desc.location, desc.binding);
@@ -573,6 +551,46 @@ impl Device {
         unsafe { self.0.UseProgram(pipeline.0); }
     }
 
+    /// Set viewport transformation parameters.
+    ///
+    /// The viewport determines the mapping from NDC (normalized device coordinates)
+    /// into window coordinates.
+    pub fn set_viewport(&self, first: u32, viewports: &[Viewport]) {
+        let rects = viewports
+            .iter()
+            .flat_map(|viewport| {
+                vec![viewport.x, viewport.y, viewport.w, viewport.h]
+            })
+            .collect::<Vec<_>>();
+
+        unsafe { self.0.ViewportArrayv(first, rects.len() as _, rects.as_ptr()); }
+
+        let depth_ranges = viewports
+            .iter()
+            .flat_map(|viewport| {
+                vec![viewport.n, viewport.f]
+            })
+            .collect::<Vec<_>>();
+
+        unsafe { self.0.DepthRangeArrayv(first, depth_ranges.len() as _, depth_ranges.as_ptr()); }
+    }
+
+    /// Set scissor rectangles for viewports.
+    ///
+    /// # Valid usage
+    ///
+    /// - Every active viewport needs an associated scissor.
+    pub fn set_scissor(&self, first: u32, scissors: &[Scissor]) {
+        let scissors = scissors
+            .iter()
+            .flat_map(|scissor| {
+                vec![scissor.x, scissor.y, scissor.w, scissor.h]
+            })
+            .collect::<Vec<_>>();
+
+        unsafe { self.0.ScissorArrayv(first, scissors.len() as _, scissors.as_ptr()); }
+    }
+
     /// Submit a (non-indexed) draw call.
     ///
     /// # Valid usage
@@ -586,7 +604,7 @@ impl Device {
     /// - The access vertices must be in bound of the vertex buffers bound.
     /// - `vertices.end` must be larger than `vertices.start`.
     /// - `vertices.end - vertices.start` must be allow assembling complete primitives.
-    ///`- `instances.end` must be larger than `instances.start`.
+    /// - `instances.end` must be larger than `instances.start`.
     pub fn draw(
         &self,
         primitive: Primitive,
@@ -604,7 +622,7 @@ impl Device {
         }
     }
 
-    /// Submit a (non-indexed) draw call.
+    /// Submit an indexed draw call.
     ///
     /// # Valid usage
     ///
@@ -617,7 +635,7 @@ impl Device {
     /// - The access vertices must be in bound of the vertex buffers bound.
     /// - `indices.end` must be larger than `indices.start`.
     /// - `indices.end - indices.start` must be allow assembling complete primitives.
-    ///`- `instances.end` must be larger than `instances.start`.
+    /// - `instances.end` must be larger than `instances.start`.
     pub fn draw_indexed(
         &self,
         primitive: Primitive,
@@ -693,6 +711,30 @@ pub struct Framebuffer(GLuint);
 
 impl Framebuffer {
     pub const DEFAULT: &'static Self = &Framebuffer(0);
+}
+
+///
+pub struct Viewport {
+    pub x: f32,
+    pub y: f32,
+    /// Width
+    pub w: f32,
+    /// Height
+    pub h: f32,
+    // Near
+    pub n: f64,
+    // Far
+    pub f: f64,
+}
+
+///
+pub struct Scissor {
+    pub x: i32,
+    pub y: i32,
+    /// Width
+    pub w: i32,
+    /// Height
+    pub h: i32,
 }
 
 ///
@@ -816,6 +858,34 @@ pub struct VertexAttributeDesc {
     pub format: VertexFormat,
     pub offset: u32,
     pub input_rate: InputRate,
+}
+
+///
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum Compare {
+    Less,
+    LessEqual,
+    Greater,
+    GreaterEqual,
+    Equal,
+    NotEqual,
+    Always,
+    Never,
+}
+
+impl From<Compare> for GLenum {
+    fn from(compare: Compare) -> Self {
+        match compare {
+            Compare::Less => __gl::LESS,
+            Compare::LessEqual => __gl::LEQUAL,
+            Compare::Greater => __gl::GREATER,
+            Compare::GreaterEqual => __gl::GEQUAL,
+            Compare::Equal => __gl::EQUAL,
+            Compare::NotEqual => __gl::NOTEQUAL,
+            Compare::Always => __gl::ALWAYS,
+            Compare::Never => __gl::NEVER,
+        }
+    }
 }
 
 ///
