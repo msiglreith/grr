@@ -1,14 +1,17 @@
 <img align="left" src="info/grr_logo.png" width="196"/>
 
 # grr!
-#### A bare metal library for OpenGL 4.5+
+##### A bare metal library for OpenGL 4.5+
+
 [![crates.io](https://img.shields.io/crates/v/grr.svg)](https://crates.io/crates/grr)
 [![docs](https://docs.rs/grr/badge.svg)](https://docs.rs/grr)
 [![license](https://img.shields.io/badge/license-MPL%202.0-brightgreen.svg.svg)](LICENSE)
-<hr>
 
 `grr` aims at providing a thin layer above OpenGL 4.5+, exposing a modern API orientated on Vulkan.
 The sole purpose of the library is to have a cleaned up API for **fast prototyping**. Neither state caching, extensive error checking or further assistance is implemented nor in-scope of the lib!
+
+
+
 
 ## Features
 - API is built around **direct state access**
