@@ -11,11 +11,13 @@ mod __gl;
 mod buffer;
 mod device;
 mod error;
+mod framebuffer;
 mod sampler;
 
 pub use buffer::{Buffer, MappingFlags, MemoryFlags};
 pub use device::Device;
 pub use error::Error;
+pub use framebuffer::{Attachment, ClearAttachment, Framebuffer, Renderbuffer};
 pub use sampler::{Filter, Sampler, SamplerAddress, SamplerDesc};
 
 impl Device {
@@ -482,7 +484,7 @@ impl Device {
     /// # Valid usage
     ///
     /// - Every active viewport needs an associated scissor.
-    pub fn set_scissor(&self, first: u32, scissors: &[Scissor]) {
+    pub fn set_scissor(&self, first: u32, scissors: &[Region]) {
         let scissors = scissors
             .iter()
             .flat_map(|scissor| {
@@ -568,32 +570,6 @@ impl Device {
     pub fn dispatch(&self, groups_x: u32, groups_y: u32, groups_z: u32) {
         unsafe { self.0.DispatchCompute(groups_x, groups_y, groups_z); }
     }
-
-    /// Clear framebuffer attachment.
-    pub fn clear_attachment(&self, fb: &Framebuffer, cv: ClearAttachment) {
-        unsafe {
-            match cv {
-                ClearAttachment::ColorInt(id, color) => {
-                    self.0.ClearNamedFramebufferiv(fb.0, __gl::COLOR, id as _, color.as_ptr());
-                }
-                ClearAttachment::ColorUint(id, color) => {
-                    self.0.ClearNamedFramebufferuiv(fb.0, __gl::COLOR, id as _, color.as_ptr());
-                }
-                ClearAttachment::ColorFloat(id, color) => {
-                    self.0.ClearNamedFramebufferfv(fb.0, __gl::COLOR, id as _, color.as_ptr());
-                }
-                ClearAttachment::Depth(depth) => {
-                    self.0.ClearNamedFramebufferfi(fb.0, __gl::DEPTH, 0, depth, 0);
-                }
-                ClearAttachment::Stencil(stencil) => {
-                    self.0.ClearNamedFramebufferfi(fb.0, __gl::STENCIL, 0, 0.0, stencil);
-                }
-                ClearAttachment::DepthStencil(depth, stencil) => {
-                    self.0.ClearNamedFramebufferfi(fb.0, __gl::DEPTH_STENCIL, 0, depth, stencil);
-                }
-            }
-        }
-    }
 }
 
 ///
@@ -604,13 +580,6 @@ pub struct Pipeline(GLuint);
 
 ///
 pub struct VertexArray(GLuint);
-
-///
-pub struct Framebuffer(GLuint);
-
-impl Framebuffer {
-    pub const DEFAULT: &'static Self = &Framebuffer(0);
-}
 
 ///
 pub struct Viewport {
@@ -627,23 +596,13 @@ pub struct Viewport {
 }
 
 ///
-pub struct Scissor {
+pub struct Region {
     pub x: i32,
     pub y: i32,
     /// Width
     pub w: i32,
     /// Height
     pub h: i32,
-}
-
-///
-pub enum ClearAttachment {
-    ColorInt(usize, [i32; 4]),
-    ColorUint(usize, [u32; 4]),
-    ColorFloat(usize, [f32; 4]),
-    Depth(f32),
-    Stencil(i32),
-    DepthStencil(f32, i32),
 }
 
 ///

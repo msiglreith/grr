@@ -82,6 +82,7 @@ impl Device {
     /// Delete a sampler.
     pub fn delete_sampler(&self, sampler: Sampler) {
         unsafe { self.0.DeleteSamplers(1, &sampler.0); }
+        self.get_error("DeleteSamplers");
     }
 }
 

@@ -4,7 +4,7 @@ use __gl;
 use device::Device;
 
 ///
-pub struct Buffer(GLuint, GLbitfield);
+pub struct Buffer(pub(crate) GLuint, GLbitfield);
 
 impl Device {
     /// Create a new empty buffer.
@@ -134,4 +134,3 @@ bitflags!(
         const UNSYNCHRONIZED = 0x1;
     }
 );
-

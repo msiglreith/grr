@@ -120,7 +120,7 @@ fn main() {
             grr::Viewport { x: 0.0, y: 0.0, w: w as _, h: h as _ , n: 0.0, f: 1.0 },
         ]);
         grr.set_scissor(0, &[
-            grr::Scissor { x: 0, y: 0, w: w as _, h: h as _ },
+            grr::Region { x: 0, y: 0, w: w as _, h: h as _ },
         ]);
 
         grr.clear_attachment(grr::Framebuffer::DEFAULT, grr::ClearAttachment::ColorFloat(0, [0.5, 0.5, 0.5, 1.0]));
