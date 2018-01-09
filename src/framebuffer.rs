@@ -1,5 +1,6 @@
 
 use __gl;
+use __gl::types::GLuint;
 
 use Region;
 use device::Device;
@@ -44,7 +45,7 @@ impl Device {
 
     ///
     pub fn delete_framebuffer(&self, framebuffer: Framebuffer) {
-        unsafe { self.0.DeleteFramebuffers(1, framebuffer.0); }
+        unsafe { self.0.DeleteFramebuffers(1, &framebuffer.0); }
         self.get_error("DeleteFramebuffers");
     }
 
@@ -59,7 +60,7 @@ impl Device {
 
     ///
     pub fn delete_renderbuffer(&self, renderbuffer: Renderbuffer) {
-        unsafe { self.0.DeleteRenderbuffers(1, renderbuffer.0); }
+        unsafe { self.0.DeleteRenderbuffers(1, &renderbuffer.0); }
         self.get_error("DeleteRenderbuffers");
     }
 

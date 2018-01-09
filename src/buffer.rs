@@ -1,5 +1,9 @@
 
 use __gl;
+use __gl::types::{GLuint, GLbitfield};
+
+use std::{mem, ptr, slice};
+use std::ops::Range;
 
 use device::Device;
 
@@ -63,7 +67,7 @@ impl Device {
     /// Returns a typed slice of the mapped memory range.
     pub fn map_buffer<T>(&self, buffer: &Buffer, range: Range<u64>, mapping: MappingFlags) -> &mut [T] {
         let len = range.end - range.start;
-        let stride = std::mem::size_of::<T>();
+        let stride = mem::size_of::<T>();
         assert_eq!(len % stride as u64, 0);
 
         let mut flags = 0;
@@ -78,7 +82,7 @@ impl Device {
             __gl::MAP_WRITE_BIT
         );
 
-        let stride = std::mem::size_of::<T>();
+        let stride = mem::size_of::<T>();
 
         let ptr = unsafe {
             self.0.MapNamedBufferRange(
@@ -89,7 +93,7 @@ impl Device {
             ) as *mut _
         };
 
-        unsafe { std::slice::from_raw_parts_mut(ptr, len as usize / stride) }
+        unsafe { slice::from_raw_parts_mut(ptr, len as usize / stride) }
     }
 
     /// Unmap a buffer from virtual host memory.

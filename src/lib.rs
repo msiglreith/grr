@@ -1,10 +1,9 @@
 
 #[macro_use] extern crate bitflags;
 
-use __gl::types::{GLbitfield, GLenum, GLuint};
+use __gl::types::{GLenum, GLuint};
 
 use std::ops::Range;
-use std::ptr;
 
 mod __gl;
 
