@@ -1,6 +1,6 @@
 [package]
 name = "grr"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["msiglreith <m.siglreith@gmail.com>"]
 description = "Bare metal OpenGL 4.5+ wrapper"
 homepage = "https://github.com/msiglreith/grr"
