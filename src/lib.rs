@@ -9,14 +9,18 @@ mod buffer;
 mod command;
 mod device;
 mod error;
+mod format;
 mod framebuffer;
+mod image;
 mod sampler;
 mod vertex;
 
 pub use buffer::{Buffer, MappingFlags, MemoryFlags};
 pub use device::Device;
 pub use error::Error;
+pub use format::Format;
 pub use framebuffer::{Attachment, ClearAttachment, Framebuffer, Renderbuffer};
+pub use image::Image;
 pub use sampler::{Filter, Sampler, SamplerAddress, SamplerDesc};
 pub use vertex::{InputRate, VertexArray, VertexAttributeDesc, VertexBufferView, VertexFormat};
 
