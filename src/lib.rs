@@ -1,5 +1,5 @@
-
-#[macro_use] extern crate bitflags;
+#[macro_use]
+extern crate bitflags;
 
 use __gl::types::{GLenum, GLuint};
 
@@ -24,7 +24,8 @@ impl Device {
         let log = {
             let mut len = unsafe {
                 let mut len = 0;
-                self.0.GetProgramiv(pipeline, __gl::INFO_LOG_LENGTH, &mut len);
+                self.0
+                    .GetProgramiv(pipeline, __gl::INFO_LOG_LENGTH, &mut len);
                 len
             };
 
@@ -83,7 +84,8 @@ impl Device {
 
         let status = unsafe {
             let mut status = 0;
-            self.0.GetShaderiv(shader, __gl::COMPILE_STATUS, &mut status);
+            self.0
+                .GetShaderiv(shader, __gl::COMPILE_STATUS, &mut status);
             status
         };
 
@@ -102,12 +104,8 @@ impl Device {
                 let mut log = String::with_capacity(len as usize);
                 log.extend(std::iter::repeat('\0').take(len as usize));
                 unsafe {
-                    self.0.GetShaderInfoLog(
-                        shader,
-                        len,
-                        &mut len,
-                        (&log[..]).as_ptr() as *mut _,
-                    );
+                    self.0
+                        .GetShaderInfoLog(shader, len, &mut len, (&log[..]).as_ptr() as *mut _);
                 }
                 log.truncate(len as usize);
                 log
@@ -125,7 +123,9 @@ impl Device {
 
     /// Delete a shader.
     pub fn delete_shader(&self, shader: Shader) {
-        unsafe { self.0.DeleteShader(shader.0); }
+        unsafe {
+            self.0.DeleteShader(shader.0);
+        }
     }
 
     /// Create a graphics pipeline.
@@ -182,7 +182,8 @@ impl Device {
 
         let status = unsafe {
             let mut status = 0;
-            self.0.GetProgramiv(pipeline, __gl::LINK_STATUS, &mut status);
+            self.0
+                .GetProgramiv(pipeline, __gl::LINK_STATUS, &mut status);
             status
         };
 
@@ -206,13 +207,17 @@ impl Device {
 
         unsafe {
             self.0.AttachShader(pipeline, compute_shader.0);
+            self.get_error("AttachShader");
             self.0.LinkProgram(pipeline);
+            self.get_error("LinkProgram");
             self.0.DetachShader(pipeline, compute_shader.0);
+            self.get_error("DetachShader");
         }
 
         let status = unsafe {
             let mut status = 0;
-            self.0.GetProgramiv(pipeline, __gl::LINK_STATUS, &mut status);
+            self.0
+                .GetProgramiv(pipeline, __gl::LINK_STATUS, &mut status);
             status
         };
 
@@ -242,11 +247,6 @@ impl Device {
         }
 
         for desc in attributes {
-            let divisor = match desc.input_rate {
-                InputRate::Vertex => 0,
-                InputRate::Instance(rate) => rate,
-            };
-
             let (base, num, ty, norm) = match desc.format {
                 VertexFormat::X8Int => (VertexBase::Int, 1, __gl::BYTE, false),
                 VertexFormat::X8Uint => (VertexBase::Int, 1, __gl::UNSIGNED_BYTE, false),
@@ -352,13 +352,8 @@ impl Device {
 
                 match base {
                     VertexBase::Int => {
-                        self.0.VertexArrayAttribIFormat(
-                            vao,
-                            desc.location,
-                            num,
-                            ty,
-                            desc.offset,
-                        );
+                        self.0
+                            .VertexArrayAttribIFormat(vao, desc.location, num, ty, desc.offset);
                         self.get_error("VertexArrayAttribIFormat");
                     }
                     VertexBase::Float => {
@@ -373,21 +368,14 @@ impl Device {
                         self.get_error("VertexArrayAttribFormat");
                     }
                     VertexBase::Double => {
-                        self.0.VertexArrayAttribLFormat(
-                            vao,
-                            desc.location,
-                            num,
-                            ty,
-                            desc.offset,
-                        );
+                        self.0
+                            .VertexArrayAttribLFormat(vao, desc.location, num, ty, desc.offset);
                         self.get_error("VertexArrayAttribLFormat");
                     }
                 }
 
-                self.0.VertexAttribDivisor(desc.location, divisor as _);
-                self.get_error("VertexAttribDivisor");
-
-                self.0.VertexArrayAttribBinding(vao, desc.location, desc.binding);
+                self.0
+                    .VertexArrayAttribBinding(vao, desc.location, desc.binding);
                 self.get_error("VertexArrayAttribBinding");
             }
         }
@@ -398,24 +386,20 @@ impl Device {
     /// Delete a vertex array.
     pub fn delete_vertex_array(&self, vao: VertexArray) {
         unsafe { self.0.DeleteVertexArrays(1, &vao.0) }
+        self.get_error("DeleteVertexArrays");
     }
 
     /// Bind a vertex array for usage.
     pub fn bind_vertex_array(&self, vao: &VertexArray) {
-        unsafe { self.0.BindVertexArray(vao.0); }
+        unsafe {
+            self.0.BindVertexArray(vao.0);
+        }
+        self.get_error("BindVertexArray");
     }
 
     /// Bind vertex buffers to a vertex array.
-    pub fn bind_vertex_buffers(
-        &self,
-        vao: &VertexArray,
-        first: u32,
-        views: &[VertexBufferView],
-    ) {
-        let buffers = views
-            .iter()
-            .map(|view| view.buffer.0)
-            .collect::<Vec<_>>();
+    pub fn bind_vertex_buffers(&self, vao: &VertexArray, first: u32, views: &[VertexBufferView]) {
+        let buffers = views.iter().map(|view| view.buffer.0).collect::<Vec<_>>();
 
         let offsets = views
             .iter()
@@ -437,21 +421,34 @@ impl Device {
                 strides.as_ptr(),
             );
         }
+        self.get_error("VertexArrayVertexBuffers");
+
+        for (binding, view) in views.iter().enumerate() {
+            let divisor = match view.input_rate {
+                InputRate::Vertex => 0,
+                InputRate::Instance { divisor } => divisor,
+            };
+
+            unsafe {
+                self.0
+                    .VertexArrayBindingDivisor(vao.0, first + binding as u32, divisor as _);
+            }
+            self.get_error("VertexArrayBindingDivisor");
+        }
     }
 
     /// Bind a index buffer to a vertex array.
     pub fn bind_index_buffer(&self, vao: &VertexArray, buffer: &Buffer) {
-        unsafe {
-            self.0.VertexArrayElementBuffer(
-                vao.0,
-                buffer.0,
-            )
-        }
+        unsafe { self.0.VertexArrayElementBuffer(vao.0, buffer.0) }
+        self.get_error("VertexArrayElementBuffer");
     }
 
     /// Bind a pipeline for usage.
     pub fn bind_pipeline(&self, pipeline: &Pipeline) {
-        unsafe { self.0.UseProgram(pipeline.0); }
+        unsafe {
+            self.0.UseProgram(pipeline.0);
+        }
+        self.get_error("UseProgram");
     }
 
     /// Set viewport transformation parameters.
@@ -461,21 +458,25 @@ impl Device {
     pub fn set_viewport(&self, first: u32, viewports: &[Viewport]) {
         let rects = viewports
             .iter()
-            .flat_map(|viewport| {
-                vec![viewport.x, viewport.y, viewport.w, viewport.h]
-            })
+            .flat_map(|viewport| vec![viewport.x, viewport.y, viewport.w, viewport.h])
             .collect::<Vec<_>>();
 
-        unsafe { self.0.ViewportArrayv(first, rects.len() as _, rects.as_ptr()); }
+        unsafe {
+            self.0
+                .ViewportArrayv(first, viewports.len() as _, rects.as_ptr());
+        }
+        self.get_error("ViewportArrayv");
 
         let depth_ranges = viewports
             .iter()
-            .flat_map(|viewport| {
-                vec![viewport.n, viewport.f]
-            })
+            .flat_map(|viewport| vec![viewport.n, viewport.f])
             .collect::<Vec<_>>();
 
-        unsafe { self.0.DepthRangeArrayv(first, depth_ranges.len() as _, depth_ranges.as_ptr()); }
+        unsafe {
+            self.0
+                .DepthRangeArrayv(first, viewports.len() as _, depth_ranges.as_ptr());
+        }
+        self.get_error("DepthRangeArrayv");
     }
 
     /// Set scissor rectangles for viewports.
@@ -484,14 +485,16 @@ impl Device {
     ///
     /// - Every active viewport needs an associated scissor.
     pub fn set_scissor(&self, first: u32, scissors: &[Region]) {
-        let scissors = scissors
+        let scissors_raw = scissors
             .iter()
-            .flat_map(|scissor| {
-                vec![scissor.x, scissor.y, scissor.w, scissor.h]
-            })
+            .flat_map(|scissor| vec![scissor.x, scissor.y, scissor.w, scissor.h])
             .collect::<Vec<_>>();
 
-        unsafe { self.0.ScissorArrayv(first, scissors.len() as _, scissors.as_ptr()); }
+        unsafe {
+            self.0
+                .ScissorArrayv(first, scissors.len() as _, scissors_raw.as_ptr());
+        }
+        self.get_error("ScissorArrayv");
     }
 
     /// Submit a (non-indexed) draw call.
@@ -508,12 +511,7 @@ impl Device {
     /// - `vertices.end` must be larger than `vertices.start`.
     /// - `vertices.end - vertices.start` must be allow assembling complete primitives.
     /// - `instances.end` must be larger than `instances.start`.
-    pub fn draw(
-        &self,
-        primitive: Primitive,
-        vertices: Range<u32>,
-        instance: Range<u32>,
-    ) {
+    pub fn draw(&self, primitive: Primitive, vertices: Range<u32>, instance: Range<u32>) {
         unsafe {
             self.0.DrawArraysInstancedBaseInstance(
                 primitive.into(),
@@ -523,6 +521,7 @@ impl Device {
                 instance.start as _,
             )
         }
+        self.get_error("DrawArraysInstancedBaseInstance");
     }
 
     /// Submit an indexed draw call.
@@ -558,6 +557,7 @@ impl Device {
                 instance.start as _,
             )
         }
+        self.get_error("DrawElementsInstancedBaseVertexBaseInstance");
     }
 
     /// Dispatch a workgroup for computation.
@@ -567,7 +567,10 @@ impl Device {
     /// - `group_x`, `group_y` and `group_z` must be larger than 0.
     /// - There must be a valid compute shader currently bound.
     pub fn dispatch(&self, groups_x: u32, groups_y: u32, groups_z: u32) {
-        unsafe { self.0.DispatchCompute(groups_x, groups_y, groups_z); }
+        unsafe {
+            self.0.DispatchCompute(groups_x, groups_y, groups_z);
+        }
+        self.get_error("DispatchCompute");
     }
 }
 
@@ -663,7 +666,6 @@ impl From<IndexTy> for GLenum {
     }
 }
 
-
 ///
 pub struct GraphicsPipelineDesc<'a> {
     pub vertex_shader: &'a Shader,
@@ -678,6 +680,7 @@ pub struct VertexBufferView<'a> {
     pub buffer: &'a Buffer,
     pub offset: u64,
     pub stride: u32,
+    pub input_rate: InputRate,
 }
 
 ///
@@ -686,7 +689,6 @@ pub struct VertexAttributeDesc {
     pub binding: u32,
     pub format: VertexFormat,
     pub offset: u32,
-    pub input_rate: InputRate,
 }
 
 ///
@@ -720,7 +722,7 @@ impl From<Compare> for GLenum {
 ///
 pub enum InputRate {
     Vertex,
-    Instance(usize),
+    Instance { divisor: usize },
 }
 
 ///

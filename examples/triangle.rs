@@ -1,5 +1,5 @@
-extern crate grr;
 extern crate glutin;
+extern crate grr;
 
 use glutin::GlContext;
 
@@ -27,9 +27,7 @@ const FRAGMENT_SRC: &str = r#"
 "#;
 
 const VERTICES: [f32; 15] = [
-    -0.5, -0.5, 1.0, 0.0, 0.0,
-     0.5, -0.5, 0.0, 1.0, 0.0,
-     0.0,  0.5, 0.0, 0.0, 1.0,
+    -0.5, -0.5, 1.0, 0.0, 0.0, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 0.5, 0.0, 0.0, 1.0,
 ];
 
 fn main() {
@@ -44,7 +42,9 @@ fn main() {
     let window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
     let (w, h) = window.get_inner_size().unwrap();
 
-    unsafe { window.make_current().unwrap(); }
+    unsafe {
+        window.make_current().unwrap();
+    }
 
     let grr = grr::Device::new(|symbol| window.get_proc_address(symbol) as *const _);
 
@@ -65,14 +65,12 @@ fn main() {
             binding: 0,
             format: grr::VertexFormat::Xy32Float,
             offset: 0,
-            input_rate: grr::InputRate::Vertex,
         },
         grr::VertexAttributeDesc {
             location: 1,
             binding: 0,
             format: grr::VertexFormat::Xyz32Float,
             offset: (2 * std::mem::size_of::<f32>()) as _,
-            input_rate: grr::InputRate::Vertex,
         },
     ]);
 
@@ -93,15 +91,13 @@ fn main() {
 
     let mut running = true;
     while running {
-        events_loop.poll_events(|event| {
-            match event {
-                glutin::Event::WindowEvent{ event, .. } => match event {
-                    glutin::WindowEvent::Closed => running = false,
-                    glutin::WindowEvent::Resized(w, h) => window.resize(w, h),
-                    _ => ()
-                },
-                _ => ()
-            }
+        events_loop.poll_events(|event| match event {
+            glutin::Event::WindowEvent { event, .. } => match event {
+                glutin::WindowEvent::Closed => running = false,
+                glutin::WindowEvent::Resized(w, h) => window.resize(w, h),
+                _ => (),
+            },
+            _ => (),
         });
 
         grr.bind_pipeline(&pipeline);
@@ -113,17 +109,35 @@ fn main() {
                 buffer: &triangle_data,
                 offset: 0,
                 stride: (std::mem::size_of::<f32>() * 5) as _,
-            }]
+                input_rate: grr::InputRate::Vertex,
+            }],
         );
 
-        grr.set_viewport(0, &[
-            grr::Viewport { x: 0.0, y: 0.0, w: w as _, h: h as _ , n: 0.0, f: 1.0 },
-        ]);
-        grr.set_scissor(0, &[
-            grr::Region { x: 0, y: 0, w: w as _, h: h as _ },
-        ]);
+        grr.set_viewport(
+            0,
+            &[grr::Viewport {
+                x: 0.0,
+                y: 0.0,
+                w: w as _,
+                h: h as _,
+                n: 0.0,
+                f: 1.0,
+            }],
+        );
+        grr.set_scissor(
+            0,
+            &[grr::Region {
+                x: 0,
+                y: 0,
+                w: w as _,
+                h: h as _,
+            }],
+        );
 
-        grr.clear_attachment(grr::Framebuffer::DEFAULT, grr::ClearAttachment::ColorFloat(0, [0.5, 0.5, 0.5, 1.0]));
+        grr.clear_attachment(
+            grr::Framebuffer::DEFAULT,
+            grr::ClearAttachment::ColorFloat(0, [0.5, 0.5, 0.5, 1.0]),
+        );
         grr.draw(grr::Primitive::Triangles, 0..3, 0..1);
 
         window.swap_buffers().unwrap();

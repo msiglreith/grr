@@ -93,9 +93,9 @@ impl Device {
     ///
     pub fn invalidate_framebuffer(
         &self,
-        framebuffer: &Framebuffer,
-        attachments: &[Attachment],
-        region: Region,
+        _framebuffer: &Framebuffer,
+        _attachments: &[Attachment],
+        _region: Region,
     ) {
         unimplemented!()
     }
