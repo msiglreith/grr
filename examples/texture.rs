@@ -172,6 +172,22 @@ fn main() {
         border_color: [0.0, 0.0, 0.0, 1.0],
     });
 
+    let color_blend = grr::ColorBlend {
+        attachments: vec![grr::ColorBlendAttachment {
+            blend_enable: true,
+            color: grr::BlendChannel {
+                src_factor: grr::BlendFactor::SrcAlpha,
+                dst_factor: grr::BlendFactor::OneMinusSrcAlpha,
+                blend_op: grr::BlendOp::Add,
+            },
+            alpha: grr::BlendChannel {
+                src_factor: grr::BlendFactor::SrcAlpha,
+                dst_factor: grr::BlendFactor::OneMinusSrcAlpha,
+                blend_op: grr::BlendOp::Add,
+            },
+        }],
+    };
+
     let mut running = true;
     while running {
         events_loop.poll_events(|event| match event {
@@ -185,6 +201,8 @@ fn main() {
 
         grr.bind_pipeline(&pipeline);
         grr.bind_vertex_array(&vertex_array);
+        grr.bind_color_blend_state(&color_blend);
+
         grr.bind_image_views(3, &[&texture_view]);
         grr.bind_samplers(3, &[&sampler]);
 
@@ -223,7 +241,7 @@ fn main() {
 
         grr.clear_attachment(
             grr::Framebuffer::DEFAULT,
-            grr::ClearAttachment::ColorFloat(0, [0.5, 0.5, 0.5, 1.0]),
+            grr::ClearAttachment::ColorFloat(0, [0.9, 0.9, 0.9, 1.0]),
         );
         grr.draw_indexed(grr::Primitive::Triangles, grr::IndexTy::U16, 0..6, 0..1, 0);
 

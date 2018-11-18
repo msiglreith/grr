@@ -21,5 +21,5 @@ glutin = "0.12"
 image = "0.20"
 
 [build-dependencies]
-gl_generator = "0.7"
+gl_generator = "0.10"
 

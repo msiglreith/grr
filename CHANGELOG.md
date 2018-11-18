@@ -1,4 +1,10 @@
 
+# 0.3 (Bay Cat)
+
+### Added
+- Input Assembly state
+- Color Blend state
+
 # 0.2 (Caracal)
 
 ### Added

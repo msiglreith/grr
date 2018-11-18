@@ -12,6 +12,7 @@ mod error;
 mod format;
 mod framebuffer;
 mod image;
+mod pipeline;
 mod sampler;
 mod vertex;
 
@@ -21,6 +22,9 @@ pub use error::Error;
 pub use format::{BaseFormat, Format, FormatLayout};
 pub use framebuffer::{Attachment, ClearAttachment, Framebuffer, Renderbuffer};
 pub use image::{Image, ImageType, ImageView, ImageViewType, SubresourceRange};
+pub use pipeline::{
+    BlendChannel, BlendFactor, BlendOp, ColorBlend, ColorBlendAttachment, InputAssembly,
+};
 pub use sampler::{Filter, Sampler, SamplerAddress, SamplerDesc};
 pub use vertex::{InputRate, VertexArray, VertexAttributeDesc, VertexBufferView, VertexFormat};
 
