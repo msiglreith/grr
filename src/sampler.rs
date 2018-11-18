@@ -110,12 +110,14 @@ impl Device {
         Sampler(sampler)
     }
 
-    /// Bind a sampler to a specific texture unit.
-    pub fn bind_sampler(&self, unit: u32, sampler: &Sampler) {
+    /// Bind samplers to specific texture units.
+    pub fn bind_samplers(&self, first: u32, samplers: &[&Sampler]) {
+        let samplers = samplers.iter().map(|s| s.0).collect::<Vec<_>>();
         unsafe {
-            self.0.BindSampler(unit, sampler.0);
+            self.0
+                .BindSamplers(first, samplers.len() as _, samplers.as_ptr());
         }
-        self.get_error("BindSampler");
+        self.get_error("BindSamplers");
     }
 
     /// Delete a sampler.

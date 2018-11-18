@@ -1,12 +1,16 @@
 use __gl;
 use __gl::types::GLuint;
 
+use std::ops::Range;
+
 use device::Device;
 use format::Format;
 
 ///
-#[repr(transparent)]
-pub struct Image(GLuint);
+pub struct Image {
+    raw: GLuint,
+    target: GLenum,
+}
 
 pub enum ImageType {
     D1 {
@@ -24,6 +28,25 @@ pub enum ImageType {
         height: u32,
         depth: u32,
     },
+}
+
+///
+#[repr(transparent)]
+pub struct ImageView(GLuint);
+
+pub enum ImageViewType {
+    D1,
+    D2,
+    D3,
+    Cube,
+    D1Array,
+    D2Array,
+    CubeArray,
+}
+
+pub struct SubresourceRange {
+    pub levels: Range<u32>,
+    pub layers: Range<u32>,
 }
 
 impl Device {
@@ -58,11 +81,14 @@ impl Device {
         unsafe {
             self.0.CreateTextures(target, 1, &mut image);
         }
+        self.get_error("CreateTextures");
 
-        match ty {
+        let samples = match ty {
             ImageType::D1 { width, layers: 1 } => unsafe {
                 self.0
                     .TextureStorage1D(image, levels as _, format as _, width as _);
+                self.get_error("TextureStorage1D");
+                1
             },
             ImageType::D1 {
                 width,
@@ -76,6 +102,8 @@ impl Device {
             } => unsafe {
                 self.0
                     .TextureStorage2D(image, levels as _, format as _, width as _, height as _);
+                self.get_error("TextureStorage2D");
+                1
             },
             ImageType::D2 {
                 width,
@@ -88,8 +116,61 @@ impl Device {
                 height,
                 depth,
             } => unimplemented!(),
-        }
+        };
 
-        Image(image)
+        Image { raw: image, target }
+    }
+
+    pub fn create_image_view(
+        &self,
+        image: &Image,
+        ty: ImageViewType,
+        format: Format,
+        range: SubresourceRange,
+    ) -> ImageView {
+        let target = match ty {
+            ImageViewType::D1 => __gl::TEXTURE_1D,
+            ImageViewType::D2 if image.target == __gl::TEXTURE_2D_MULTISAMPLE => {
+                __gl::TEXTURE_2D_MULTISAMPLE
+            }
+            ImageViewType::D2 => __gl::TEXTURE_2D,
+            ImageViewType::D3 => __gl::TEXTURE_3D,
+            ImageViewType::Cube => __gl::TEXTURE_CUBE_MAP,
+            ImageViewType::D1Array => __gl::TEXTURE_1D_ARRAY,
+            ImageViewType::D2Array if image.target == __gl::TEXTURE_2D_MULTISAMPLE_ARRAY => {
+                __gl::TEXTURE_2D_MULTISAMPLE_ARRAY
+            }
+            ImageViewType::D2Array => __gl::TEXTURE_2D_ARRAY,
+            ImageViewType::CubeArray => __gl::TEXTURE_CUBE_MAP_ARRAY,
+        };
+        let mut view = 0;
+        unsafe {
+            self.0.GenTextures(1, &mut view);
+        }
+        self.get_error("GenTextures");
+
+        unsafe {
+            self.0.TextureView(
+                view,
+                target,
+                image.raw,
+                format as _,
+                range.levels.start,
+                range.levels.end,
+                range.layers.start,
+                range.layers.end,
+            );
+        }
+        self.get_error("TextureView");
+
+        ImageView(view)
+    }
+
+    pub fn bind_image_views(&self, first: u32, views: &[&ImageView]) {
+        let views = views.iter().map(|view| view.0).collect::<Vec<_>>();
+        unsafe {
+            self.0.BindTextures(first, views.len() as _, views.as_ptr());
+        }
+        self.get_error("BindTextures");
     }
 }
