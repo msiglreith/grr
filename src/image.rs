@@ -1,10 +1,11 @@
 use __gl;
-use __gl::types::GLuint;
+use __gl::types::{GLenum, GLuint};
 
 use std::ops::Range;
 
 use device::Device;
-use format::Format;
+use format::{BaseFormat, Format, FormatLayout};
+use {Extent, Offset};
 
 ///
 pub struct Image {
@@ -83,12 +84,11 @@ impl Device {
         }
         self.get_error("CreateTextures");
 
-        let samples = match ty {
+        match ty {
             ImageType::D1 { width, layers: 1 } => unsafe {
                 self.0
                     .TextureStorage1D(image, levels as _, format as _, width as _);
                 self.get_error("TextureStorage1D");
-                1
             },
             ImageType::D1 {
                 width,
@@ -103,22 +103,41 @@ impl Device {
                 self.0
                     .TextureStorage2D(image, levels as _, format as _, width as _, height as _);
                 self.get_error("TextureStorage2D");
-                1
             },
-            ImageType::D2 {
-                width,
-                height,
-                layers,
-                samples,
-            } => unimplemented!(),
-            ImageType::D3 {
-                width,
-                height,
-                depth,
-            } => unimplemented!(),
-        };
+            ImageType::D2 { .. } => unimplemented!(),
+            ImageType::D3 { .. } => unimplemented!(),
+        }
 
         Image { raw: image, target }
+    }
+
+    pub fn copy_host_to_image(
+        &self,
+        image: &Image,
+        level: u32,
+        layers: Range<u32>,
+        offset: Offset,
+        extent: Extent,
+        data: &[u8],
+        base_format: BaseFormat,
+        format_layout: FormatLayout,
+    ) {
+        match image.target {
+            __gl::TEXTURE_2D if layers == (0..1) => unsafe {
+                self.0.TextureSubImage2D(
+                    image.raw,
+                    level as _,
+                    offset.x,
+                    offset.y,
+                    extent.width as _,
+                    extent.height as _,
+                    base_format as _,
+                    format_layout as _,
+                    data.as_ptr() as *const _,
+                )
+            },
+            _ => unimplemented!(), // panic!("Invalid target image: {}", image.target),
+        }
     }
 
     pub fn create_image_view(

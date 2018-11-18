@@ -1,38 +1,41 @@
 extern crate glutin;
 extern crate grr;
+extern crate image;
 
 use glutin::GlContext;
+
+use std::path::Path;
 
 const VERTEX_SRC: &str = r#"
     #version 450 core
     layout (location = 0) in vec2 v_pos;
     layout (location = 1) in vec2 v_uv;
 
-    layout (location = 0) out vec3 a_color;
+    layout (location = 0) out vec2 a_uv;
 
     void main() {
-        a_color = vec3(v_uv, 0.0);
+        a_uv = v_uv;
         gl_Position = vec4(v_pos, 0.0, 1.0);
     }
 "#;
 
 const FRAGMENT_SRC: &str = r#"
     #version 450 core
-    layout (location = 0) in vec3 a_color;
+    layout (location = 0) in vec2 a_uv;
     out vec4 f_color;
 
     layout (binding = 3) uniform sampler2D u_texture;
 
     void main() {
-       f_color = vec4(a_color, 1.0);
+       f_color = texture(u_texture, a_uv);
     }
 "#;
 
 const VERTICES: [f32; 16] = [
-    -0.5, -0.5, 0.0, 0.0, // bottom-left
-    0.5, -0.5, 1.0, 0.0, // bottom-right
-    0.5, 0.5, 1.0, 1.0, // top-right
-    -0.5, 0.5, 0.0, 1.0, // top-left
+    -0.5, -0.5, 0.0, 1.0, // bottom-left
+    0.5, -0.5, 1.0, 1.0, // bottom-right
+    0.5, 0.5, 1.0, 0.0, // top-right
+    -0.5, 0.5, 0.0, 0.0, // top-left
 ];
 
 const INDICES: [u16; 6] = [0, 1, 2, 2, 3, 0];
@@ -111,16 +114,39 @@ fn main() {
         buffer
     };
 
+    let img = image::open(&Path::new("info/grr_logo.png"))
+        .unwrap()
+        .to_rgba();
+    let img_width = img.width();
+    let img_height = img.height();
+    let img_data = img.into_raw();
+
     let texture = grr.create_image(
         grr::ImageType::D2 {
-            width: 64,
-            height: 64,
+            width: img_width,
+            height: img_height,
             layers: 1,
             samples: 1,
         },
         grr::Format::R8G8B8A8_SRGB,
         1,
     );
+
+    grr.copy_host_to_image(
+        &texture,
+        0,
+        0..1,
+        grr::Offset { x: 0, y: 0, z: 0 },
+        grr::Extent {
+            width: img_width,
+            height: img_height,
+            depth: 1,
+        },
+        &img_data,
+        grr::BaseFormat::RGBA,
+        grr::FormatLayout::U8,
+    );
+
     let texture_view = grr.create_image_view(
         &texture,
         grr::ImageViewType::D2,

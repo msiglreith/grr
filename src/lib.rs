@@ -18,7 +18,7 @@ mod vertex;
 pub use buffer::{Buffer, MappingFlags, MemoryFlags};
 pub use device::Device;
 pub use error::Error;
-pub use format::Format;
+pub use format::{BaseFormat, Format, FormatLayout};
 pub use framebuffer::{Attachment, ClearAttachment, Framebuffer, Renderbuffer};
 pub use image::{Image, ImageType, ImageView, ImageViewType, SubresourceRange};
 pub use sampler::{Filter, Sampler, SamplerAddress, SamplerDesc};
@@ -433,6 +433,20 @@ pub struct Region {
     pub w: i32,
     /// Height
     pub h: i32,
+}
+
+///
+pub struct Offset {
+    pub x: i32,
+    pub y: i32,
+    pub z: i32,
+}
+
+///
+pub struct Extent {
+    pub width: u32,
+    pub height: u32,
+    pub depth: u32,
 }
 
 ///
