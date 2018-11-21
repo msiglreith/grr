@@ -1,9 +1,8 @@
-
 use __gl;
-use __gl::types::{GLuint, GLbitfield};
+use __gl::types::{GLbitfield, GLuint};
 
-use std::{mem, ptr, slice};
 use std::ops::Range;
+use std::{mem, ptr, slice};
 
 use device::Device;
 
@@ -42,7 +41,8 @@ impl Device {
         let mut buffer = 0;
         unsafe {
             self.0.CreateBuffers(1, &mut buffer);
-            self.0.NamedBufferStorage(buffer, size as _, ptr::null(), flags);
+            self.0
+                .NamedBufferStorage(buffer, size as _, ptr::null(), flags);
         }
 
         Buffer(buffer, flags)
@@ -65,7 +65,12 @@ impl Device {
     /// # Return
     ///
     /// Returns a typed slice of the mapped memory range.
-    pub fn map_buffer<T>(&self, buffer: &Buffer, range: Range<u64>, mapping: MappingFlags) -> &mut [T] {
+    pub fn map_buffer<T>(
+        &self,
+        buffer: &Buffer,
+        range: Range<u64>,
+        mapping: MappingFlags,
+    ) -> &mut [T] {
         let len = range.end - range.start;
         let stride = mem::size_of::<T>();
         assert_eq!(len % stride as u64, 0);
@@ -75,22 +80,18 @@ impl Device {
         if mapping.contains(MappingFlags::UNSYNCHRONIZED) {
             flags |= __gl::MAP_UNSYNCHRONIZED_BIT;
         }
-        flags |= buffer.1 & (
-            __gl::MAP_COHERENT_BIT |
-            __gl::MAP_PERSISTENT_BIT |
-            __gl::MAP_READ_BIT |
-            __gl::MAP_WRITE_BIT
-        );
+        flags |= buffer.1
+            & (__gl::MAP_COHERENT_BIT
+                | __gl::MAP_PERSISTENT_BIT
+                | __gl::MAP_READ_BIT
+                | __gl::MAP_WRITE_BIT);
 
         let stride = mem::size_of::<T>();
 
         let ptr = unsafe {
-            self.0.MapNamedBufferRange(
-                buffer.0,
-                range.start as _,
-                len as _,
-                flags,
-            ) as *mut _
+            self.0
+                .MapNamedBufferRange(buffer.0, range.start as _, len as _, flags)
+                as *mut _
         };
 
         unsafe { slice::from_raw_parts_mut(ptr, len as usize / stride) }
@@ -107,7 +108,17 @@ impl Device {
 
     /// Delete a buffer.
     pub fn delete_buffer(&self, buffer: Buffer) {
-        unsafe { self.0.DeleteBuffers(1, &buffer.0); }
+        unsafe {
+            self.0.DeleteBuffers(1, &buffer.0);
+        }
+    }
+
+    pub fn copy_host_to_buffer(&self, buffer: &Buffer, offset: isize, data: &[u8]) {
+        unsafe {
+            self.0
+                .NamedBufferSubData(buffer.0, offset, data.len() as _, data.as_ptr() as *const _);
+        }
+        self.get_error("TextureStorage2D");
     }
 }
 
