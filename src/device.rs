@@ -1,4 +1,3 @@
-
 use __gl;
 
 use std::os::raw::c_void;
@@ -21,11 +20,20 @@ impl Device {
         let ctxt = __gl::Gl::load_with(loader);
 
         // Enforce sRGB frmaebuffer handling
-        unsafe { ctxt.Enable(__gl::FRAMEBUFFER_SRGB); }
+        unsafe {
+            ctxt.Enable(__gl::FRAMEBUFFER_SRGB);
+        }
         // Enforce lower-left window coordinate system with [0; 1] depth range
-        unsafe { ctxt.ClipControl(__gl::LOWER_LEFT, __gl::ZERO_TO_ONE); }
+        unsafe {
+            ctxt.ClipControl(__gl::LOWER_LEFT, __gl::ZERO_TO_ONE);
+        }
         // Always enable scissor testing
-        unsafe { ctxt.Enable(__gl::SCISSOR_TEST); }
+        unsafe {
+            ctxt.Enable(__gl::SCISSOR_TEST);
+        }
+        unsafe {
+            ctxt.Enable(__gl::TEXTURE_CUBE_MAP_SEAMLESS);
+        }
 
         Device(ctxt)
     }
