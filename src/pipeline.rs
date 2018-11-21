@@ -3,11 +3,50 @@ use __gl;
 use device::Device;
 
 ///
+#[derive(Debug)]
 pub struct InputAssembly {
     pub primitive_restart: Option<u32>,
 }
 
 ///
+#[derive(Debug)]
+pub struct Rasterization {
+    pub depth_clamp: bool,
+    pub rasterizer_discard: bool,
+    pub polygon_mode: PolygonMode,
+    pub cull_mode: Option<CullMode>,
+    pub front_face: FrontFace,
+    pub depth_bias: bool,
+}
+
+///
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum PolygonMode {
+    Point = __gl::POINT,
+    Line = __gl::LINE,
+    Fill = __gl::FILL,
+}
+
+///
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum CullMode {
+    Front = __gl::FRONT,
+    Back = __gl::BACK,
+    FrontBack = __gl::FRONT_AND_BACK,
+}
+
+///
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum FrontFace {
+    CounterClockwise = __gl::CCW,
+    Clockwise = __gl::CW,
+}
+
+///
+#[derive(Debug)]
 pub struct ColorBlend {
     pub attachments: Vec<ColorBlendAttachment>,
 }
@@ -105,6 +144,71 @@ impl Device {
                     self.get_error("Disable (Blend)");
                 }
             }
+        }
+    }
+
+    pub fn bind_rasterization_state(&self, state: &Rasterization) {
+        if state.depth_clamp {
+            unsafe {
+                self.0.Enable(__gl::DEPTH_CLAMP);
+            }
+            self.get_error("Enable (Depth Clamp)");
+        } else {
+            unsafe {
+                self.0.Disable(__gl::DEPTH_CLAMP);
+            }
+            self.get_error("Disable (Depth Clamp)");
+        }
+
+        if state.rasterizer_discard {
+            unsafe {
+                self.0.Enable(__gl::RASTERIZER_DISCARD);
+            }
+            self.get_error("Enable (Rasterizer Discard)");
+        } else {
+            unsafe {
+                self.0.Disable(__gl::RASTERIZER_DISCARD);
+            }
+            self.get_error("Disable (Rasterizer Discard)");
+        }
+
+        let bias_primitive = match state.polygon_mode {
+            PolygonMode::Point => __gl::POLYGON_OFFSET_POINT,
+            PolygonMode::Line => __gl::POLYGON_OFFSET_LINE,
+            PolygonMode::Fill => __gl::POLYGON_OFFSET_FILL,
+        };
+
+        if state.depth_bias {
+            unsafe {
+                self.0.Enable(bias_primitive);
+            }
+            self.get_error("Enable (Depth Bias)");
+        } else {
+            unsafe {
+                self.0.Disable(bias_primitive);
+            }
+            self.get_error("Disable (Depth Bias)");
+        }
+
+        unsafe {
+            self.0
+                .PolygonMode(__gl::FRONT_AND_BACK, state.polygon_mode as _);
+            self.get_error("PolygonMode");
+            self.0.FrontFace(state.front_face as _);
+            self.get_error("PolygonMode");
+        }
+
+        match state.cull_mode {
+            Some(cull) => unsafe {
+                self.0.Enable(__gl::CULL_FACE);
+                self.get_error("Enable (Cull Face)");
+                self.0.CullFace(cull as _);
+                self.get_error("CullFace");
+            },
+            None => unsafe {
+                self.0.Disable(__gl::CULL_FACE);
+                self.get_error("Disable (Cull Face)");
+            },
         }
     }
 }
