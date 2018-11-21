@@ -192,4 +192,11 @@ impl Device {
         }
         self.get_error("BindTextures");
     }
+
+    pub fn generate_mipmaps(&self, image: &Image) {
+        unsafe {
+            self.0.GenerateTextureMipmap(image.raw);
+        }
+        self.get_error("GenerateTextureMipmap");
+    }
 }
