@@ -1,19 +1,43 @@
 extern crate assimp;
 extern crate glutin;
 extern crate grr;
+extern crate nalgebra_glm as glm;
+
+mod camera;
 
 use assimp::import::Importer;
 use glutin::GlContext;
-use std::slice;
+use std::{slice, time};
 
 #[repr(C)]
-pub struct VertexPos(pub [f32; 3]);
+struct VertexPos(pub [f32; 3]);
 
-pub struct Geometry {
-    pub id: usize,
-    pub base_index: usize,
-    pub num_indices: usize,
-    pub base_vertex: usize,
+struct Geometry {
+    pub base_index: u32,
+    pub num_indices: u32,
+    pub base_vertex: i32,
+}
+
+struct FrameTime {
+    last: std::time::Instant,
+}
+
+impl FrameTime {
+    pub fn new() -> Self {
+        FrameTime {
+            last: time::Instant::now(),
+        }
+    }
+
+    pub fn update(&mut self) -> f32 {
+        let now = time::Instant::now();
+        let elapsed = self.last.elapsed();
+        self.last = now;
+
+        let NANOS_PER_SEC = 1_000_000_000;
+        (elapsed.as_secs() * NANOS_PER_SEC + elapsed.subsec_nanos() as u64) as f32
+            / NANOS_PER_SEC as f32
+    }
 }
 
 fn main() {
@@ -76,8 +100,7 @@ fn main() {
 
     let geometries = model_scene
         .mesh_iter()
-        .enumerate()
-        .map(|(id, mesh)| {
+        .map(|mesh| {
             let num_local_indices = mesh.num_faces() as usize * 3;
             let num_local_vertices = mesh.num_vertices() as usize;
 
@@ -95,10 +118,9 @@ fn main() {
             }
 
             let geometry = Geometry {
-                id,
-                base_index,
-                num_indices: num_local_indices,
-                base_vertex,
+                base_index: base_index as _,
+                num_indices: num_local_indices as _,
+                base_vertex: base_vertex as _,
             };
 
             base_index += num_local_indices;
@@ -134,17 +156,28 @@ fn main() {
         offset: 0,
     }]);
 
+    let mut camera = camera::Camera::new(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0));
+
     let mut running = true;
+    let mut frame_time = FrameTime::new();
     while running {
         events_loop.poll_events(|event| match event {
             glutin::Event::WindowEvent { event, .. } => match event {
                 glutin::WindowEvent::Closed => running = false,
                 glutin::WindowEvent::Resized(w, h) => window.resize(w, h),
+                glutin::WindowEvent::KeyboardInput { input, .. } => {
+                    camera.handle_event(input);
+                }
                 _ => (),
             },
             _ => (),
         });
 
+        let dt = frame_time.update();
+        camera.update(dt);
+
+        let perspective = glm::perspective(w as f32 / h as f32, 70.0, 0.1, 1024.0);
+        let view = camera.view();
         grr.bind_pipeline(&pbr_pipeline);
         grr.bind_vertex_array(&pbr_vertex_array);
         grr.bind_vertex_buffers(
@@ -158,6 +191,12 @@ fn main() {
             }],
         );
         grr.bind_index_buffer(&pbr_vertex_array, &index_data);
+        grr.bind_uniform_constants(
+            &pbr_pipeline,
+            0,
+            &[grr::Constant::Mat4x4(perspective.into())],
+        );
+        grr.bind_uniform_constants(&pbr_pipeline, 1, &[grr::Constant::Mat4x4(view.into())]);
 
         grr.set_viewport(
             0,
@@ -189,9 +228,9 @@ fn main() {
             grr.draw_indexed(
                 grr::Primitive::Triangles,
                 grr::IndexTy::U32,
-                geometry.base_index as _..geometry.num_indices as _,
+                geometry.base_index..geometry.base_index + geometry.num_indices,
                 0..1,
-                geometry.base_vertex as _,
+                geometry.base_vertex,
             );
         }
 

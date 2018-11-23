@@ -17,6 +17,7 @@ mod sampler;
 mod vertex;
 
 pub use buffer::{Buffer, MappingFlags, MemoryFlags};
+pub use command::Constant;
 pub use device::Device;
 pub use error::Error;
 pub use format::{BaseFormat, Format, FormatLayout};
@@ -413,7 +414,7 @@ pub struct Shader(GLuint);
 
 ///
 #[repr(transparent)]
-pub struct Pipeline(GLuint);
+pub struct Pipeline(pub(crate) GLuint);
 
 ///
 pub struct Viewport {

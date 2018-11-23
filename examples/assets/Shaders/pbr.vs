@@ -1,6 +1,11 @@
 #version 450 core
 layout (location = 0) in vec3 v_pos;
+layout (location = 0) out vec3 a_pos;
+
+layout(location = 0) uniform mat4 u_perspective;
+layout(location = 1) uniform mat4 u_view;
 
 void main() {
-    gl_Position = vec4(v_pos, 1.0);
+    a_pos = v_pos;
+    gl_Position = u_perspective * u_view * vec4(v_pos, 1.0);
 }

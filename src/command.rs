@@ -1,9 +1,14 @@
+use __gl;
 use std::ops::Range;
 
 use buffer::Buffer;
 use device::Device;
 use vertex::{InputRate, VertexArray, VertexBufferView};
 use {IndexTy, Pipeline, Primitive, Region, Viewport};
+
+pub enum Constant {
+    Mat4x4([[f32; 4]; 4]),
+}
 
 impl Device {
     /// Bind vertex buffers to a vertex array.
@@ -50,6 +55,22 @@ impl Device {
     pub fn bind_index_buffer(&self, vao: &VertexArray, buffer: &Buffer) {
         unsafe { self.0.VertexArrayElementBuffer(vao.0, buffer.0) }
         self.get_error("VertexArrayElementBuffer");
+    }
+
+    pub fn bind_uniform_constants(&self, pipeline: &Pipeline, first: u32, constants: &[Constant]) {
+        for (i, constant) in constants.iter().enumerate() {
+            match constant {
+                Constant::Mat4x4(mat) => unsafe {
+                    self.0.UniformMatrix4fv(
+                        first as i32 + i as i32,
+                        1,
+                        __gl::FALSE,
+                        mat.as_ptr() as *const _,
+                    );
+                    self.get_error("ProgramUniformMatrix4fv");
+                },
+            }
+        }
     }
 
     /// Bind a pipeline for usage.

@@ -9,6 +9,12 @@ use device::Device;
 ///
 pub struct Buffer(pub(crate) GLuint, GLbitfield);
 
+pub struct BufferRange<'a> {
+    pub buffer: &'a Buffer,
+    pub offset: usize,
+    pub size: usize,
+}
+
 impl Device {
     /// Create a new empty buffer.
     ///
@@ -119,6 +125,27 @@ impl Device {
                 .NamedBufferSubData(buffer.0, offset, data.len() as _, data.as_ptr() as *const _);
         }
         self.get_error("TextureStorage2D");
+    }
+
+    pub fn bind_uniform_buffers(&self, first: u32, ranges: &[BufferRange]) {
+        let buffers = ranges.iter().map(|view| view.buffer.0).collect::<Vec<_>>();
+        let offsets = ranges
+            .iter()
+            .map(|view| view.offset as _)
+            .collect::<Vec<_>>();
+        let sizes = ranges.iter().map(|view| view.size as _).collect::<Vec<_>>();
+
+        unsafe {
+            self.0.BindBuffersRange(
+                __gl::UNIFORM_BUFFER,
+                first,
+                ranges.len() as _,
+                buffers.as_ptr(),
+                offsets.as_ptr(),
+                sizes.as_ptr(),
+            );
+        }
+        self.get_error("BindBuffersRange");
     }
 }
 
