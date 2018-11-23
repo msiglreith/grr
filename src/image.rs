@@ -98,26 +98,52 @@ impl Device {
                 height,
                 layers: 1,
                 samples: 1,
+            }
+            | ImageType::D2 {
+                width,
+                height,
+                layers: 6,
+                samples: 1,
             } => unsafe {
                 self.0
                     .TextureStorage2D(image, levels as _, format as _, width as _, height as _);
                 self.get_error("TextureStorage2D");
             },
-            ImageType::D2 { .. } => unimplemented!(),
-            ImageType::D3 { .. } => unimplemented!(),
+            ImageType::D2 {
+                width,
+                height,
+                layers: depth,
+                samples: 1,
+            }
+            | ImageType::D3 {
+                width,
+                height,
+                depth,
+            } => unsafe {
+                self.0.TextureStorage3D(
+                    image,
+                    levels as _,
+                    format as _,
+                    width as _,
+                    height as _,
+                    depth as _,
+                );
+                self.get_error("TextureStorage3D");
+            },
+            _ => unimplemented!(),
         }
 
         Image { raw: image, target }
     }
 
-    pub fn copy_host_to_image(
+    pub fn copy_host_to_image<T>(
         &self,
         image: &Image,
         level: u32,
         layers: Range<u32>,
         offset: Offset,
         extent: Extent,
-        data: &[u8],
+        data: &[T],
         base_format: BaseFormat,
         format_layout: FormatLayout,
     ) {

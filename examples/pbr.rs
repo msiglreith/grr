@@ -1,13 +1,16 @@
 extern crate assimp;
 extern crate glutin;
 extern crate grr;
+extern crate image;
 extern crate nalgebra_glm as glm;
 
 mod camera;
 
 use assimp::import::Importer;
 use glutin::GlContext;
-use std::{slice, time};
+use image::Pixel;
+use std::path::Path;
+use std::{fs, io, slice, time};
 
 #[repr(C)]
 struct VertexPos(pub [f32; 3]);
@@ -168,6 +171,130 @@ fn main() {
         stencil_back: grr::StencilFace::KEEP,
     };
 
+    println!("Loading HDR image from disk");
+    let hdr_image = image::hdr::HDRDecoder::new(io::BufReader::new(
+        fs::File::open(format!("{}/Lobby-Center_Env.hdr", base_path)).unwrap(),
+    )).unwrap();
+    let hdr_image_width = hdr_image.metadata().width;
+    let hdr_image_height = hdr_image.metadata().height;
+    let hdr_image_data = hdr_image.read_image_hdr().unwrap();
+    let hdr_image_raw = hdr_image_data
+        .iter()
+        .flat_map(|c| c.channels().clone())
+        .collect::<Vec<_>>();
+
+    println!(
+        "w: {}, h: {}, data_len: {}",
+        hdr_image_width,
+        hdr_image_height,
+        hdr_image_raw.len()
+    );
+
+    let hdr_texture = grr.create_image(
+        grr::ImageType::D2 {
+            width: hdr_image_width,
+            height: hdr_image_height,
+            layers: 1,
+            samples: 1,
+        },
+        grr::Format::R16G16B16_SFLOAT,
+        1,
+    );
+
+    println!("Uploading HDR image into GPU memory");
+    grr.copy_host_to_image(
+        &hdr_texture,
+        0,
+        0..1,
+        grr::Offset { x: 0, y: 0, z: 0 },
+        grr::Extent {
+            width: hdr_image_width,
+            height: hdr_image_height,
+            depth: 1,
+        },
+        &hdr_image_raw,
+        grr::BaseFormat::RGB,
+        grr::FormatLayout::F16,
+    );
+
+    let hdr_sampler = grr.create_sampler(grr::SamplerDesc {
+        min_filter: grr::Filter::Linear,
+        mag_filter: grr::Filter::Linear,
+        mip_map: None,
+        address: (
+            grr::SamplerAddress::ClampEdge,
+            grr::SamplerAddress::ClampEdge,
+            grr::SamplerAddress::ClampEdge,
+        ),
+        lod_bias: 0.0,
+        lod: 0.0..10.0,
+        compare: None,
+        border_color: [0.0, 0.0, 0.0, 1.0],
+    });
+
+    println!("Creating Env Cubemap");
+    let env_size = 512;
+    let env_cubmap = grr.create_image(
+        grr::ImageType::D2 {
+            width: env_size,
+            height: env_size,
+            layers: 6,
+            samples: 1,
+        },
+        grr::Format::R16G16B16_SFLOAT,
+        1,
+    );
+
+    let env_cubemap_sampler = grr.create_sampler(grr::SamplerDesc {
+        min_filter: grr::Filter::Linear,
+        mag_filter: grr::Filter::Linear,
+        mip_map: Some(grr::Filter::Linear),
+        address: (
+            grr::SamplerAddress::ClampEdge,
+            grr::SamplerAddress::ClampEdge,
+            grr::SamplerAddress::ClampEdge,
+        ),
+        lod_bias: 0.0,
+        lod: 0.0..10.0,
+        compare: None,
+        border_color: [0.0, 0.0, 0.0, 1.0],
+    });
+
+    let env_proj = glm::perspective(1.0, 90.0, 0.1, 10.0);
+    let env_eye = glm::vec3(0.0, 0.0, 0.0);
+    let env_views = [
+        glm::look_at(
+            &env_eye,
+            &glm::vec3(1.0, 0.0, 0.0),
+            &glm::vec3(0.0, -1.0, 0.0),
+        ),
+        glm::look_at(
+            &env_eye,
+            &glm::vec3(-1.0, 0.0, 0.0),
+            &glm::vec3(0.0, -1.0, 0.0),
+        ),
+        glm::look_at(
+            &env_eye,
+            &glm::vec3(0.0, 1.0, 0.0),
+            &glm::vec3(0.0, 0.0, 1.0),
+        ),
+        glm::look_at(
+            &env_eye,
+            &glm::vec3(0.0, -1.0, 0.0),
+            &glm::vec3(0.0, 0.0, -1.0),
+        ),
+        glm::look_at(
+            &env_eye,
+            &glm::vec3(0.0, 0.0, 1.0),
+            &glm::vec3(0.0, -1.0, 0.0),
+        ),
+        glm::look_at(
+            &env_eye,
+            &glm::vec3(0.0, 0.0, -1.0),
+            &glm::vec3(0.0, -1.0, 0.0),
+        ),
+    ];
+
     let mut camera = camera::Camera::new(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0));
 
     let mut running = true;
@@ -242,10 +369,7 @@ fn main() {
             grr::Framebuffer::DEFAULT,
             grr::ClearAttachment::ColorFloat(0, [0.5, 0.5, 0.5, 1.0]),
         );
-        grr.clear_attachment(
-            grr::Framebuffer::DEFAULT,
-            grr::ClearAttachment::Depth(1.0),
-        );
+        grr.clear_attachment(grr::Framebuffer::DEFAULT, grr::ClearAttachment::Depth(1.0));
 
         for geometry in &geometries {
             grr.draw_indexed(
