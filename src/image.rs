@@ -67,8 +67,7 @@ impl Device {
             } => __gl::TEXTURE_CUBE_MAP,
             ImageType::D2 {
                 layers, samples: 1, ..
-            }
-                if layers % 6 == 0 =>
+            } if layers % 6 == 0 =>
             {
                 __gl::TEXTURE_CUBE_MAP_ARRAY
             }

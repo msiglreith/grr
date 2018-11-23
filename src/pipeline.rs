@@ -1,6 +1,8 @@
 use __gl;
 
 use device::Device;
+use std::ops::Range;
+use Compare;
 
 ///
 #[derive(Debug)]
@@ -100,6 +102,51 @@ pub struct ColorBlendAttachment {
     pub alpha: BlendChannel,
 }
 
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum StencilOp {
+    Keep = __gl::KEEP,
+    Zero = __gl::ZERO,
+    Replace = __gl::REPLACE,
+    IncrementClamp = __gl::INCR,
+    DecrementClamp = __gl::DECR,
+    Invert = __gl::INVERT,
+    IncrementWrap = __gl::INCR_WRAP,
+    DecrementWrap = __gl::DECR_WRAP,
+}
+
+///
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct StencilFace {
+    pub fail: StencilOp,
+    pub pass: StencilOp,
+    pub depth_fail: StencilOp,
+    pub compare_op: Compare,
+    pub compare_mask: u32,
+    pub reference: u32,
+}
+
+impl StencilFace {
+    pub const KEEP: StencilFace = StencilFace {
+        fail: StencilOp::Keep,
+        pass: StencilOp::Keep,
+        depth_fail: StencilOp::Keep,
+        compare_op: Compare::Always,
+        compare_mask: !0,
+        reference: 0,
+    };
+}
+
+///
+pub struct DepthStencil {
+    pub depth_test: bool,
+    pub depth_write: bool,
+    pub depth_compare_op: Compare,
+    pub stencil_test: bool,
+    pub stencil_front: StencilFace,
+    pub stencil_back: StencilFace,
+}
+
 impl Device {
     pub fn bind_input_assembly_state(&self, state: &InputAssembly) {
         match state.primitive_restart {
@@ -144,6 +191,68 @@ impl Device {
                     self.get_error("Disable (Blend)");
                 }
             }
+        }
+    }
+
+    pub fn bind_depth_stencil_state(&self, state: &DepthStencil) {
+        if state.depth_test {
+            unsafe {
+                self.0.Enable(__gl::DEPTH_TEST);
+                self.get_error("Enable (Depth Test)");
+                self.0.DepthMask(if state.depth_write {
+                    __gl::TRUE
+                } else {
+                    __gl::FALSE
+                });
+                self.get_error("DepthMask");
+                self.0.DepthFunc(state.depth_compare_op as _);
+                self.get_error("DepthFunc");
+            }
+        } else {
+            unsafe {
+                self.0.Disable(__gl::DEPTH_TEST);
+            }
+            self.get_error("Disable (Depth Test)");
+        }
+
+        if state.stencil_test {
+            unsafe {
+                self.0.Enable(__gl::STENCIL_TEST);
+                self.get_error("Enable (Stencil Test)");
+                self.0.StencilFuncSeparate(
+                    __gl::FRONT,
+                    state.stencil_front.compare_op as _,
+                    state.stencil_front.reference as _,
+                    state.stencil_front.compare_mask,
+                );
+                self.get_error("StencilFuncSeparate (Front)");
+                self.0.StencilOpSeparate(
+                    __gl::FRONT,
+                    state.stencil_front.fail as _,
+                    state.stencil_front.depth_fail as _,
+                    state.stencil_front.pass as _,
+                );
+                self.get_error("StencilOpSeparate (Front)");
+                self.0.StencilFuncSeparate(
+                    __gl::BACK,
+                    state.stencil_back.compare_op as _,
+                    state.stencil_back.reference as _,
+                    state.stencil_back.compare_mask,
+                );
+                self.get_error("StencilFuncSeparate (Back)");
+                self.0.StencilOpSeparate(
+                    __gl::BACK,
+                    state.stencil_back.fail as _,
+                    state.stencil_back.depth_fail as _,
+                    state.stencil_back.pass as _,
+                );
+                self.get_error("StencilOpSeparate (Back)");
+            }
+        } else {
+            unsafe {
+                self.0.Disable(__gl::STENCIL_TEST);
+            }
+            self.get_error("Disable (Stencil Test)");
         }
     }
 

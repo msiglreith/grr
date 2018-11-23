@@ -27,7 +27,7 @@ const FRAGMENT_SRC: &str = r#"
 "#;
 
 const VERTICES: [f32; 15] = [
-    -0.5, -0.5, 1.0, 0.0, 0.0, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 0.5, 0.0, 0.0, 1.0,
+    -0.5, -0.5, 1.0, 0.0, 0.0, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 0.5, 0.0, 0.0, 1.0
 ];
 
 fn main() {
@@ -105,33 +105,39 @@ fn main() {
         grr.bind_vertex_buffers(
             &vertex_array,
             0,
-            &[grr::VertexBufferView {
-                buffer: &triangle_data,
-                offset: 0,
-                stride: (std::mem::size_of::<f32>() * 5) as _,
-                input_rate: grr::InputRate::Vertex,
-            }],
+            &[
+                grr::VertexBufferView {
+                    buffer: &triangle_data,
+                    offset: 0,
+                    stride: (std::mem::size_of::<f32>() * 5) as _,
+                    input_rate: grr::InputRate::Vertex,
+                },
+            ],
         );
 
         grr.set_viewport(
             0,
-            &[grr::Viewport {
-                x: 0.0,
-                y: 0.0,
-                w: w as _,
-                h: h as _,
-                n: 0.0,
-                f: 1.0,
-            }],
+            &[
+                grr::Viewport {
+                    x: 0.0,
+                    y: 0.0,
+                    w: w as _,
+                    h: h as _,
+                    n: 0.0,
+                    f: 1.0,
+                },
+            ],
         );
         grr.set_scissor(
             0,
-            &[grr::Region {
-                x: 0,
-                y: 0,
-                w: w as _,
-                h: h as _,
-            }],
+            &[
+                grr::Region {
+                    x: 0,
+                    y: 0,
+                    w: w as _,
+                    h: h as _,
+                },
+            ],
         );
 
         grr.clear_attachment(

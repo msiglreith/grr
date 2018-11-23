@@ -23,9 +23,8 @@ pub use error::Error;
 pub use format::{BaseFormat, Format, FormatLayout};
 pub use framebuffer::{Attachment, ClearAttachment, Framebuffer, Renderbuffer};
 pub use image::{Image, ImageType, ImageView, ImageViewType, SubresourceRange};
-pub use pipeline::{
-    BlendChannel, BlendFactor, BlendOp, ColorBlend, ColorBlendAttachment, InputAssembly,
-};
+pub use pipeline::{BlendChannel, BlendFactor, BlendOp, ColorBlend, ColorBlendAttachment,
+                   DepthStencil, InputAssembly, StencilFace, StencilOp};
 pub use sampler::{Filter, Sampler, SamplerAddress, SamplerDesc};
 pub use vertex::{InputRate, VertexArray, VertexAttributeDesc, VertexBufferView, VertexFormat};
 
@@ -523,29 +522,15 @@ pub struct GraphicsPipelineDesc<'a> {
 }
 
 ///
+#[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Compare {
-    Less,
-    LessEqual,
-    Greater,
-    GreaterEqual,
-    Equal,
-    NotEqual,
-    Always,
-    Never,
-}
-
-impl From<Compare> for GLenum {
-    fn from(compare: Compare) -> Self {
-        match compare {
-            Compare::Less => __gl::LESS,
-            Compare::LessEqual => __gl::LEQUAL,
-            Compare::Greater => __gl::GREATER,
-            Compare::GreaterEqual => __gl::GEQUAL,
-            Compare::Equal => __gl::EQUAL,
-            Compare::NotEqual => __gl::NOTEQUAL,
-            Compare::Always => __gl::ALWAYS,
-            Compare::Never => __gl::NEVER,
-        }
-    }
+    Less = __gl::LESS,
+    LessEqual = __gl::LEQUAL,
+    Greater = __gl::GREATER,
+    GreaterEqual = __gl::GEQUAL,
+    Equal = __gl::EQUAL,
+    NotEqual = __gl::NOTEQUAL,
+    Always = __gl::ALWAYS,
+    Never = __gl::NEVER,
 }

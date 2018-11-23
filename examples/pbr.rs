@@ -43,7 +43,7 @@ impl FrameTime {
 fn main() {
     let mut events_loop = glutin::EventsLoop::new();
     let window = glutin::WindowBuilder::new()
-        .with_title("Hello, world!")
+        .with_title("grr - PBR sample")
         .with_dimensions(1024, 768);
     let context = glutin::ContextBuilder::new()
         .with_vsync(true)
@@ -127,7 +127,8 @@ fn main() {
             base_vertex += num_local_vertices;
 
             geometry
-        }).collect::<Vec<_>>();
+        })
+        .collect::<Vec<_>>();
 
     grr.unmap_buffer(&mesh_data);
     grr.unmap_buffer(&index_data);
@@ -149,12 +150,23 @@ fn main() {
         fragment_shader: Some(&pbr_fs),
     });
 
-    let pbr_vertex_array = grr.create_vertex_array(&[grr::VertexAttributeDesc {
-        location: 0,
-        binding: 0,
-        format: grr::VertexFormat::Xyz32Float,
-        offset: 0,
-    }]);
+    let pbr_vertex_array = grr.create_vertex_array(&[
+        grr::VertexAttributeDesc {
+            location: 0,
+            binding: 0,
+            format: grr::VertexFormat::Xyz32Float,
+            offset: 0,
+        },
+    ]);
+
+    let depth_stencil_state = grr::DepthStencil {
+        depth_test: true,
+        depth_write: true,
+        depth_compare_op: grr::Compare::LessEqual,
+        stencil_test: false,
+        stencil_front: grr::StencilFace::KEEP,
+        stencil_back: grr::StencilFace::KEEP,
+    };
 
     let mut camera = camera::Camera::new(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0));
 
@@ -183,12 +195,14 @@ fn main() {
         grr.bind_vertex_buffers(
             &pbr_vertex_array,
             0,
-            &[grr::VertexBufferView {
-                buffer: &mesh_data,
-                offset: 0,
-                stride: (std::mem::size_of::<f32>() * 3) as _,
-                input_rate: grr::InputRate::Vertex,
-            }],
+            &[
+                grr::VertexBufferView {
+                    buffer: &mesh_data,
+                    offset: 0,
+                    stride: (std::mem::size_of::<f32>() * 3) as _,
+                    input_rate: grr::InputRate::Vertex,
+                },
+            ],
         );
         grr.bind_index_buffer(&pbr_vertex_array, &index_data);
         grr.bind_uniform_constants(
@@ -197,31 +211,40 @@ fn main() {
             &[grr::Constant::Mat4x4(perspective.into())],
         );
         grr.bind_uniform_constants(&pbr_pipeline, 1, &[grr::Constant::Mat4x4(view.into())]);
+        grr.bind_depth_stencil_state(&depth_stencil_state);
 
         grr.set_viewport(
             0,
-            &[grr::Viewport {
-                x: 0.0,
-                y: 0.0,
-                w: w as _,
-                h: h as _,
-                n: 1.0,
-                f: 1000.0,
-            }],
+            &[
+                grr::Viewport {
+                    x: 0.0,
+                    y: 0.0,
+                    w: w as _,
+                    h: h as _,
+                    n: 0.0,
+                    f: 1.0,
+                },
+            ],
         );
         grr.set_scissor(
             0,
-            &[grr::Region {
-                x: 0,
-                y: 0,
-                w: w as _,
-                h: h as _,
-            }],
+            &[
+                grr::Region {
+                    x: 0,
+                    y: 0,
+                    w: w as _,
+                    h: h as _,
+                },
+            ],
         );
 
         grr.clear_attachment(
             grr::Framebuffer::DEFAULT,
             grr::ClearAttachment::ColorFloat(0, [0.5, 0.5, 0.5, 1.0]),
+        );
+        grr.clear_attachment(
+            grr::Framebuffer::DEFAULT,
+            grr::ClearAttachment::Depth(1.0),
         );
 
         for geometry in &geometries {

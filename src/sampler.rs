@@ -80,7 +80,7 @@ impl Device {
 
         // Texture comparison mode
         let (compare_mode, compare_op): (GLenum, Option<GLenum>) = match desc.compare {
-            Some(op) => (__gl::COMPARE_REF_TO_TEXTURE, Some(op.into())),
+            Some(op) => (__gl::COMPARE_REF_TO_TEXTURE, Some(op as _)),
             None => (__gl::NONE, None),
         };
         unsafe {

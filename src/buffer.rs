@@ -87,9 +87,7 @@ impl Device {
             flags |= __gl::MAP_UNSYNCHRONIZED_BIT;
         }
         flags |= buffer.1
-            & (__gl::MAP_COHERENT_BIT
-                | __gl::MAP_PERSISTENT_BIT
-                | __gl::MAP_READ_BIT
+            & (__gl::MAP_COHERENT_BIT | __gl::MAP_PERSISTENT_BIT | __gl::MAP_READ_BIT
                 | __gl::MAP_WRITE_BIT);
 
         let stride = mem::size_of::<T>();
