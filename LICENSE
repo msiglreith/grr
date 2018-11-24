@@ -1,3 +1,5 @@
+## LICENSE
+
 Mozilla Public License Version 2.0
 ==================================
 
@@ -371,3 +373,9 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 
   This Source Code Form is "Incompatible With Secondary Licenses", as
   defined by the Mozilla Public License, v. 2.0.
+
+
+## License PBR sample
+
+The pbr sample (/examples/pbr.rs and /examples/assets) is based on the work of Joey de Vries and licensed under CC BY-NC 4.0.
+See https://github.com/JoeyDeVries/LearnOpenGL/tree/master/src/6.pbr/2.2.2.ibl_specular_textured for the original code.

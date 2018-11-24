@@ -7,6 +7,8 @@ use vertex::{InputRate, VertexArray, VertexBufferView};
 use {IndexTy, Pipeline, Primitive, Region, Viewport};
 
 pub enum Constant {
+    U32(u32),
+    Mat3x3([[f32; 3]; 3]),
     Mat4x4([[f32; 4]; 4]),
 }
 
@@ -59,10 +61,26 @@ impl Device {
 
     pub fn bind_uniform_constants(&self, pipeline: &Pipeline, first: u32, constants: &[Constant]) {
         for (i, constant) in constants.iter().enumerate() {
+            let location = first as i32 + i as i32;
             match constant {
+                Constant::U32(val) => unsafe {
+                    self.0.Uniform1ui(location, *val as _);
+                    self.get_error("ProgramUniform1ui");
+                },
+                Constant::Mat3x3(mat) => unsafe {
+                    self.0.ProgramUniformMatrix3fv(
+                        pipeline.0,
+                        location,
+                        1,
+                        __gl::FALSE,
+                        mat.as_ptr() as *const _,
+                    );
+                    self.get_error("ProgramUniformMatrix3fv");
+                },
                 Constant::Mat4x4(mat) => unsafe {
-                    self.0.UniformMatrix4fv(
-                        first as i32 + i as i32,
+                    self.0.ProgramUniformMatrix4fv(
+                        pipeline.0,
+                        location,
                         1,
                         __gl::FALSE,
                         mat.as_ptr() as *const _,

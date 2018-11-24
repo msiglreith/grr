@@ -1,8 +1,9 @@
 use __gl;
-use __gl::types::GLuint;
+use __gl::types::{GLenum, GLuint};
 
-use Region;
 use device::Device;
+use ImageView;
+use Region;
 
 ///
 pub enum ClearAttachment {
@@ -20,6 +21,12 @@ pub enum Attachment {
     Depth,
     Stencil,
     DepthStencil,
+}
+
+///
+pub enum AttachmentView<'a> {
+    Image(&'a ImageView),
+    Renderbuffer(&'a Renderbuffer),
 }
 
 ///
@@ -110,12 +117,74 @@ impl Device {
     }
 
     ///
-    pub fn invalidate_framebuffer(
+    pub fn invalidate_attachments(
         &self,
         _framebuffer: &Framebuffer,
         _attachments: &[Attachment],
         _region: Region,
     ) {
         unimplemented!()
+    }
+
+    ///
+    pub fn bind_framebuffer(&self, framebuffer: &Framebuffer) {
+        unsafe {
+            self.0
+                .BindFramebuffer(__gl::DRAW_FRAMEBUFFER, framebuffer.0);
+        }
+        self.get_error("BindFramebuffer");
+    }
+
+    ///
+    pub fn bind_attachments(
+        &self,
+        framebuffer: &Framebuffer,
+        color_attachments: &[AttachmentView],
+        depth_stencil_attachment: Option<AttachmentView>,
+    ) {
+        assert_ne!(
+            framebuffer.0, 0,
+            "The default framebuffer can't be changed."
+        );
+
+        let bind_attachment_view = |attachment: GLenum, view: &AttachmentView| unsafe {
+            match view {
+                &AttachmentView::Image(image) => {
+                    self.0
+                        .NamedFramebufferTexture(framebuffer.0, attachment, image.0, 0);
+                    self.get_error("NamedFramebufferTexture");
+                }
+                &AttachmentView::Renderbuffer(_) => unimplemented!(),
+            }
+        };
+
+        for (i, attachment) in color_attachments.iter().enumerate() {
+            bind_attachment_view((__gl::COLOR_ATTACHMENT0 as usize + i) as _, attachment);
+        }
+
+        for attachment in depth_stencil_attachment {
+            bind_attachment_view(__gl::DEPTH_STENCIL_ATTACHMENT, &attachment);
+        }
+    }
+
+    ///
+    pub fn set_color_attachments(&self, framebuffer: &Framebuffer, attachments: &[u32]) {
+        assert_ne!(
+            framebuffer.0, 0,
+            "The default framebuffer can't be changed."
+        );
+
+        let attachments = attachments
+            .iter()
+            .map(|i| i + __gl::COLOR_ATTACHMENT0)
+            .collect::<Vec<_>>();
+        unsafe {
+            self.0.NamedFramebufferDrawBuffers(
+                framebuffer.0,
+                attachments.len() as _,
+                attachments.as_ptr(),
+            );
+        }
+        self.get_error("NamedFramebufferDrawBuffers");
     }
 }

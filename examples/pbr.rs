@@ -130,8 +130,7 @@ fn main() {
             base_vertex += num_local_vertices;
 
             geometry
-        })
-        .collect::<Vec<_>>();
+        }).collect::<Vec<_>>();
 
     grr.unmap_buffer(&mesh_data);
     grr.unmap_buffer(&index_data);
@@ -153,14 +152,12 @@ fn main() {
         fragment_shader: Some(&pbr_fs),
     });
 
-    let pbr_vertex_array = grr.create_vertex_array(&[
-        grr::VertexAttributeDesc {
-            location: 0,
-            binding: 0,
-            format: grr::VertexFormat::Xyz32Float,
-            offset: 0,
-        },
-    ]);
+    let pbr_vertex_array = grr.create_vertex_array(&[grr::VertexAttributeDesc {
+        location: 0,
+        binding: 0,
+        format: grr::VertexFormat::Xyz32Float,
+        offset: 0,
+    }]);
 
     let depth_stencil_state = grr::DepthStencil {
         depth_test: true,
@@ -171,17 +168,28 @@ fn main() {
         stencil_back: grr::StencilFace::KEEP,
     };
 
+    let depth_stencil_none = grr::DepthStencil {
+        depth_test: false,
+        depth_write: false,
+        depth_compare_op: grr::Compare::Always,
+        stencil_test: false,
+        stencil_front: grr::StencilFace::KEEP,
+        stencil_back: grr::StencilFace::KEEP,
+    };
+
     println!("Loading HDR image from disk");
     let hdr_image = image::hdr::HDRDecoder::new(io::BufReader::new(
-        fs::File::open(format!("{}/Lobby-Center_Env.hdr", base_path)).unwrap(),
+        fs::File::open(format!("{}/Lobby-Center_2k.hdr", base_path)).unwrap(),
     )).unwrap();
     let hdr_image_width = hdr_image.metadata().width;
     let hdr_image_height = hdr_image.metadata().height;
     let hdr_image_data = hdr_image.read_image_hdr().unwrap();
     let hdr_image_raw = hdr_image_data
         .iter()
-        .flat_map(|c| c.channels().clone())
-        .collect::<Vec<_>>();
+        .flat_map(|c| {
+            let chn = c.channels();
+            vec![chn[0], chn[1], chn[2]]
+        }).collect::<Vec<_>>();
 
     println!(
         "w: {}, h: {}, data_len: {}",
@@ -201,6 +209,16 @@ fn main() {
         1,
     );
 
+    let hdr_texture_view = grr.create_image_view(
+        &hdr_texture,
+        grr::ImageViewType::D2,
+        grr::Format::R16G16B16_SFLOAT,
+        grr::SubresourceRange {
+            layers: 0..1,
+            levels: 0..1,
+        },
+    );
+
     println!("Uploading HDR image into GPU memory");
     grr.copy_host_to_image(
         &hdr_texture,
@@ -214,7 +232,7 @@ fn main() {
         },
         &hdr_image_raw,
         grr::BaseFormat::RGB,
-        grr::FormatLayout::F16,
+        grr::FormatLayout::F32,
     );
 
     let hdr_sampler = grr.create_sampler(grr::SamplerDesc {
@@ -245,6 +263,16 @@ fn main() {
         1,
     );
 
+    let env_cubmap_view = grr.create_image_view(
+        &env_cubmap,
+        grr::ImageViewType::Cube,
+        grr::Format::R16G16B16_SFLOAT,
+        grr::SubresourceRange {
+            layers: 0..6,
+            levels: 0..1,
+        },
+    );
+
     let env_cubemap_sampler = grr.create_sampler(grr::SamplerDesc {
         min_filter: grr::Filter::Linear,
         mag_filter: grr::Filter::Linear,
@@ -260,18 +288,25 @@ fn main() {
         border_color: [0.0, 0.0, 0.0, 1.0],
     });
 
-    let env_proj = glm::perspective(1.0, 90.0, 0.1, 10.0);
+    let env_proj_fbo = grr.create_framebuffer();
+
+    let env_proj = glm::perspective(1.0, glm::half_pi(), 0.1, 10.0);
     let env_eye = glm::vec3(0.0, 0.0, 0.0);
     let env_views = [
         glm::look_at(
             &env_eye,
             &glm::vec3(1.0, 0.0, 0.0),
-            &glm::vec3(0.0, -1.0, 0.0),
+            &glm::vec3(0.0, 1.0, 0.0),
         ),
         glm::look_at(
             &env_eye,
             &glm::vec3(-1.0, 0.0, 0.0),
+            &glm::vec3(0.0, 1.0, 0.0),
+        ),
+        glm::look_at(
+            &env_eye,
             &glm::vec3(0.0, -1.0, 0.0),
+            &glm::vec3(0.0, 0.0, -1.0),
         ),
         glm::look_at(
             &env_eye,
@@ -280,21 +315,109 @@ fn main() {
         ),
         glm::look_at(
             &env_eye,
-            &glm::vec3(0.0, -1.0, 0.0),
             &glm::vec3(0.0, 0.0, -1.0),
+            &glm::vec3(0.0, 1.0, 0.0),
         ),
         glm::look_at(
             &env_eye,
             &glm::vec3(0.0, 0.0, 1.0),
-            &glm::vec3(0.0, -1.0, 0.0),
-        ),
-        glm::look_at(
-            &env_eye,
-            &glm::vec3(0.0, 0.0, -1.0),
-            &glm::vec3(0.0, -1.0, 0.0),
+            &glm::vec3(0.0, 1.0, 0.0),
         ),
     ];
 
+    // Project HDR env to cubmap
+    let cubemap_proj_vs = grr.create_shader(
+        grr::ShaderStage::Vertex,
+        include_bytes!("assets/Shaders/cubemap.vs"),
+    );
+    let cubemap_proj_fs = grr.create_shader(
+        grr::ShaderStage::Fragment,
+        include_bytes!("assets/Shaders/cubemap_proj.fs"),
+    );
+
+    let cubemap_proj_pipeline = grr.create_graphics_pipeline(grr::GraphicsPipelineDesc {
+        vertex_shader: &cubemap_proj_vs,
+        tessellation_control_shader: None,
+        tessellation_evaluation_shader: None,
+        geometry_shader: None,
+        fragment_shader: Some(&cubemap_proj_fs),
+    });
+
+    grr.bind_framebuffer(&env_proj_fbo);
+    grr.set_color_attachments(&env_proj_fbo, &[0]);
+    grr.set_viewport(
+        0,
+        &[grr::Viewport {
+            x: 0.0,
+            y: 0.0,
+            w: env_size as _,
+            h: env_size as _,
+            n: 0.0,
+            f: 1.0,
+        }],
+    );
+    grr.set_scissor(
+        0,
+        &[grr::Region {
+            x: 0,
+            y: 0,
+            w: env_size as _,
+            h: env_size as _,
+        }],
+    );
+    grr.bind_pipeline(&cubemap_proj_pipeline);
+    grr.bind_image_views(0, &[&hdr_texture_view]);
+    grr.bind_samplers(0, &[&hdr_sampler]);
+
+    for i in 0..6 {
+        let env_cubmap_layer = grr.create_image_view(
+            &env_cubmap,
+            grr::ImageViewType::D2,
+            grr::Format::R16G16B16_SFLOAT,
+            grr::SubresourceRange {
+                layers: i..i + 1,
+                levels: 0..1,
+            },
+        );
+
+        grr.bind_attachments(
+            &env_proj_fbo,
+            &[grr::AttachmentView::Image(&env_cubmap_layer)],
+            None,
+        );
+
+        let face_view = &env_views[i as usize];
+        grr.bind_uniform_constants(
+            &cubemap_proj_pipeline,
+            0,
+            &[
+                grr::Constant::Mat4x4(glm::inverse(&env_proj).into()),
+                grr::Constant::Mat3x3(glm::mat4_to_mat3(&glm::inverse(face_view)).into()),
+            ],
+        );
+
+        grr.draw(grr::Primitive::Triangles, 0..3, 0..1);
+    }
+
+    // Pass: skybox background
+    let skybox_vs = grr.create_shader(
+        grr::ShaderStage::Vertex,
+        include_bytes!("assets/Shaders/skybox.vs"),
+    );
+    let skybox_fs = grr.create_shader(
+        grr::ShaderStage::Fragment,
+        include_bytes!("assets/Shaders/skybox.fs"),
+    );
+
+    let skybox_pipeline = grr.create_graphics_pipeline(grr::GraphicsPipelineDesc {
+        vertex_shader: &skybox_vs,
+        tessellation_control_shader: None,
+        tessellation_evaluation_shader: None,
+        geometry_shader: None,
+        fragment_shader: Some(&skybox_fs),
+    });
+
+    // Scene description
     let mut camera = camera::Camera::new(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0));
 
     let mut running = true;
@@ -315,54 +438,29 @@ fn main() {
         let dt = frame_time.update();
         camera.update(dt);
 
-        let perspective = glm::perspective(w as f32 / h as f32, 70.0, 0.1, 1024.0);
+        let perspective = glm::perspective(1.0, glm::half_pi::<f32>() * 0.7, 0.1, 1024.0);
         let view = camera.view();
-        grr.bind_pipeline(&pbr_pipeline);
-        grr.bind_vertex_array(&pbr_vertex_array);
-        grr.bind_vertex_buffers(
-            &pbr_vertex_array,
-            0,
-            &[
-                grr::VertexBufferView {
-                    buffer: &mesh_data,
-                    offset: 0,
-                    stride: (std::mem::size_of::<f32>() * 3) as _,
-                    input_rate: grr::InputRate::Vertex,
-                },
-            ],
-        );
-        grr.bind_index_buffer(&pbr_vertex_array, &index_data);
-        grr.bind_uniform_constants(
-            &pbr_pipeline,
-            0,
-            &[grr::Constant::Mat4x4(perspective.into())],
-        );
-        grr.bind_uniform_constants(&pbr_pipeline, 1, &[grr::Constant::Mat4x4(view.into())]);
-        grr.bind_depth_stencil_state(&depth_stencil_state);
 
+        grr.bind_framebuffer(grr::Framebuffer::DEFAULT);
         grr.set_viewport(
             0,
-            &[
-                grr::Viewport {
-                    x: 0.0,
-                    y: 0.0,
-                    w: w as _,
-                    h: h as _,
-                    n: 0.0,
-                    f: 1.0,
-                },
-            ],
+            &[grr::Viewport {
+                x: 0.0,
+                y: 0.0,
+                w: w as _,
+                h: h as _,
+                n: 0.0,
+                f: 1.0,
+            }],
         );
         grr.set_scissor(
             0,
-            &[
-                grr::Region {
-                    x: 0,
-                    y: 0,
-                    w: w as _,
-                    h: h as _,
-                },
-            ],
+            &[grr::Region {
+                x: 0,
+                y: 0,
+                w: w as _,
+                h: h as _,
+            }],
         );
 
         grr.clear_attachment(
@@ -370,6 +468,44 @@ fn main() {
             grr::ClearAttachment::ColorFloat(0, [0.5, 0.5, 0.5, 1.0]),
         );
         grr.clear_attachment(grr::Framebuffer::DEFAULT, grr::ClearAttachment::Depth(1.0));
+
+        // Skybox pass
+        grr.bind_pipeline(&skybox_pipeline);
+        grr.bind_depth_stencil_state(&depth_stencil_none);
+        grr.bind_image_views(0, &[&env_cubmap_view]);
+        grr.bind_samplers(0, &[&env_cubemap_sampler]);
+        grr.bind_uniform_constants(
+            &skybox_pipeline,
+            0,
+            &[
+                grr::Constant::Mat4x4(glm::inverse(&perspective).into()),
+                grr::Constant::Mat3x3(glm::mat4_to_mat3(&glm::inverse(&view)).into()),
+            ],
+        );
+        grr.draw(grr::Primitive::Triangles, 0..3, 0..1);
+
+        grr.bind_pipeline(&pbr_pipeline);
+        grr.bind_vertex_array(&pbr_vertex_array);
+        grr.bind_vertex_buffers(
+            &pbr_vertex_array,
+            0,
+            &[grr::VertexBufferView {
+                buffer: &mesh_data,
+                offset: 0,
+                stride: (std::mem::size_of::<f32>() * 3) as _,
+                input_rate: grr::InputRate::Vertex,
+            }],
+        );
+        grr.bind_index_buffer(&pbr_vertex_array, &index_data);
+        grr.bind_uniform_constants(
+            &pbr_pipeline,
+            0,
+            &[
+                grr::Constant::Mat4x4(perspective.into()),
+                grr::Constant::Mat4x4(view.into()),
+            ],
+        );
+        grr.bind_depth_stencil_state(&depth_stencil_state);
 
         for geometry in &geometries {
             grr.draw_indexed(

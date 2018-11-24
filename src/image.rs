@@ -33,7 +33,7 @@ pub enum ImageType {
 
 ///
 #[repr(transparent)]
-pub struct ImageView(GLuint);
+pub struct ImageView(pub(crate) GLuint);
 
 pub enum ImageViewType {
     D1,
@@ -67,7 +67,8 @@ impl Device {
             } => __gl::TEXTURE_CUBE_MAP,
             ImageType::D2 {
                 layers, samples: 1, ..
-            } if layers % 6 == 0 =>
+            }
+                if layers % 6 == 0 =>
             {
                 __gl::TEXTURE_CUBE_MAP_ARRAY
             }
@@ -200,9 +201,9 @@ impl Device {
                 image.raw,
                 format as _,
                 range.levels.start,
-                range.levels.end,
+                range.levels.end - range.levels.start,
                 range.layers.start,
-                range.layers.end,
+                range.layers.end - range.layers.start,
             );
         }
         self.get_error("TextureView");

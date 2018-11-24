@@ -174,21 +174,19 @@ fn main() {
     });
 
     let color_blend = grr::ColorBlend {
-        attachments: vec![
-            grr::ColorBlendAttachment {
-                blend_enable: true,
-                color: grr::BlendChannel {
-                    src_factor: grr::BlendFactor::SrcAlpha,
-                    dst_factor: grr::BlendFactor::OneMinusSrcAlpha,
-                    blend_op: grr::BlendOp::Add,
-                },
-                alpha: grr::BlendChannel {
-                    src_factor: grr::BlendFactor::SrcAlpha,
-                    dst_factor: grr::BlendFactor::OneMinusSrcAlpha,
-                    blend_op: grr::BlendOp::Add,
-                },
+        attachments: vec![grr::ColorBlendAttachment {
+            blend_enable: true,
+            color: grr::BlendChannel {
+                src_factor: grr::BlendFactor::SrcAlpha,
+                dst_factor: grr::BlendFactor::OneMinusSrcAlpha,
+                blend_op: grr::BlendOp::Add,
             },
-        ],
+            alpha: grr::BlendChannel {
+                src_factor: grr::BlendFactor::SrcAlpha,
+                dst_factor: grr::BlendFactor::OneMinusSrcAlpha,
+                blend_op: grr::BlendOp::Add,
+            },
+        }],
     };
 
     let mut running = true;
@@ -213,39 +211,33 @@ fn main() {
         grr.bind_vertex_buffers(
             &vertex_array,
             0,
-            &[
-                grr::VertexBufferView {
-                    buffer: &vertex_buffer,
-                    offset: 0,
-                    stride: (std::mem::size_of::<f32>() * 4) as _,
-                    input_rate: grr::InputRate::Vertex,
-                },
-            ],
+            &[grr::VertexBufferView {
+                buffer: &vertex_buffer,
+                offset: 0,
+                stride: (std::mem::size_of::<f32>() * 4) as _,
+                input_rate: grr::InputRate::Vertex,
+            }],
         );
 
         grr.set_viewport(
             0,
-            &[
-                grr::Viewport {
-                    x: 0.0,
-                    y: 0.0,
-                    w: w as _,
-                    h: h as _,
-                    n: 0.0,
-                    f: 1.0,
-                },
-            ],
+            &[grr::Viewport {
+                x: 0.0,
+                y: 0.0,
+                w: w as _,
+                h: h as _,
+                n: 0.0,
+                f: 1.0,
+            }],
         );
         grr.set_scissor(
             0,
-            &[
-                grr::Region {
-                    x: 0,
-                    y: 0,
-                    w: w as _,
-                    h: h as _,
-                },
-            ],
+            &[grr::Region {
+                x: 0,
+                y: 0,
+                w: w as _,
+                h: h as _,
+            }],
         );
 
         grr.clear_attachment(

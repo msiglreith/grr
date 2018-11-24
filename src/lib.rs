@@ -21,10 +21,12 @@ pub use command::Constant;
 pub use device::Device;
 pub use error::Error;
 pub use format::{BaseFormat, Format, FormatLayout};
-pub use framebuffer::{Attachment, ClearAttachment, Framebuffer, Renderbuffer};
+pub use framebuffer::{Attachment, AttachmentView, ClearAttachment, Framebuffer, Renderbuffer};
 pub use image::{Image, ImageType, ImageView, ImageViewType, SubresourceRange};
-pub use pipeline::{BlendChannel, BlendFactor, BlendOp, ColorBlend, ColorBlendAttachment,
-                   DepthStencil, InputAssembly, StencilFace, StencilOp};
+pub use pipeline::{
+    BlendChannel, BlendFactor, BlendOp, ColorBlend, ColorBlendAttachment, DepthStencil,
+    InputAssembly, StencilFace, StencilOp,
+};
 pub use sampler::{Filter, Sampler, SamplerAddress, SamplerDesc};
 pub use vertex::{InputRate, VertexArray, VertexAttributeDesc, VertexBufferView, VertexFormat};
 
