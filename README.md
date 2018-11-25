@@ -9,6 +9,11 @@
 [![docs](https://docs.rs/grr/badge.svg)](https://docs.rs/grr)
 [![license](https://img.shields.io/badge/license-MPL%202.0-brightgreen.svg.svg)](LICENSE)
 
+```toml
+[dependencies]
+grr = "0.3"
+```
+
 `grr` aims at providing a thin layer above OpenGL 4.5+, exposing a modern API orientated on Vulkan.
 The sole purpose of the library is to have a cleaned up API for **fast prototyping**.
 
@@ -64,7 +69,9 @@ cargo run --example texture
 
 #### (Maybe-)Physically-based Rendering (IBL)
 
-<img align="center" src="info/examples/pbr.png" width="500"/>
+<h1 align="center">
+<img src="info/examples/pbr.png" width="600"/>
+</h1>
 
 Assets (model and HDRI) need to be extracted into `examples/assets` before running it!
 
