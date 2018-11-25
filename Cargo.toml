@@ -9,6 +9,7 @@ keywords = ["graphics"]
 documentation = "https://docs.rs/grr"
 license = "MPL-2.0"
 exclude = [
+    "examples/*",
     "info/*",
 ]
 build = "build.rs"
@@ -26,3 +27,14 @@ nalgebra-glm = "0.2"
 [build-dependencies]
 gl_generator = "0.10"
 
+[[example]]
+name = "triangle"
+path = "examples/triangle.rs"
+
+[[example]]
+name = "texture"
+path = "examples/texture.rs"
+
+[[example]]
+name = "pbr"
+path = "examples/pbr/pbr.rs"

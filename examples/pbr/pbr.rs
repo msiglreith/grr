@@ -72,7 +72,7 @@ fn main() {
     let mut importer = Importer::new();
     importer.triangulate(true);
 
-    let base_path = format!("{}/examples/assets", env!("CARGO_MANIFEST_DIR"));
+    let base_path = format!("{}/examples/pbr/assets", env!("CARGO_MANIFEST_DIR"));
     let scene_name = "Cerberus_LP";
     let model_scene = importer
         .read_file(format!("{}/{}.fbx", base_path, scene_name).as_str())
