@@ -70,7 +70,7 @@ cargo run --example texture
 #### (Maybe-)Physically-based Rendering (IBL)
 
 <h1 align="center">
-<img src="info/examples/pbr.png" width="600"/>
+<img src="info/examples/pbr.png"/>
 </h1>
 
 Assets (model and HDRI) need to be extracted into `examples/assets` before running it!
