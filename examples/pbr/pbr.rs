@@ -17,6 +17,7 @@ use std::{fs, io, mem, slice, time};
 struct Vertex {
     pub pos: [f32; 3],
     pub uv: [f32; 2],
+    pub normals: [f32; 3],
 }
 
 struct Geometry {
@@ -55,7 +56,7 @@ fn main() {
     let mut events_loop = glutin::EventsLoop::new();
     let window = glutin::WindowBuilder::new()
         .with_title("grr - PBR sample")
-        .with_dimensions(1024, 768);
+        .with_dimensions(1440, 700);
     let context = glutin::ContextBuilder::new()
         .with_vsync(true)
         .with_srgb(true);
@@ -117,11 +118,13 @@ fn main() {
 
             let pos_iter = mesh.vertex_iter();
             let uv_iter = mesh.texture_coords_iter(0);
-            for (i, (vertex, uv)) in pos_iter.zip(uv_iter).enumerate() {
+            let normal_iter = mesh.normal_iter();
+            for (i, ((vertex, uv), normal)) in pos_iter.zip(uv_iter).zip(normal_iter).enumerate() {
                 let v = base_vertex + i as usize;
                 vertices_cpu[v] = Vertex {
                     pos: [vertex.x, vertex.y, vertex.z],
                     uv: [uv.x, 1.0 - uv.y],
+                    normals: [normal.x, normal.y, normal.z],
                 };
             }
 
@@ -199,6 +202,12 @@ fn main() {
         load_image_rgba("Textures/Cerberus_A.tga", grr::Format::R8G8B8A8_SRGB);
     let (normals, normals_view) =
         load_image_rgba("Textures/Cerberus_N.tga", grr::Format::R8G8B8A8_UNORM);
+    let (metalness, metalness_view) =
+        load_image_rgba("Textures/Cerberus_M.tga", grr::Format::R8_UNORM);
+    let (roughness, roughness_view) =
+        load_image_rgba("Textures/Cerberus_R.tga", grr::Format::R8_UNORM);
+    let (occlusion, occlusion_view) =
+        load_image_rgba("Textures/Raw/Cerberus_AO.tga", grr::Format::R8_UNORM);
 
     let sampler_trilinear = grr.create_sampler(grr::SamplerDesc {
         min_filter: grr::Filter::Linear,
@@ -244,6 +253,12 @@ fn main() {
             binding: 0,
             format: grr::VertexFormat::Xy32Float,
             offset: 12,
+        },
+        grr::VertexAttributeDesc {
+            location: 2,
+            binding: 0,
+            format: grr::VertexFormat::Xyz32Float,
+            offset: 20,
         },
     ]);
 
@@ -354,7 +369,7 @@ fn main() {
         1,
     );
 
-    let env_cubmap_view = grr.create_image_view(
+    let env_cubemap_view = grr.create_image_view(
         &env_cubmap,
         grr::ImageViewType::Cube,
         grr::Format::R16G16B16_SFLOAT,
@@ -490,10 +505,332 @@ fn main() {
         grr.draw(grr::Primitive::Triangles, 0..3, 0..1);
     }
 
+    // Pre-Pass: Split sum: BRDF integration
+    let brdf_integration_vs = grr.create_shader(
+        grr::ShaderStage::Vertex,
+        include_bytes!("assets/Shaders/brdf_integration.vs"),
+    );
+    let brdf_integration_fs = grr.create_shader(
+        grr::ShaderStage::Fragment,
+        include_bytes!("assets/Shaders/brdf_integration.fs"),
+    );
+
+    let brdf_integration_pipeline = grr.create_graphics_pipeline(grr::GraphicsPipelineDesc {
+        vertex_shader: &brdf_integration_vs,
+        tessellation_control_shader: None,
+        tessellation_evaluation_shader: None,
+        geometry_shader: None,
+        fragment_shader: Some(&brdf_integration_fs),
+    });
+
+    let brdf_lut = grr.create_image(
+        grr::ImageType::D2 {
+            width: env_size,
+            height: env_size,
+            layers: 1,
+            samples: 1,
+        },
+        grr::Format::R16G16_SFLOAT,
+        1,
+    );
+    let brdf_lut_view = grr.create_image_view(
+        &brdf_lut,
+        grr::ImageViewType::D2,
+        grr::Format::R16G16_SFLOAT,
+        grr::SubresourceRange {
+            layers: 0..1,
+            levels: 0..1,
+        },
+    );
+
+    let brdf_lut_sampler = grr.create_sampler(grr::SamplerDesc {
+        min_filter: grr::Filter::Linear,
+        mag_filter: grr::Filter::Linear,
+        mip_map: None,
+        address: (
+            grr::SamplerAddress::ClampEdge,
+            grr::SamplerAddress::ClampEdge,
+            grr::SamplerAddress::ClampEdge,
+        ),
+        lod_bias: 0.0,
+        lod: 0.0..10.0,
+        compare: None,
+        border_color: [0.0, 0.0, 0.0, 1.0],
+    });
+
+    let brdf_fbo = grr.create_framebuffer();
+    grr.bind_pipeline(&brdf_integration_pipeline);
+    grr.bind_framebuffer(&brdf_fbo);
+    grr.bind_attachments(
+        &brdf_fbo,
+        &[grr::AttachmentView::Image(&brdf_lut_view)],
+        None,
+    );
+    grr.set_color_attachments(&brdf_fbo, &[0]);
+    grr.set_viewport(
+        0,
+        &[grr::Viewport {
+            x: 0.0,
+            y: 0.0,
+            w: env_size as _,
+            h: env_size as _,
+            n: 0.0,
+            f: 1.0,
+        }],
+    );
+    grr.set_scissor(
+        0,
+        &[grr::Region {
+            x: 0,
+            y: 0,
+            w: env_size as _,
+            h: env_size as _,
+        }],
+    );
+    grr.draw(grr::Primitive::Triangles, 0..3, 0..1);
+
+    // Pre-Pass: Env map irradiance convolution
+    let env_irradiance_vs = grr.create_shader(
+        grr::ShaderStage::Vertex,
+        include_bytes!("assets/Shaders/cubemap.vs"),
+    );
+    let env_irradiance_fs = grr.create_shader(
+        grr::ShaderStage::Fragment,
+        include_bytes!("assets/Shaders/cubemap_irradiance.fs"),
+    );
+
+    let env_irradiance_pipeline = grr.create_graphics_pipeline(grr::GraphicsPipelineDesc {
+        vertex_shader: &env_irradiance_vs,
+        tessellation_control_shader: None,
+        tessellation_evaluation_shader: None,
+        geometry_shader: None,
+        fragment_shader: Some(&env_irradiance_fs),
+    });
+
+    let env_irradiance_size = 32;
+    let env_irradiance = grr.create_image(
+        grr::ImageType::D2 {
+            width: env_irradiance_size,
+            height: env_irradiance_size,
+            layers: 6,
+            samples: 1,
+        },
+        grr::Format::R16G16B16_SFLOAT,
+        1,
+    );
+    let env_irradiance_view = grr.create_image_view(
+        &env_irradiance,
+        grr::ImageViewType::Cube,
+        grr::Format::R16G16B16_SFLOAT,
+        grr::SubresourceRange {
+            layers: 0..6,
+            levels: 0..1,
+        },
+    );
+    let env_irradiance_sampler = grr.create_sampler(grr::SamplerDesc {
+        min_filter: grr::Filter::Linear,
+        mag_filter: grr::Filter::Linear,
+        mip_map: None,
+        address: (
+            grr::SamplerAddress::ClampEdge,
+            grr::SamplerAddress::ClampEdge,
+            grr::SamplerAddress::ClampEdge,
+        ),
+        lod_bias: 0.0,
+        lod: 0.0..10.0,
+        compare: None,
+        border_color: [0.0, 0.0, 0.0, 1.0],
+    });
+
+    let env_irradiance_fbo = grr.create_framebuffer();
+    grr.bind_framebuffer(&env_irradiance_fbo);
+    grr.set_color_attachments(&env_irradiance_fbo, &[0]);
+    grr.set_viewport(
+        0,
+        &[grr::Viewport {
+            x: 0.0,
+            y: 0.0,
+            w: env_irradiance_size as _,
+            h: env_irradiance_size as _,
+            n: 0.0,
+            f: 1.0,
+        }],
+    );
+    grr.set_scissor(
+        0,
+        &[grr::Region {
+            x: 0,
+            y: 0,
+            w: env_irradiance_size as _,
+            h: env_irradiance_size as _,
+        }],
+    );
+    grr.bind_pipeline(&env_irradiance_pipeline);
+    grr.bind_image_views(0, &[&env_cubemap_view]);
+    grr.bind_samplers(0, &[&env_cubemap_sampler]);
+
+    for i in 0..6 {
+        let env_irradiance_layer = grr.create_image_view(
+            &env_irradiance,
+            grr::ImageViewType::D2,
+            grr::Format::R16G16B16_SFLOAT,
+            grr::SubresourceRange {
+                layers: i..i + 1,
+                levels: 0..1,
+            },
+        );
+
+        grr.bind_attachments(
+            &env_irradiance_fbo,
+            &[grr::AttachmentView::Image(&env_irradiance_layer)],
+            None,
+        );
+
+        let face_view = &env_views[i as usize];
+        grr.bind_uniform_constants(
+            &cubemap_proj_pipeline,
+            0,
+            &[
+                grr::Constant::Mat4x4(glm::inverse(&env_proj).into()),
+                grr::Constant::Mat3x3(glm::mat4_to_mat3(&glm::inverse(face_view)).into()),
+            ],
+        );
+
+        grr.draw(grr::Primitive::Triangles, 0..3, 0..1);
+    }
+
+    // Pre-Pass: Prefiltered specular env map
+    let env_prefilter_vs = grr.create_shader(
+        grr::ShaderStage::Vertex,
+        include_bytes!("assets/Shaders/cubemap.vs"),
+    );
+    let env_prefilter_fs = grr.create_shader(
+        grr::ShaderStage::Fragment,
+        include_bytes!("assets/Shaders/cubemap_specular_filtered.fs"),
+    );
+
+    let env_prefilter_pipeline = grr.create_graphics_pipeline(grr::GraphicsPipelineDesc {
+        vertex_shader: &env_prefilter_vs,
+        tessellation_control_shader: None,
+        tessellation_evaluation_shader: None,
+        geometry_shader: None,
+        fragment_shader: Some(&env_prefilter_fs),
+    });
+
+    let num_prefiltered_levels = 5;
+    let env_prefiltered_size = 128;
+    let env_prefiltered = grr.create_image(
+        grr::ImageType::D2 {
+            width: env_prefiltered_size,
+            height: env_prefiltered_size,
+            layers: 6,
+            samples: 1,
+        },
+        grr::Format::R16G16B16_SFLOAT,
+        num_prefiltered_levels,
+    );
+    let env_prefiltered_view = grr.create_image_view(
+        &env_prefiltered,
+        grr::ImageViewType::Cube,
+        grr::Format::R16G16B16_SFLOAT,
+        grr::SubresourceRange {
+            layers: 0..6,
+            levels: 0..1,
+        },
+    );
+
+    let env_prefiltered_sampler = grr.create_sampler(grr::SamplerDesc {
+        min_filter: grr::Filter::Linear,
+        mag_filter: grr::Filter::Linear,
+        mip_map: Some(grr::Filter::Linear),
+        address: (
+            grr::SamplerAddress::ClampEdge,
+            grr::SamplerAddress::ClampEdge,
+            grr::SamplerAddress::ClampEdge,
+        ),
+        lod_bias: 0.0,
+        lod: 0.0..1024.0,
+        compare: None,
+        border_color: [0.0, 0.0, 0.0, 1.0],
+    });
+
+    let env_prefilter_fbo = grr.create_framebuffer();
+    grr.bind_pipeline(&env_prefilter_pipeline);
+    grr.bind_image_views(0, &[&env_cubemap_view]);
+    grr.bind_samplers(0, &[&env_cubemap_sampler]);
+
+    grr.bind_framebuffer(&env_prefilter_fbo);
+    grr.set_color_attachments(&env_prefilter_fbo, &[0]);
+
+    let mut level_dim = env_prefiltered_size;
+
+    grr.bind_uniform_constants(
+        &env_prefilter_pipeline,
+        0,
+        &[grr::Constant::Mat4x4(glm::inverse(&env_proj).into())],
+    );
+
+    for mip in 0..num_prefiltered_levels {
+        grr.set_viewport(
+            0,
+            &[grr::Viewport {
+                x: 0.0,
+                y: 0.0,
+                w: level_dim as _,
+                h: level_dim as _,
+                n: 0.0,
+                f: 1.0,
+            }],
+        );
+        grr.set_scissor(
+            0,
+            &[grr::Region {
+                x: 0,
+                y: 0,
+                w: level_dim as _,
+                h: level_dim as _,
+            }],
+        );
+
+        let roughness = mip as f32 / (num_prefiltered_levels - 1) as f32;
+        grr.bind_uniform_constants(&env_prefilter_pipeline, 2, &[grr::Constant::F32(roughness)]);
+
+        for face in 0..6 {
+            let face_view = &env_views[face as usize];
+            grr.bind_uniform_constants(
+                &env_prefilter_pipeline,
+                1,
+                &[grr::Constant::Mat3x3(
+                    glm::mat4_to_mat3(&glm::inverse(face_view)).into(),
+                )],
+            );
+
+            let env_cubmap_slice = grr.create_image_view(
+                &env_prefiltered,
+                grr::ImageViewType::D2,
+                grr::Format::R16G16B16_SFLOAT,
+                grr::SubresourceRange {
+                    layers: face..face + 1,
+                    levels: mip..mip + 1,
+                },
+            );
+
+            grr.bind_attachments(
+                &env_prefilter_fbo,
+                &[grr::AttachmentView::Image(&env_cubmap_slice)],
+                None,
+            );
+
+            grr.draw(grr::Primitive::Triangles, 0..3, 0..1);
+        }
+
+        level_dim /= 2;
+    }
+
     // Pass: skybox background
     let skybox_vs = grr.create_shader(
         grr::ShaderStage::Vertex,
-        include_bytes!("assets/Shaders/skybox.vs"),
+        include_bytes!("assets/Shaders/cubemap.vs"),
     );
     let skybox_fs = grr.create_shader(
         grr::ShaderStage::Fragment,
@@ -509,7 +846,7 @@ fn main() {
     });
 
     // Scene description
-    let mut camera = camera::Camera::new(glm::vec3(0.0, 0.0, 100.0), glm::vec3(0.0, 0.0, 0.0));
+    let mut camera = camera::Camera::new(glm::vec3(-16.0, 12.0, -50.0), glm::vec3(-0.1, 3.3, 0.0));
 
     let mut running = true;
     let mut frame_time = FrameTime::new();
@@ -529,8 +866,14 @@ fn main() {
         let dt = frame_time.update();
         camera.update(dt);
 
-        let perspective = glm::perspective(1.0, glm::half_pi::<f32>() * 0.7, 0.1, 1024.0);
+        let perspective = glm::perspective(
+            w as f32 / h as f32,
+            glm::half_pi::<f32>() * 0.8,
+            0.1,
+            1024.0,
+        );
         let view = camera.view();
+        let model = glm::rotation(-glm::half_pi::<f32>(), &glm::vec3(1.0, 0.0, 0.0));
 
         grr.bind_framebuffer(grr::Framebuffer::DEFAULT);
         grr.set_viewport(
@@ -563,7 +906,7 @@ fn main() {
         // Skybox pass
         grr.bind_pipeline(&skybox_pipeline);
         grr.bind_depth_stencil_state(&depth_stencil_none);
-        grr.bind_image_views(0, &[&env_cubmap_view]);
+        grr.bind_image_views(0, &[&env_cubemap_view]);
         grr.bind_samplers(0, &[&env_cubemap_sampler]);
         grr.bind_uniform_constants(
             &skybox_pipeline,
@@ -594,10 +937,36 @@ fn main() {
             &[
                 grr::Constant::Mat4x4(perspective.into()),
                 grr::Constant::Mat4x4(view.into()),
+                grr::Constant::Mat4x4(model.into()),
+                grr::Constant::Vec3(camera.position().into()),
             ],
         );
-        grr.bind_image_views(0, &[&albedo_view, &normals_view]);
-        grr.bind_samplers(0, &[&sampler_trilinear, &sampler_trilinear]);
+        grr.bind_image_views(
+            0,
+            &[
+                &albedo_view,
+                &normals_view,
+                &metalness_view,
+                &roughness_view,
+                &occlusion_view,
+                &brdf_lut_view,
+                &env_prefiltered_view,
+                &env_irradiance_view,
+            ],
+        );
+        grr.bind_samplers(
+            0,
+            &[
+                &sampler_trilinear,
+                &sampler_trilinear,
+                &sampler_trilinear,
+                &sampler_trilinear,
+                &sampler_trilinear,
+                &brdf_lut_sampler,
+                &env_prefiltered_sampler,
+                &env_irradiance_sampler,
+            ],
+        );
         grr.bind_depth_stencil_state(&depth_stencil_state);
 
         for geometry in &geometries {

@@ -2,8 +2,22 @@
 # 0.3 (Bay Cat)
 
 ### Added
-- Input Assembly state
-- Color Blend state
+- Graphics Pipeline States:
+    - Input Assembly
+    - Color Blend
+    - Depth Stencil
+    - rasterization
+- Seamless Cubemap Filtering
+- Automatic Mipmap generation
+- Uniform Constants
+- Uniform Buffers
+- 2D Array/Cube/3D image creation
+- Bind framebuffers
+- Set framebuffer attachments
+- Added a few more image formats
+
+### Fixed
+- Clearing of depth/stencil attachments
 
 # 0.2 (Caracal)
 

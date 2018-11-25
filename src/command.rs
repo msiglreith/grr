@@ -6,6 +6,8 @@ use {IndexTy, Pipeline, Primitive, Region, Viewport};
 
 pub enum Constant {
     U32(u32),
+    F32(f32),
+    Vec3([f32; 3]),
     Mat3x3([[f32; 3]; 3]),
     Mat4x4([[f32; 4]; 4]),
 }
@@ -16,8 +18,17 @@ impl Device {
             let location = first as i32 + i as i32;
             match constant {
                 Constant::U32(val) => unsafe {
-                    self.0.Uniform1ui(location, *val as _);
+                    self.0.ProgramUniform1ui(pipeline.0, location, *val as _);
                     self.get_error("ProgramUniform1ui");
+                },
+                Constant::F32(val) => unsafe {
+                    self.0.ProgramUniform1f(pipeline.0, location, *val as _);
+                    self.get_error("ProgramUniform1f");
+                },
+                Constant::Vec3(v) => unsafe {
+                    self.0
+                        .ProgramUniform3f(pipeline.0, location, v[0], v[1], v[2]);
+                    self.get_error("ProgramUniform3f");
                 },
                 Constant::Mat3x3(mat) => unsafe {
                     self.0.ProgramUniformMatrix3fv(

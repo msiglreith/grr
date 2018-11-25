@@ -4,8 +4,10 @@ use __gl;
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Format {
+    R8_UNORM = __gl::R8,
     R8G8B8A8_SRGB = __gl::RGBA8,
     R8G8B8A8_UNORM = __gl::SRGB8_ALPHA8,
+    R16G16_SFLOAT = __gl::RG16F,
     R16G16B16_SFLOAT = __gl::RGB16F,
     // TODO
 }

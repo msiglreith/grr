@@ -23,7 +23,7 @@ pub use framebuffer::{Attachment, AttachmentView, ClearAttachment, Framebuffer, 
 pub use image::{Image, ImageType, ImageView, ImageViewType, SubresourceRange};
 pub use pipeline::{
     BlendChannel, BlendFactor, BlendOp, ColorBlend, ColorBlendAttachment, DepthStencil,
-    InputAssembly, Pipeline, Shader, StencilFace, StencilOp,
+    GraphicsPipelineDesc, InputAssembly, Pipeline, Shader, ShaderStage, StencilFace, StencilOp,
 };
 pub use sampler::{Filter, Sampler, SamplerAddress, SamplerDesc};
 pub use vertex::{InputRate, VertexArray, VertexAttributeDesc, VertexBufferView, VertexFormat};

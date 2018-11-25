@@ -10,10 +10,7 @@
 [![license](https://img.shields.io/badge/license-MPL%202.0-brightgreen.svg.svg)](LICENSE)
 
 `grr` aims at providing a thin layer above OpenGL 4.5+, exposing a modern API orientated on Vulkan.
-The sole purpose of the library is to have a cleaned up API for **fast prototyping**. Neither state caching, extensive error checking or further assistance is implemented nor in-scope of the lib!
-
-
-
+The sole purpose of the library is to have a cleaned up API for **fast prototyping**.
 
 ## Features
 - API is built around **direct state access**
@@ -38,6 +35,7 @@ grr.bind_vertex_buffers(
         buffer: &triangle_data,
         offset: 0,
         stride: (std::mem::size_of::<f32>() * 5) as _,
+        input_rate: grr::InputRate::Vertex,
     }]
 );
 
@@ -49,3 +47,31 @@ grr.draw(grr::Primitive::Triangles, 0..3, 0..1);
 // Present on screen!
 window.swap_buffers().unwrap();
 ```
+
+## Examples
+
+#### Hello Triangle
+
+```
+cargo run --example triangle
+```
+
+#### Texture (Logo)
+
+```
+cargo run --example texture
+```
+
+#### (Maybe-)Physically-based Rendering (IBL)
+
+<img align="center" src="info/examples/pbr.png" width="500"/>
+
+Assets (model and HDRI) need to be extracted into `examples/assets` before running it!
+
+```
+cargo run --example pbr --release
+```
+
+* Example ported from/based on the PBR tutorial from https://learnopengl.com/ (CC BY-NC 4.0).
+* `Cerberus` model by Andrew Maximov (https://artisaverb.info/Cerberus.html)
+* `Popcorn Lobby` HDRI from sIBL Archive (http://www.hdrlabs.com/sibl/archive.html)

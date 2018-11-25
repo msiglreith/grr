@@ -72,12 +72,12 @@ impl Camera {
     }
 
     pub fn handle_event(&mut self, input: KeyboardInput) {
-        self.input.handle_event(input)
+        self.input.handle_event(input);
     }
 
     pub fn update(&mut self, dt: f32) {
-        let move_speed = 50.0 * dt;
-        let rot_speed = 1.0 * dt;
+        let move_speed = 90.0 * dt;
+        let rot_speed = 2.0 * dt;
 
         self.position += Self::map_direction(self.input.forward) * move_speed * self.view_dir();
         self.rotation.x += Self::map_direction(self.input.rot_x) * rot_speed;
@@ -92,6 +92,10 @@ impl Camera {
             ),
             self.rotation.z,
         )
+    }
+
+    pub fn position(&self) -> glm::Vec3 {
+        self.position
     }
 
     pub fn view(&self) -> glm::Mat4 {
