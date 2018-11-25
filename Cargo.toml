@@ -18,6 +18,7 @@ bitflags = "1"
 
 [dev-dependencies]
 assimp = "0.3"
+assimp-sys = "0.3"
 glutin = "0.12"
 image = "0.20"
 nalgebra-glm = "0.2"

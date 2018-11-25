@@ -2,14 +2,17 @@ use __gl;
 
 #[allow(non_camel_case_types)]
 #[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Format {
-    R8G8B8A8_SRGB = __gl::SRGB8_ALPHA8,
+    R8G8B8A8_SRGB = __gl::RGBA8,
+    R8G8B8A8_UNORM = __gl::SRGB8_ALPHA8,
     R16G16B16_SFLOAT = __gl::RGB16F,
     // TODO
 }
 
 #[allow(non_camel_case_types)]
 #[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum BaseFormat {
     R = __gl::RED,
     RG = __gl::RG,
@@ -20,6 +23,7 @@ pub enum BaseFormat {
 
 #[allow(non_camel_case_types)]
 #[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum FormatLayout {
     U8 = __gl::UNSIGNED_BYTE,
     I8 = __gl::BYTE,

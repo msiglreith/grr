@@ -1,4 +1,5 @@
 extern crate assimp;
+extern crate assimp_sys;
 extern crate glutin;
 extern crate grr;
 extern crate image;
@@ -10,10 +11,13 @@ use assimp::import::Importer;
 use glutin::GlContext;
 use image::Pixel;
 use std::path::Path;
-use std::{fs, io, slice, time};
+use std::{fs, io, mem, slice, time};
 
 #[repr(C)]
-struct VertexPos(pub [f32; 3]);
+struct Vertex {
+    pub pos: [f32; 3],
+    pub uv: [f32; 2],
+}
 
 struct Geometry {
     pub base_index: u32,
@@ -41,6 +45,10 @@ impl FrameTime {
         (elapsed.as_secs() * NANOS_PER_SEC + elapsed.subsec_nanos() as u64) as f32
             / NANOS_PER_SEC as f32
     }
+}
+
+fn max_mip_levels_2d(width: u32, height: u32) -> u32 {
+    (width.max(height) as f32).log2() as u32 + 1
 }
 
 fn main() {
@@ -77,7 +85,7 @@ fn main() {
         num_indices += mesh.num_faces() * 3;
     }
 
-    let vertex_size = std::mem::size_of::<f32>() * 3; // TODO
+    let vertex_size = std::mem::size_of::<Vertex>();
     let mesh_data_len = vertex_size as u64 * num_vertices as u64;
     let mesh_data = grr.create_buffer(
         mesh_data_len,
@@ -96,8 +104,8 @@ fn main() {
     let mut base_index = 0;
     let mut base_vertex = 0;
 
-    let vertices_pos_cpu =
-        grr.map_buffer::<VertexPos>(&mesh_data, 0..mesh_data_len, grr::MappingFlags::empty());
+    let vertices_cpu =
+        grr.map_buffer::<Vertex>(&mesh_data, 0..mesh_data_len, grr::MappingFlags::empty());
     let indices_cpu =
         grr.map_buffer::<u32>(&index_data, 0..index_data_len, grr::MappingFlags::empty());
 
@@ -107,9 +115,14 @@ fn main() {
             let num_local_indices = mesh.num_faces() as usize * 3;
             let num_local_vertices = mesh.num_vertices() as usize;
 
-            for (i, vertex) in mesh.vertex_iter().enumerate() {
+            let pos_iter = mesh.vertex_iter();
+            let uv_iter = mesh.texture_coords_iter(0);
+            for (i, (vertex, uv)) in pos_iter.zip(uv_iter).enumerate() {
                 let v = base_vertex + i as usize;
-                vertices_pos_cpu[v] = VertexPos([vertex.x, vertex.y, vertex.z]);
+                vertices_cpu[v] = Vertex {
+                    pos: [vertex.x, vertex.y, vertex.z],
+                    uv: [uv.x, 1.0 - uv.y],
+                };
             }
 
             for (i, face) in mesh.face_iter().enumerate() {
@@ -135,6 +148,73 @@ fn main() {
     grr.unmap_buffer(&mesh_data);
     grr.unmap_buffer(&index_data);
 
+    let load_image_rgba = |name: &str, format: grr::Format| {
+        let path = format!("{}/{}", base_path, name);
+        let img = image::open(&Path::new(&path)).unwrap().to_rgba();
+        let img_width = img.width();
+        let img_height = img.height();
+        let img_data = img.into_raw();
+        let num_levels = max_mip_levels_2d(img_width, img_height);
+
+        let texture = grr.create_image(
+            grr::ImageType::D2 {
+                width: img_width,
+                height: img_height,
+                layers: 1,
+                samples: 1,
+            },
+            format,
+            num_levels,
+        );
+        grr.copy_host_to_image(
+            &texture,
+            0,
+            0..1,
+            grr::Offset { x: 0, y: 0, z: 0 },
+            grr::Extent {
+                width: img_width,
+                height: img_height,
+                depth: 1,
+            },
+            &img_data,
+            grr::BaseFormat::RGBA,
+            grr::FormatLayout::U8,
+        );
+        grr.generate_mipmaps(&texture);
+
+        let view = grr.create_image_view(
+            &texture,
+            grr::ImageViewType::D2,
+            format,
+            grr::SubresourceRange {
+                layers: 0..1,
+                levels: 0..num_levels,
+            },
+        );
+
+        (texture, view)
+    };
+
+    let (albedo, albedo_view) =
+        load_image_rgba("Textures/Cerberus_A.tga", grr::Format::R8G8B8A8_SRGB);
+    let (normals, normals_view) =
+        load_image_rgba("Textures/Cerberus_N.tga", grr::Format::R8G8B8A8_UNORM);
+
+    let sampler_trilinear = grr.create_sampler(grr::SamplerDesc {
+        min_filter: grr::Filter::Linear,
+        mag_filter: grr::Filter::Linear,
+        mip_map: Some(grr::Filter::Linear),
+        address: (
+            grr::SamplerAddress::Repeat,
+            grr::SamplerAddress::Repeat,
+            grr::SamplerAddress::Repeat,
+        ),
+        lod_bias: 0.0,
+        lod: 0.0..1024.0,
+        compare: None,
+        border_color: [0.0, 0.0, 0.0, 1.0],
+    });
+
     let pbr_vs = grr.create_shader(
         grr::ShaderStage::Vertex,
         include_bytes!("assets/Shaders/pbr.vs"),
@@ -152,12 +232,20 @@ fn main() {
         fragment_shader: Some(&pbr_fs),
     });
 
-    let pbr_vertex_array = grr.create_vertex_array(&[grr::VertexAttributeDesc {
-        location: 0,
-        binding: 0,
-        format: grr::VertexFormat::Xyz32Float,
-        offset: 0,
-    }]);
+    let pbr_vertex_array = grr.create_vertex_array(&[
+        grr::VertexAttributeDesc {
+            location: 0,
+            binding: 0,
+            format: grr::VertexFormat::Xyz32Float,
+            offset: 0,
+        },
+        grr::VertexAttributeDesc {
+            location: 1,
+            binding: 0,
+            format: grr::VertexFormat::Xy32Float,
+            offset: 12,
+        },
+    ]);
 
     let depth_stencil_state = grr::DepthStencil {
         depth_test: true,
@@ -198,6 +286,7 @@ fn main() {
         hdr_image_raw.len()
     );
 
+    let hdr_image_levels = max_mip_levels_2d(hdr_image_width, hdr_image_height);
     let hdr_texture = grr.create_image(
         grr::ImageType::D2 {
             width: hdr_image_width,
@@ -206,7 +295,7 @@ fn main() {
             samples: 1,
         },
         grr::Format::R16G16B16_SFLOAT,
-        1,
+        hdr_image_levels,
     );
 
     let hdr_texture_view = grr.create_image_view(
@@ -234,6 +323,8 @@ fn main() {
         grr::BaseFormat::RGB,
         grr::FormatLayout::F32,
     );
+
+    grr.generate_mipmaps(&hdr_texture);
 
     let hdr_sampler = grr.create_sampler(grr::SamplerDesc {
         min_filter: grr::Filter::Linear,
@@ -418,7 +509,7 @@ fn main() {
     });
 
     // Scene description
-    let mut camera = camera::Camera::new(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0));
+    let mut camera = camera::Camera::new(glm::vec3(0.0, 0.0, 100.0), glm::vec3(0.0, 0.0, 0.0));
 
     let mut running = true;
     let mut frame_time = FrameTime::new();
@@ -492,7 +583,7 @@ fn main() {
             &[grr::VertexBufferView {
                 buffer: &mesh_data,
                 offset: 0,
-                stride: (std::mem::size_of::<f32>() * 3) as _,
+                stride: std::mem::size_of::<Vertex>() as _,
                 input_rate: grr::InputRate::Vertex,
             }],
         );
@@ -505,6 +596,8 @@ fn main() {
                 grr::Constant::Mat4x4(view.into()),
             ],
         );
+        grr.bind_image_views(0, &[&albedo_view, &normals_view]);
+        grr.bind_samplers(0, &[&sampler_trilinear, &sampler_trilinear]);
         grr.bind_depth_stencil_state(&depth_stencil_state);
 
         for geometry in &geometries {
