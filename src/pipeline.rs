@@ -1,8 +1,36 @@
 use __gl;
+use __gl::types::GLuint;
 
 use device::Device;
-use std::ops::Range;
 use Compare;
+
+///
+#[repr(transparent)]
+pub struct Shader(GLuint);
+
+///
+#[repr(transparent)]
+pub struct Pipeline(pub(crate) GLuint);
+
+///
+#[derive(Debug, Clone, Copy)]
+pub enum ShaderStage {
+    Vertex,
+    TessellationControl,
+    TessellationEvaluation,
+    Geometry,
+    Fragment,
+    Compute,
+}
+
+///
+pub struct GraphicsPipelineDesc<'a> {
+    pub vertex_shader: &'a Shader,
+    pub tessellation_control_shader: Option<&'a Shader>,
+    pub tessellation_evaluation_shader: Option<&'a Shader>,
+    pub geometry_shader: Option<&'a Shader>,
+    pub fragment_shader: Option<&'a Shader>,
+}
 
 ///
 #[derive(Debug)]
@@ -148,6 +176,215 @@ pub struct DepthStencil {
 }
 
 impl Device {
+    fn check_pipeline_log(&self, pipeline: GLuint) {
+        let log = {
+            let mut len = unsafe {
+                let mut len = 0;
+                self.0
+                    .GetProgramiv(pipeline, __gl::INFO_LOG_LENGTH, &mut len);
+                len
+            };
+
+            if len > 0 {
+                let mut log = String::with_capacity(len as usize);
+                log.extend(std::iter::repeat('\0').take(len as usize));
+                unsafe {
+                    self.0.GetProgramInfoLog(
+                        pipeline,
+                        len,
+                        &mut len,
+                        (&log[..]).as_ptr() as *mut _,
+                    );
+                }
+                log.truncate(len as usize);
+                log
+            } else {
+                String::new()
+            }
+        };
+
+        if !log.is_empty() {
+            println!("Pipeline Info Log: {}", log);
+        }
+    }
+
+    /// Create a new shader from GLSL.
+    ///
+    /// # Valid usage
+    ///
+    /// - `source` must be a NULL-terminated C-String.
+    /// - The GLSL shader version must be `450 core` or higher.
+    /// - The `stage` parameter must be a valid stage of the passed shader source.
+    pub fn create_shader(&self, stage: ShaderStage, source: &[u8]) -> Shader {
+        let stage = match stage {
+            ShaderStage::Vertex => __gl::VERTEX_SHADER,
+            ShaderStage::TessellationControl => __gl::TESS_CONTROL_SHADER,
+            ShaderStage::TessellationEvaluation => __gl::TESS_EVALUATION_SHADER,
+            ShaderStage::Geometry => __gl::GEOMETRY_SHADER,
+            ShaderStage::Fragment => __gl::FRAGMENT_SHADER,
+            ShaderStage::Compute => __gl::COMPUTE_SHADER,
+        };
+
+        let shader = unsafe {
+            let shader = self.0.CreateShader(stage);
+            self.0.ShaderSource(
+                shader,
+                1,
+                &(source.as_ptr() as *const _),
+                &(source.len() as _),
+            );
+            self.0.CompileShader(shader);
+
+            shader
+        };
+
+        let status = unsafe {
+            let mut status = 0;
+            self.0
+                .GetShaderiv(shader, __gl::COMPILE_STATUS, &mut status);
+            status
+        };
+
+        if status != __gl::TRUE as _ {
+            println!("Shader could not be compiled successfully ({:?})", stage);
+        }
+
+        let log = {
+            let mut len = unsafe {
+                let mut len = 0;
+                self.0.GetShaderiv(shader, __gl::INFO_LOG_LENGTH, &mut len);
+                len
+            };
+
+            if len > 0 {
+                let mut log = String::with_capacity(len as usize);
+                log.extend(std::iter::repeat('\0').take(len as usize));
+                unsafe {
+                    self.0
+                        .GetShaderInfoLog(shader, len, &mut len, (&log[..]).as_ptr() as *mut _);
+                }
+                log.truncate(len as usize);
+                log
+            } else {
+                String::new()
+            }
+        };
+
+        if !log.is_empty() {
+            println!("Shader Info Log: {}", log);
+        }
+
+        Shader(shader)
+    }
+
+    /// Delete a shader.
+    pub fn delete_shader(&self, shader: Shader) {
+        unsafe {
+            self.0.DeleteShader(shader.0);
+        }
+    }
+
+    /// Create a graphics pipeline.
+    ///
+    /// This equals a `Program` in GL terminology.
+    ///
+    /// # Valid usage
+    ///
+    /// - The vertex shader in `desc` must be valid and created with `ShaderStage::Vertex`.
+    /// - The tessellation control shader in `desc` must be valid and created with
+    ///   `ShaderStage::TessellationControl` if specified.
+    /// - The tessellation evaluation shader in `desc` must be valid and created with
+    ///   `ShaderStage::TessellationEvalution` if specified.
+    /// - The geometry shader in `desc` must be valid and created with
+    ///   `ShaderStage::Geometry` if specified.
+    /// - The fragment shader in `desc` must be valid and created with
+    ///   `ShaderStage::Fragment` if specified.
+    pub fn create_graphics_pipeline(&self, desc: GraphicsPipelineDesc) -> Pipeline {
+        let pipeline = unsafe { self.0.CreateProgram() };
+
+        unsafe {
+            // Attach
+            self.0.AttachShader(pipeline, desc.vertex_shader.0);
+            if let Some(tsc) = desc.tessellation_control_shader {
+                self.0.AttachShader(pipeline, tsc.0);
+            }
+            if let Some(tse) = desc.tessellation_evaluation_shader {
+                self.0.AttachShader(pipeline, tse.0);
+            }
+            if let Some(geometry) = desc.geometry_shader {
+                self.0.AttachShader(pipeline, geometry.0);
+            }
+            if let Some(fragment) = desc.fragment_shader {
+                self.0.AttachShader(pipeline, fragment.0);
+            }
+
+            self.0.LinkProgram(pipeline);
+
+            // Detach
+            self.0.DetachShader(pipeline, desc.vertex_shader.0);
+            if let Some(tsc) = desc.tessellation_control_shader {
+                self.0.DetachShader(pipeline, tsc.0);
+            }
+            if let Some(tse) = desc.tessellation_evaluation_shader {
+                self.0.DetachShader(pipeline, tse.0);
+            }
+            if let Some(geometry) = desc.geometry_shader {
+                self.0.DetachShader(pipeline, geometry.0);
+            }
+            if let Some(fragment) = desc.fragment_shader {
+                self.0.DetachShader(pipeline, fragment.0);
+            }
+        }
+
+        let status = unsafe {
+            let mut status = 0;
+            self.0
+                .GetProgramiv(pipeline, __gl::LINK_STATUS, &mut status);
+            status
+        };
+
+        if status != __gl::TRUE as _ {
+            println!("Graphics pipeline could not be linked successfully");
+        }
+
+        self.check_pipeline_log(pipeline);
+        Pipeline(pipeline)
+    }
+
+    /// Create a compute pipeline.
+    ///
+    /// This equals a `Program` in GL terminology.
+    ///
+    /// # Valid usage
+    ///
+    /// - The compute shader in must be valid and created with `ShaderStage::Compute`.
+    pub fn create_compute_pipeline(&self, compute_shader: &Shader) -> Pipeline {
+        let pipeline = unsafe { self.0.CreateProgram() };
+
+        unsafe {
+            self.0.AttachShader(pipeline, compute_shader.0);
+            self.get_error("AttachShader");
+            self.0.LinkProgram(pipeline);
+            self.get_error("LinkProgram");
+            self.0.DetachShader(pipeline, compute_shader.0);
+            self.get_error("DetachShader");
+        }
+
+        let status = unsafe {
+            let mut status = 0;
+            self.0
+                .GetProgramiv(pipeline, __gl::LINK_STATUS, &mut status);
+            status
+        };
+
+        if status != __gl::TRUE as _ {
+            println!("Compute pipeline could not be linked successfully");
+        }
+
+        self.check_pipeline_log(pipeline);
+        Pipeline(pipeline)
+    }
+
     pub fn bind_input_assembly_state(&self, state: &InputAssembly) {
         match state.primitive_restart {
             Some(index) => unsafe {
@@ -319,5 +556,13 @@ impl Device {
                 self.get_error("Disable (Cull Face)");
             },
         }
+    }
+
+    /// Bind a pipeline for usage.
+    pub fn bind_pipeline(&self, pipeline: &Pipeline) {
+        unsafe {
+            self.0.UseProgram(pipeline.0);
+        }
+        self.get_error("UseProgram");
     }
 }

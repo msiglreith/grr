@@ -1,6 +1,8 @@
+use __gl;
 use __gl::types::GLuint;
 
 use buffer::Buffer;
+use device::Device;
 
 ///
 #[repr(transparent)]
@@ -126,4 +128,220 @@ pub enum VertexFormat {
     Xy64Float,
     Xyz64Float,
     Xyzw64Float,
+}
+
+impl Device {
+    /// Create a new vertex array, storing information for the input assembler.
+    ///
+    /// The vertex array specified the vertex attributes and their binding to
+    /// vertex buffer objects.
+    pub fn create_vertex_array(&self, attributes: &[VertexAttributeDesc]) -> VertexArray {
+        let mut vao = 0;
+        unsafe {
+            self.0.CreateVertexArrays(1, &mut vao);
+        }
+        self.get_error("CreateVertexArrays");
+
+        enum VertexBase {
+            Int,
+            Float,
+            Double,
+        }
+
+        for desc in attributes {
+            let (base, num, ty, norm) = match desc.format {
+                VertexFormat::X8Int => (VertexBase::Int, 1, __gl::BYTE, false),
+                VertexFormat::X8Uint => (VertexBase::Int, 1, __gl::UNSIGNED_BYTE, false),
+                VertexFormat::X8Unorm => (VertexBase::Float, 1, __gl::UNSIGNED_BYTE, true),
+                VertexFormat::X8Inorm => (VertexBase::Float, 1, __gl::BYTE, true),
+                VertexFormat::X8Uscaled => (VertexBase::Float, 1, __gl::UNSIGNED_BYTE, false),
+                VertexFormat::X8Iscaled => (VertexBase::Float, 1, __gl::BYTE, false),
+
+                VertexFormat::Xy8Int => (VertexBase::Int, 2, __gl::BYTE, false),
+                VertexFormat::Xy8Uint => (VertexBase::Int, 2, __gl::UNSIGNED_BYTE, false),
+                VertexFormat::Xy8Unorm => (VertexBase::Float, 2, __gl::UNSIGNED_BYTE, true),
+                VertexFormat::Xy8Inorm => (VertexBase::Float, 2, __gl::BYTE, true),
+                VertexFormat::Xy8Uscaled => (VertexBase::Float, 2, __gl::UNSIGNED_BYTE, false),
+                VertexFormat::Xy8Iscaled => (VertexBase::Float, 2, __gl::BYTE, false),
+
+                VertexFormat::Xyz8Int => (VertexBase::Int, 3, __gl::BYTE, false),
+                VertexFormat::Xyz8Uint => (VertexBase::Int, 3, __gl::UNSIGNED_BYTE, false),
+                VertexFormat::Xyz8Unorm => (VertexBase::Float, 3, __gl::UNSIGNED_BYTE, true),
+                VertexFormat::Xyz8Inorm => (VertexBase::Float, 3, __gl::BYTE, true),
+                VertexFormat::Xyz8Uscaled => (VertexBase::Float, 3, __gl::UNSIGNED_BYTE, false),
+                VertexFormat::Xyz8Iscaled => (VertexBase::Float, 3, __gl::BYTE, false),
+
+                VertexFormat::Xyzw8Int => (VertexBase::Int, 4, __gl::BYTE, false),
+                VertexFormat::Xyzw8Uint => (VertexBase::Int, 4, __gl::UNSIGNED_BYTE, false),
+                VertexFormat::Xyzw8Unorm => (VertexBase::Float, 4, __gl::UNSIGNED_BYTE, true),
+                VertexFormat::Xyzw8Inorm => (VertexBase::Float, 4, __gl::BYTE, true),
+                VertexFormat::Xyzw8Uscaled => (VertexBase::Float, 4, __gl::UNSIGNED_BYTE, false),
+                VertexFormat::Xyzw8Iscaled => (VertexBase::Float, 4, __gl::BYTE, false),
+
+                VertexFormat::X16Int => (VertexBase::Int, 1, __gl::SHORT, false),
+                VertexFormat::X16Uint => (VertexBase::Int, 1, __gl::UNSIGNED_SHORT, false),
+                VertexFormat::X16Float => (VertexBase::Float, 1, __gl::HALF_FLOAT, false),
+                VertexFormat::X16Unorm => (VertexBase::Float, 1, __gl::UNSIGNED_SHORT, true),
+                VertexFormat::X16Inorm => (VertexBase::Float, 1, __gl::SHORT, true),
+                VertexFormat::X16Uscaled => (VertexBase::Float, 1, __gl::UNSIGNED_SHORT, false),
+                VertexFormat::X16Iscaled => (VertexBase::Float, 1, __gl::SHORT, false),
+
+                VertexFormat::Xy16Int => (VertexBase::Int, 2, __gl::SHORT, false),
+                VertexFormat::Xy16Uint => (VertexBase::Int, 2, __gl::UNSIGNED_SHORT, false),
+                VertexFormat::Xy16Float => (VertexBase::Float, 2, __gl::HALF_FLOAT, false),
+                VertexFormat::Xy16Unorm => (VertexBase::Float, 2, __gl::UNSIGNED_SHORT, true),
+                VertexFormat::Xy16Inorm => (VertexBase::Float, 2, __gl::SHORT, true),
+                VertexFormat::Xy16Uscaled => (VertexBase::Float, 2, __gl::UNSIGNED_SHORT, false),
+                VertexFormat::Xy16Iscaled => (VertexBase::Float, 2, __gl::SHORT, false),
+
+                VertexFormat::Xyz16Int => (VertexBase::Int, 3, __gl::SHORT, false),
+                VertexFormat::Xyz16Uint => (VertexBase::Int, 3, __gl::UNSIGNED_SHORT, false),
+                VertexFormat::Xyz16Float => (VertexBase::Float, 3, __gl::HALF_FLOAT, false),
+                VertexFormat::Xyz16Unorm => (VertexBase::Float, 3, __gl::UNSIGNED_SHORT, true),
+                VertexFormat::Xyz16Inorm => (VertexBase::Float, 3, __gl::SHORT, true),
+                VertexFormat::Xyz16Uscaled => (VertexBase::Float, 3, __gl::UNSIGNED_SHORT, false),
+                VertexFormat::Xyz16Iscaled => (VertexBase::Float, 3, __gl::SHORT, false),
+
+                VertexFormat::Xyzw16Int => (VertexBase::Int, 4, __gl::SHORT, false),
+                VertexFormat::Xyzw16Uint => (VertexBase::Int, 4, __gl::UNSIGNED_SHORT, false),
+                VertexFormat::Xyzw16Float => (VertexBase::Float, 4, __gl::HALF_FLOAT, false),
+                VertexFormat::Xyzw16Unorm => (VertexBase::Float, 4, __gl::UNSIGNED_SHORT, true),
+                VertexFormat::Xyzw16Inorm => (VertexBase::Float, 4, __gl::SHORT, true),
+                VertexFormat::Xyzw16Uscaled => (VertexBase::Float, 4, __gl::UNSIGNED_SHORT, false),
+                VertexFormat::Xyzw16Iscaled => (VertexBase::Float, 4, __gl::SHORT, false),
+
+                VertexFormat::X32Int => (VertexBase::Int, 1, __gl::INT, false),
+                VertexFormat::X32Uint => (VertexBase::Int, 1, __gl::UNSIGNED_INT, false),
+                VertexFormat::X32Float => (VertexBase::Float, 1, __gl::FLOAT, false),
+                VertexFormat::X32Unorm => (VertexBase::Float, 1, __gl::UNSIGNED_INT, true),
+                VertexFormat::X32Inorm => (VertexBase::Float, 1, __gl::INT, true),
+                VertexFormat::X32Uscaled => (VertexBase::Float, 1, __gl::UNSIGNED_INT, false),
+                VertexFormat::X32Iscaled => (VertexBase::Float, 1, __gl::INT, false),
+
+                VertexFormat::Xy32Int => (VertexBase::Int, 2, __gl::INT, false),
+                VertexFormat::Xy32Uint => (VertexBase::Int, 2, __gl::UNSIGNED_INT, false),
+                VertexFormat::Xy32Float => (VertexBase::Float, 2, __gl::FLOAT, false),
+                VertexFormat::Xy32Unorm => (VertexBase::Float, 2, __gl::UNSIGNED_INT, true),
+                VertexFormat::Xy32Inorm => (VertexBase::Float, 2, __gl::INT, true),
+                VertexFormat::Xy32Uscaled => (VertexBase::Float, 2, __gl::UNSIGNED_INT, false),
+                VertexFormat::Xy32Iscaled => (VertexBase::Float, 2, __gl::INT, false),
+
+                VertexFormat::Xyz32Int => (VertexBase::Int, 3, __gl::INT, false),
+                VertexFormat::Xyz32Uint => (VertexBase::Int, 3, __gl::UNSIGNED_INT, false),
+                VertexFormat::Xyz32Float => (VertexBase::Float, 3, __gl::FLOAT, false),
+                VertexFormat::Xyz32Unorm => (VertexBase::Float, 3, __gl::UNSIGNED_INT, true),
+                VertexFormat::Xyz32Inorm => (VertexBase::Float, 3, __gl::INT, true),
+                VertexFormat::Xyz32Uscaled => (VertexBase::Float, 3, __gl::UNSIGNED_INT, false),
+                VertexFormat::Xyz32Iscaled => (VertexBase::Float, 3, __gl::INT, false),
+
+                VertexFormat::Xyzw32Int => (VertexBase::Int, 4, __gl::INT, false),
+                VertexFormat::Xyzw32Uint => (VertexBase::Int, 4, __gl::UNSIGNED_INT, false),
+                VertexFormat::Xyzw32Float => (VertexBase::Float, 4, __gl::FLOAT, false),
+                VertexFormat::Xyzw32Unorm => (VertexBase::Float, 4, __gl::UNSIGNED_INT, true),
+                VertexFormat::Xyzw32Inorm => (VertexBase::Float, 4, __gl::INT, true),
+                VertexFormat::Xyzw32Uscaled => (VertexBase::Float, 4, __gl::UNSIGNED_INT, false),
+                VertexFormat::Xyzw32Iscaled => (VertexBase::Float, 4, __gl::INT, false),
+
+                VertexFormat::X64Float => (VertexBase::Double, 1, __gl::DOUBLE, false),
+                VertexFormat::Xy64Float => (VertexBase::Double, 2, __gl::DOUBLE, false),
+                VertexFormat::Xyz64Float => (VertexBase::Double, 3, __gl::DOUBLE, false),
+                VertexFormat::Xyzw64Float => (VertexBase::Double, 4, __gl::DOUBLE, false),
+            };
+
+            unsafe {
+                self.0.EnableVertexArrayAttrib(vao, desc.location);
+                self.get_error("EnableVertexArrayAttrib");
+
+                match base {
+                    VertexBase::Int => {
+                        self.0
+                            .VertexArrayAttribIFormat(vao, desc.location, num, ty, desc.offset);
+                        self.get_error("VertexArrayAttribIFormat");
+                    }
+                    VertexBase::Float => {
+                        self.0.VertexArrayAttribFormat(
+                            vao,
+                            desc.location,
+                            num,
+                            ty,
+                            norm as _,
+                            desc.offset,
+                        );
+                        self.get_error("VertexArrayAttribFormat");
+                    }
+                    VertexBase::Double => {
+                        self.0
+                            .VertexArrayAttribLFormat(vao, desc.location, num, ty, desc.offset);
+                        self.get_error("VertexArrayAttribLFormat");
+                    }
+                }
+
+                self.0
+                    .VertexArrayAttribBinding(vao, desc.location, desc.binding);
+                self.get_error("VertexArrayAttribBinding");
+            }
+        }
+
+        VertexArray(vao)
+    }
+
+    /// Delete a vertex array.
+    pub fn delete_vertex_array(&self, vao: VertexArray) {
+        unsafe { self.0.DeleteVertexArrays(1, &vao.0) }
+        self.get_error("DeleteVertexArrays");
+    }
+
+    /// Bind a vertex array for usage.
+    pub fn bind_vertex_array(&self, vao: &VertexArray) {
+        unsafe {
+            self.0.BindVertexArray(vao.0);
+        }
+        self.get_error("BindVertexArray");
+    }
+
+    /// Bind vertex buffers to a vertex array.
+    pub fn bind_vertex_buffers(&self, vao: &VertexArray, first: u32, views: &[VertexBufferView]) {
+        let buffers = views.iter().map(|view| view.buffer.0).collect::<Vec<_>>();
+
+        let offsets = views
+            .iter()
+            .map(|view| view.offset as _)
+            .collect::<Vec<_>>();
+
+        let strides = views
+            .iter()
+            .map(|view| view.stride as _)
+            .collect::<Vec<_>>();
+
+        unsafe {
+            self.0.VertexArrayVertexBuffers(
+                vao.0,
+                first,
+                views.len() as _,
+                buffers.as_ptr(),
+                offsets.as_ptr(),
+                strides.as_ptr(),
+            );
+        }
+        self.get_error("VertexArrayVertexBuffers");
+
+        for (binding, view) in views.iter().enumerate() {
+            let divisor = match view.input_rate {
+                InputRate::Vertex => 0,
+                InputRate::Instance { divisor } => divisor,
+            };
+
+            unsafe {
+                self.0
+                    .VertexArrayBindingDivisor(vao.0, first + binding as u32, divisor as _);
+            }
+            self.get_error("VertexArrayBindingDivisor");
+        }
+    }
+
+    /// Bind a index buffer to a vertex array.
+    pub fn bind_index_buffer(&self, vao: &VertexArray, buffer: &Buffer) {
+        unsafe { self.0.VertexArrayElementBuffer(vao.0, buffer.0) }
+        self.get_error("VertexArrayElementBuffer");
+    }
 }

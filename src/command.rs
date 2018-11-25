@@ -1,9 +1,7 @@
 use __gl;
 use std::ops::Range;
 
-use buffer::Buffer;
 use device::Device;
-use vertex::{InputRate, VertexArray, VertexBufferView};
 use {IndexTy, Pipeline, Primitive, Region, Viewport};
 
 pub enum Constant {
@@ -13,52 +11,6 @@ pub enum Constant {
 }
 
 impl Device {
-    /// Bind vertex buffers to a vertex array.
-    pub fn bind_vertex_buffers(&self, vao: &VertexArray, first: u32, views: &[VertexBufferView]) {
-        let buffers = views.iter().map(|view| view.buffer.0).collect::<Vec<_>>();
-
-        let offsets = views
-            .iter()
-            .map(|view| view.offset as _)
-            .collect::<Vec<_>>();
-
-        let strides = views
-            .iter()
-            .map(|view| view.stride as _)
-            .collect::<Vec<_>>();
-
-        unsafe {
-            self.0.VertexArrayVertexBuffers(
-                vao.0,
-                first,
-                views.len() as _,
-                buffers.as_ptr(),
-                offsets.as_ptr(),
-                strides.as_ptr(),
-            );
-        }
-        self.get_error("VertexArrayVertexBuffers");
-
-        for (binding, view) in views.iter().enumerate() {
-            let divisor = match view.input_rate {
-                InputRate::Vertex => 0,
-                InputRate::Instance { divisor } => divisor,
-            };
-
-            unsafe {
-                self.0
-                    .VertexArrayBindingDivisor(vao.0, first + binding as u32, divisor as _);
-            }
-            self.get_error("VertexArrayBindingDivisor");
-        }
-    }
-
-    /// Bind a index buffer to a vertex array.
-    pub fn bind_index_buffer(&self, vao: &VertexArray, buffer: &Buffer) {
-        unsafe { self.0.VertexArrayElementBuffer(vao.0, buffer.0) }
-        self.get_error("VertexArrayElementBuffer");
-    }
-
     pub fn bind_uniform_constants(&self, pipeline: &Pipeline, first: u32, constants: &[Constant]) {
         for (i, constant) in constants.iter().enumerate() {
             let location = first as i32 + i as i32;
@@ -89,14 +41,6 @@ impl Device {
                 },
             }
         }
-    }
-
-    /// Bind a pipeline for usage.
-    pub fn bind_pipeline(&self, pipeline: &Pipeline) {
-        unsafe {
-            self.0.UseProgram(pipeline.0);
-        }
-        self.get_error("UseProgram");
     }
 
     /// Set viewport transformation parameters.
@@ -162,7 +106,7 @@ impl Device {
     pub fn draw(&self, primitive: Primitive, vertices: Range<u32>, instance: Range<u32>) {
         unsafe {
             self.0.DrawArraysInstancedBaseInstance(
-                primitive.into(),
+                primitive as _,
                 vertices.start as _,
                 (vertices.end - vertices.start) as _,
                 (instance.end - instance.start) as _,
@@ -196,9 +140,9 @@ impl Device {
     ) {
         unsafe {
             self.0.DrawElementsInstancedBaseVertexBaseInstance(
-                primitive.into(),
+                primitive as _,
                 (indices.end - indices.start) as _,
-                index_ty.into(),
+                index_ty as _,
                 indices.start as _,
                 (instance.end - instance.start) as _,
                 base_vertex,
