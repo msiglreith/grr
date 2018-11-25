@@ -86,7 +86,7 @@ fn main() {
         num_indices += mesh.num_faces() * 3;
     }
 
-    let vertex_size = std::mem::size_of::<Vertex>();
+    let vertex_size = mem::size_of::<Vertex>();
     let mesh_data_len = vertex_size as u64 * num_vertices as u64;
     let mesh_data = grr.create_buffer(
         mesh_data_len,
@@ -688,7 +688,7 @@ fn main() {
 
         let face_view = &env_views[i as usize];
         grr.bind_uniform_constants(
-            &cubemap_proj_pipeline,
+            &env_irradiance_pipeline,
             0,
             &[
                 grr::Constant::Mat4x4(glm::inverse(&env_proj).into()),
@@ -735,7 +735,7 @@ fn main() {
         grr::Format::R16G16B16_SFLOAT,
         grr::SubresourceRange {
             layers: 0..6,
-            levels: 0..1,
+            levels: 0..num_prefiltered_levels,
         },
     );
 
@@ -926,7 +926,7 @@ fn main() {
             &[grr::VertexBufferView {
                 buffer: &mesh_data,
                 offset: 0,
-                stride: std::mem::size_of::<Vertex>() as _,
+                stride: mem::size_of::<Vertex>() as _,
                 input_rate: grr::InputRate::Vertex,
             }],
         );

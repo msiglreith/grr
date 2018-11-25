@@ -15,7 +15,7 @@ layout (binding = 4) uniform sampler2D u_occlusion;
 // Image Based Lighting
 layout (binding = 5) uniform sampler2D u_brdf_lut;
 layout (binding = 6) uniform samplerCube u_env_prefiltered;
-layout (binding = 6) uniform samplerCube u_env_irradiance;
+layout (binding = 7) uniform samplerCube u_env_irradiance;
 
 layout (location = 3) uniform vec3 u_camera_pos;
 
@@ -34,9 +34,9 @@ vec3 getNormalFromMap()
     vec2 st1 = dFdx(a_uv);
     vec2 st2 = dFdy(a_uv);
 
-    vec3 N   = normalize(a_normal);
-    vec3 T  = normalize(Q1*st2.t - Q2*st1.t);
-    vec3 B  = -normalize(cross(N, T));
+    vec3 N = normalize(a_normal);
+    vec3 T = normalize(Q1*st2.t - Q2*st1.t);
+    vec3 B = -normalize(cross(N, T));
     mat3 TBN = mat3(T, B, N);
 
     return normalize(TBN * tangentNormal);
@@ -86,7 +86,6 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 {
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
-
 
 float srgb_to_linear(float x) {
     if (x <= 0.04045) {
