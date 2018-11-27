@@ -287,7 +287,17 @@ impl Device {
 
     /// Delete a vertex array.
     pub fn delete_vertex_array(&self, vao: VertexArray) {
-        unsafe { self.0.DeleteVertexArrays(1, &vao.0) }
+        self.delete_vertex_arrays(&[vao]);
+    }
+
+    /// Delete multiple vertex arrays.
+    pub fn delete_vertex_arrays(&self, vao: &[VertexArray]) {
+        unsafe {
+            self.0.DeleteVertexArrays(
+                vao.len() as _,
+                vao.as_ptr() as *const _, // newtype
+            );
+        }
         self.get_error("DeleteVertexArrays");
     }
 

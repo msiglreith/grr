@@ -7,6 +7,7 @@ use Compare;
 use std::ops::Range;
 
 ///
+#[repr(transparent)]
 pub struct Sampler(GLuint);
 
 impl Device {
@@ -120,10 +121,18 @@ impl Device {
         self.get_error("BindSamplers");
     }
 
-    /// Delete a sampler.
+    // Delete a sampler.
     pub fn delete_sampler(&self, sampler: Sampler) {
+        self.delete_samplers(&[sampler])
+    }
+
+    /// Delete multiple samplers.
+    pub fn delete_samplers(&self, samplers: &[Sampler]) {
         unsafe {
-            self.0.DeleteSamplers(1, &sampler.0);
+            self.0.DeleteSamplers(
+                samplers.len() as _,
+                samplers.as_ptr() as *const _, // newtype
+            );
         }
         self.get_error("DeleteSamplers");
     }

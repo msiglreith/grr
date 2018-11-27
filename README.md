@@ -32,7 +32,7 @@ Checkout our [Hello Triangle](https://github.com/msiglreith/grr/blob/master/exam
 grr.bind_pipeline(&pipeline);
 // Configure vertex attributes
 grr.bind_vertex_array(&vertex_array);
-// Bind vertex buffers fer fetching attribute data
+// Bind vertex buffers for fetching attribute data
 grr.bind_vertex_buffers(
     &vertex_array,
     0,

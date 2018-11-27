@@ -227,13 +227,16 @@ impl Device {
 
         let shader = unsafe {
             let shader = self.0.CreateShader(stage);
+            self.get_error("CreateShader");
             self.0.ShaderSource(
                 shader,
                 1,
                 &(source.as_ptr() as *const _),
                 &(source.len() as _),
             );
+            self.get_error("ShaderSource");
             self.0.CompileShader(shader);
+            self.get_error("CompileShader");
 
             shader
         };
@@ -242,6 +245,7 @@ impl Device {
             let mut status = 0;
             self.0
                 .GetShaderiv(shader, __gl::COMPILE_STATUS, &mut status);
+            self.get_error("GetShaderiv");
             status
         };
 
@@ -282,6 +286,7 @@ impl Device {
         unsafe {
             self.0.DeleteShader(shader.0);
         }
+        self.get_error("DeleteShader");
     }
 
     /// Create a graphics pipeline.
@@ -319,6 +324,7 @@ impl Device {
             }
 
             self.0.LinkProgram(pipeline);
+            self.get_error("LinkProgram");
 
             // Detach
             self.0.DetachShader(pipeline, desc.vertex_shader.0);
@@ -383,6 +389,14 @@ impl Device {
 
         self.check_pipeline_log(pipeline);
         Pipeline(pipeline)
+    }
+
+    ///
+    pub fn delete_pipeline(&self, pipeline: Pipeline) {
+        unsafe {
+            self.0.DeleteProgram(pipeline.0);
+        }
+        self.get_error("DeleteProgram");
     }
 
     pub fn bind_input_assembly_state(&self, state: &InputAssembly) {

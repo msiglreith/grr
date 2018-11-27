@@ -87,7 +87,9 @@ impl Device {
             flags |= __gl::MAP_UNSYNCHRONIZED_BIT;
         }
         flags |= buffer.1
-            & (__gl::MAP_COHERENT_BIT | __gl::MAP_PERSISTENT_BIT | __gl::MAP_READ_BIT
+            & (__gl::MAP_COHERENT_BIT
+                | __gl::MAP_PERSISTENT_BIT
+                | __gl::MAP_READ_BIT
                 | __gl::MAP_WRITE_BIT);
 
         let stride = mem::size_of::<T>();
@@ -112,9 +114,16 @@ impl Device {
 
     /// Delete a buffer.
     pub fn delete_buffer(&self, buffer: Buffer) {
+        self.delete_buffers(&[buffer]);
+    }
+
+    /// Delete multiple buffers.
+    pub fn delete_buffers(&self, buffers: &[Buffer]) {
+        let buffers = buffers.iter().map(|buffer| buffer.0).collect::<Vec<_>>();
         unsafe {
-            self.0.DeleteBuffers(1, &buffer.0);
+            self.0.DeleteBuffers(buffers.len() as _, buffers.as_ptr());
         }
+        self.get_error("DeleteBuffers");
     }
 
     pub fn copy_host_to_buffer(&self, buffer: &Buffer, offset: isize, data: &[u8]) {

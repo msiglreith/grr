@@ -30,6 +30,7 @@ pub enum AttachmentView<'a> {
 }
 
 ///
+#[repr(transparent)]
 pub struct Framebuffer(GLuint);
 
 impl Framebuffer {
@@ -37,6 +38,7 @@ impl Framebuffer {
 }
 
 ///
+#[repr(transparent)]
 pub struct Renderbuffer(GLuint);
 
 impl Device {
@@ -51,10 +53,18 @@ impl Device {
         Framebuffer(framebuffer)
     }
 
-    ///
+    /// Delete a framebuffer.
     pub fn delete_framebuffer(&self, framebuffer: Framebuffer) {
+        self.delete_framebuffers(&[framebuffer])
+    }
+
+    /// Delete multiple framebuffers.
+    pub fn delete_framebuffers(&self, framebuffers: &[Framebuffer]) {
         unsafe {
-            self.0.DeleteFramebuffers(1, &framebuffer.0);
+            self.0.DeleteFramebuffers(
+                framebuffers.len() as _,
+                framebuffers.as_ptr() as *const _, // newtype
+            );
         }
         self.get_error("DeleteFramebuffers");
     }
@@ -70,10 +80,18 @@ impl Device {
         Renderbuffer(renderbuffer)
     }
 
-    ///
+    /// Delete a renderbuffer.
     pub fn delete_renderbuffer(&self, renderbuffer: Renderbuffer) {
+        self.delete_renderbuffers(&[renderbuffer])
+    }
+
+    /// Delete multiple renderbuffers.
+    pub fn delete_renderbuffers(&self, renderbuffers: &[Renderbuffer]) {
         unsafe {
-            self.0.DeleteRenderbuffers(1, &renderbuffer.0);
+            self.0.DeleteRenderbuffers(
+                renderbuffers.len() as _,
+                renderbuffers.as_ptr() as *const _, // newtype
+            );
         }
         self.get_error("DeleteRenderbuffers");
     }

@@ -1,3 +1,24 @@
+//!  Image storage and views.
+//!
+//! ## Image
+//!
+//! Images ares multisdimensional, formatted data arrays.
+//! Images are, together with buffers, resources and are typed representations
+//! of a memory slice.
+//!
+//! Images are often also called textures. We only denote with an image
+//! the actual **storage** of the data, meaning the memory with the
+//! associated layout metadata.
+//!
+//! The API only uses images directlt when the function call directly
+//! affects the underlying memory (e.g copy operations).
+//!
+//! ## Image View
+//!
+//! Image Views denote subranges of an image storage. Pipelines will
+//! only access image data via views. Views alias the memory of the associated
+//! image.
+
 use __gl;
 use __gl::types::{GLenum, GLuint};
 
@@ -7,34 +28,60 @@ use device::Device;
 use format::{BaseFormat, Format, FormatLayout};
 use {Extent, Offset};
 
-///
+/// Image resource handle.
 pub struct Image {
     raw: GLuint,
     target: GLenum,
 }
 
+/// Image dimensionality type.
+///
+/// Layer, as in arrays or cube maps. don't affect
+/// the dimensionality type.
 pub enum ImageType {
+    // One dimensional image.
     D1 {
+        // Width.
         width: u32,
+
+        // Number of layers.
+        //
+        // `1` for non-array textures.
         layers: u32,
     },
+    // Two dimensional image.
     D2 {
+        // Width.
         width: u32,
+
+        // Height.
         height: u32,
+
+        // Number of layers.
+        //
+        // `1` for non-array textures.
         layers: u32,
+
         samples: u32,
     },
+    // Three dimensional image.
     D3 {
+        // Width.
         width: u32,
+
+        // Height.
         height: u32,
+
+        // Depth.
         depth: u32,
     },
 }
 
-///
+/// Image view handle.
 #[repr(transparent)]
 pub struct ImageView(pub(crate) GLuint);
 
+///
 pub enum ImageViewType {
     D1,
     D2,
@@ -45,12 +92,14 @@ pub enum ImageViewType {
     CubeArray,
 }
 
+///
 pub struct SubresourceRange {
     pub levels: Range<u32>,
     pub layers: Range<u32>,
 }
 
 impl Device {
+    ///
     pub fn create_image(&self, ty: ImageType, format: Format, levels: u32) -> Image {
         let target = match ty {
             ImageType::D1 { layers: 1, .. } => __gl::TEXTURE_1D,
@@ -137,6 +186,7 @@ impl Device {
         Image { raw: image, target }
     }
 
+    /// Copy image data from host memory to device memory.
     pub fn copy_host_to_image<T>(
         &self,
         image: &Image,
@@ -166,6 +216,7 @@ impl Device {
         }
     }
 
+    /// Create an image view from an image.
     pub fn create_image_view(
         &self,
         image: &Image,
@@ -211,6 +262,7 @@ impl Device {
         ImageView(view)
     }
 
+    /// Bind image views to texture units.
     pub fn bind_image_views(&self, first: u32, views: &[&ImageView]) {
         let views = views.iter().map(|view| view.0).collect::<Vec<_>>();
         unsafe {
@@ -219,6 +271,13 @@ impl Device {
         self.get_error("BindTextures");
     }
 
+    /// Generate mipmaps.
+    ///
+    /// This generates the remaining mipmap levels using the base layer
+    /// via downscaling. The number of levels are determined on resource
+    /// creation.
+    ///
+    /// The downscaling filter is implementation dependent!
     pub fn generate_mipmaps(&self, image: &Image) {
         unsafe {
             self.0.GenerateTextureMipmap(image.raw);
