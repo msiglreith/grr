@@ -12,6 +12,7 @@ mod framebuffer;
 mod image;
 mod pipeline;
 mod sampler;
+mod sync;
 mod vertex;
 
 pub use buffer::{Buffer, MappingFlags, MemoryFlags};
