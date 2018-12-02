@@ -20,7 +20,6 @@ pub enum BaseFormat {
     RG = __gl::RG,
     RGB = __gl::RGB,
     RGBA = __gl::RGBA,
-    // TODO
 }
 
 #[allow(non_camel_case_types)]
@@ -28,7 +27,11 @@ pub enum BaseFormat {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum FormatLayout {
     U8 = __gl::UNSIGNED_BYTE,
+    U16 = __gl::UNSIGNED_SHORT,
+    U32 = __gl::UNSIGNED_INT,
     I8 = __gl::BYTE,
+    I16 = __gl::SHORT,
+    I32 = __gl::INT,
     F16 = __gl::HALF_FLOAT,
     F32 = __gl::FLOAT,
     // TODO
