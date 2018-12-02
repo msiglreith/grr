@@ -186,6 +186,20 @@ impl Device {
         Image { raw: image, target }
     }
 
+    /// Delete an images.
+    pub fn delete_image(&self, image: Image) {
+        self.delete_images(&[image]);
+    }
+
+    /// Delete multiple images.
+    pub fn delete_images(&self, images: &[Image]) {
+        let images = images.iter().map(|i| i.raw).collect::<Vec<_>>();
+        unsafe {
+            self.0
+                .DeleteTextures(images.len() as _, images.as_ptr() as *const _);
+        }
+    }
+
     /// Copy image data from host memory to device memory.
     pub fn copy_host_to_image<T>(
         &self,
@@ -260,6 +274,21 @@ impl Device {
         self.get_error("TextureView");
 
         ImageView(view)
+    }
+
+    /// Delete an image views.
+    pub fn delete_image_view(&self, view: ImageView) {
+        self.delete_image_views(&[view]);
+    }
+
+    /// Delete multipe image views.
+    pub fn delete_image_views(&self, views: &[ImageView]) {
+        unsafe {
+            self.0.DeleteTextures(
+                views.len() as _,
+                views.as_ptr() as *const _, // newtype
+            );
+        }
     }
 
     /// Bind image views to texture units.

@@ -19,20 +19,15 @@ impl Device {
     {
         let ctxt = __gl::Gl::load_with(loader);
 
-        // Enforce sRGB frmaebuffer handling
         unsafe {
+            // Enforce sRGB frmaebuffer handling
             ctxt.Enable(__gl::FRAMEBUFFER_SRGB);
-        }
-        // Enforce lower-left window coordinate system with [0; 1] depth range
-        unsafe {
+            // Enforce lower-left window coordinate system with [0; 1] depth range
             ctxt.ClipControl(__gl::LOWER_LEFT, __gl::ZERO_TO_ONE);
-        }
-        // Always enable scissor testing
-        unsafe {
+            // Always enable scissor testing
             ctxt.Enable(__gl::SCISSOR_TEST);
-        }
-        unsafe {
             ctxt.Enable(__gl::TEXTURE_CUBE_MAP_SEAMLESS);
+            ctxt.Enable(__gl::PROGRAM_POINT_SIZE);
         }
 
         Device(ctxt)

@@ -27,6 +27,7 @@ pub use pipeline::{
     GraphicsPipelineDesc, InputAssembly, Pipeline, Shader, ShaderStage, StencilFace, StencilOp,
 };
 pub use sampler::{Filter, Sampler, SamplerAddress, SamplerDesc};
+pub use sync::{Barrier, RegionBarrier};
 pub use vertex::{InputRate, VertexArray, VertexAttributeDesc, VertexBufferView, VertexFormat};
 
 ///

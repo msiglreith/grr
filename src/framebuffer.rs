@@ -137,11 +137,30 @@ impl Device {
     ///
     pub fn invalidate_attachments(
         &self,
-        _framebuffer: &Framebuffer,
-        _attachments: &[Attachment],
-        _region: Region,
+        framebuffer: &Framebuffer,
+        attachments: &[Attachment],
+        region: Region,
     ) {
-        unimplemented!()
+        let attachments = attachments
+            .iter()
+            .map(|att| match att {
+                Attachment::Color(slot) => __gl::COLOR_ATTACHMENT0 + *slot as u32,
+                Attachment::Depth => __gl::DEPTH_ATTACHMENT,
+                Attachment::Stencil => __gl::STENCIL_ATTACHMENT,
+                Attachment::DepthStencil => __gl::DEPTH_STENCIL_ATTACHMENT,
+            }).collect::<Vec<_>>();
+
+        unsafe {
+            self.0.InvalidateNamedFramebufferSubData(
+                framebuffer.0,
+                attachments.len() as _,
+                attachments.as_ptr(),
+                region.x,
+                region.y,
+                region.w,
+                region.h,
+            )
+        }
     }
 
     ///

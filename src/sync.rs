@@ -69,7 +69,7 @@ impl Device {
     ///
     pub fn memory_barrier_by_region(&self, flags: RegionBarrier) {
         unsafe {
-            self.0.MemoryBarrierRegion(flags.bits());
+            self.0.MemoryBarrierByRegion(flags.bits());
         }
     }
 }

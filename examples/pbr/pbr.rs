@@ -981,4 +981,6 @@ fn main() {
 
         window.swap_buffers().unwrap();
     }
+
+    grr.delete_images(&[albedo, normals, occlusion, metalness, roughness]);
 }

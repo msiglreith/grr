@@ -248,4 +248,12 @@ fn main() {
 
         window.swap_buffers().unwrap();
     }
+
+    grr.delete_shaders(&[vs, fs]);
+    grr.delete_pipeline(pipeline);
+    grr.delete_sampler(sampler);
+    grr.delete_image_view(texture_view);
+    grr.delete_image(texture);
+    grr.delete_vertex_array(vertex_array);
+    grr.delete_buffers(&[vertex_buffer, index_buffer]);
 }

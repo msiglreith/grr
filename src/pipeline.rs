@@ -289,6 +289,16 @@ impl Device {
         self.get_error("DeleteShader");
     }
 
+    /// Delete multiple shaders.
+    pub fn delete_shaders(&self, shaders: &[Shader]) {
+        for shader in shaders.into_iter() {
+            unsafe {
+                self.0.DeleteShader(shader.0);
+            }
+            self.get_error("DeleteShader");
+        }
+    }
+
     /// Create a graphics pipeline.
     ///
     /// This equals a `Program` in GL terminology.

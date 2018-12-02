@@ -143,8 +143,7 @@ fn main() {
         window.swap_buffers().unwrap();
     }
 
-    grr.delete_shader(vs);
-    grr.delete_shader(fs);
+    grr.delete_shaders(&[vs, fs]);
     grr.delete_pipeline(pipeline);
     grr.delete_buffer(triangle_data);
     grr.delete_vertex_array(vertex_array);
