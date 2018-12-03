@@ -135,6 +135,25 @@ impl Device {
         }
     }
 
+    pub fn copy_buffer(
+        &self,
+        src_buffer: &Buffer,
+        src_offset: isize,
+        dst_buffer: &Buffer,
+        dst_offset: isize,
+        size: u64,
+    ) {
+        unsafe {
+            self.0.CopyNamedBufferSubData(
+                src_buffer.0,
+                dst_buffer.0,
+                src_offset,
+                dst_offset,
+                size as _,
+            );
+        }
+    }
+
     pub fn bind_uniform_buffers(&self, first: u32, ranges: &[BufferRange]) {
         let buffers = ranges.iter().map(|view| view.buffer.0).collect::<Vec<_>>();
         let offsets = ranges

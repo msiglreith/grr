@@ -181,7 +181,6 @@ impl Device {
                 &AttachmentView::Image(image) => {
                     self.0
                         .NamedFramebufferTexture(framebuffer.0, attachment, image.0, 0);
-                    self.get_error();
                 }
                 &AttachmentView::Renderbuffer(_) => unimplemented!(),
             }
