@@ -40,7 +40,7 @@ const VERTICES: [f32; 16] = [
 
 const INDICES: [u16; 6] = [0, 1, 2, 2, 3, 0];
 
-fn main() {
+fn main() -> grr::Result<()> {
     let mut events_loop = glutin::EventsLoop::new();
     let window = glutin::WindowBuilder::new()
         .with_title("Hello, world!")
@@ -57,10 +57,13 @@ fn main() {
         window.make_current().unwrap();
     }
 
-    let grr = grr::Device::new(|symbol| window.get_proc_address(symbol) as *const _);
+    let grr = grr::Device::new(
+        |symbol| window.get_proc_address(symbol) as *const _,
+        grr::Debug::Disable,
+    );
 
-    let vs = grr.create_shader(grr::ShaderStage::Vertex, VERTEX_SRC.as_bytes());
-    let fs = grr.create_shader(grr::ShaderStage::Fragment, FRAGMENT_SRC.as_bytes());
+    let vs = grr.create_shader(grr::ShaderStage::Vertex, VERTEX_SRC.as_bytes())?;
+    let fs = grr.create_shader(grr::ShaderStage::Fragment, FRAGMENT_SRC.as_bytes())?;
 
     let pipeline = grr.create_graphics_pipeline(grr::GraphicsPipelineDesc {
         vertex_shader: &vs,
@@ -68,7 +71,7 @@ fn main() {
         tessellation_evaluation_shader: None,
         geometry_shader: None,
         fragment_shader: Some(&fs),
-    });
+    })?;
 
     let vertex_array = grr.create_vertex_array(&[
         grr::VertexAttributeDesc {
@@ -83,7 +86,7 @@ fn main() {
             format: grr::VertexFormat::Xy32Float,
             offset: (2 * std::mem::size_of::<f32>()) as _,
         },
-    ]);
+    ])?;
 
     let vertex_buffer = {
         let len = (std::mem::size_of::<f32>() * VERTICES.len()) as u64;
@@ -91,7 +94,7 @@ fn main() {
         let buffer = grr.create_buffer(
             len,
             grr::MemoryFlags::CPU_MAP_WRITE | grr::MemoryFlags::COHERENT,
-        );
+        )?;
 
         let data = grr.map_buffer::<f32>(&buffer, 0..len, grr::MappingFlags::empty());
         data.clone_from_slice(&VERTICES);
@@ -106,7 +109,7 @@ fn main() {
         let buffer = grr.create_buffer(
             len,
             grr::MemoryFlags::CPU_MAP_WRITE | grr::MemoryFlags::COHERENT,
-        );
+        )?;
 
         let data = grr.map_buffer::<u16>(&buffer, 0..len, grr::MappingFlags::empty());
         data.clone_from_slice(&INDICES);
@@ -131,7 +134,7 @@ fn main() {
         },
         grr::Format::R8G8B8A8_SRGB,
         1,
-    );
+    )?;
 
     grr.copy_host_to_image(
         &texture,
@@ -156,7 +159,7 @@ fn main() {
             layers: 0..1,
             levels: 0..1,
         },
-    );
+    )?;
 
     let sampler = grr.create_sampler(grr::SamplerDesc {
         min_filter: grr::Filter::Linear,
@@ -171,7 +174,7 @@ fn main() {
         lod: 0.0..10.0,
         compare: None,
         border_color: [0.0, 0.0, 0.0, 1.0],
-    });
+    })?;
 
     let color_blend = grr::ColorBlend {
         attachments: vec![grr::ColorBlendAttachment {
@@ -256,4 +259,6 @@ fn main() {
     grr.delete_image(texture);
     grr.delete_vertex_array(vertex_array);
     grr.delete_buffers(&[vertex_buffer, index_buffer]);
+
+    Ok(())
 }

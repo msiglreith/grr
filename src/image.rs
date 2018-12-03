@@ -25,6 +25,7 @@ use __gl::types::{GLenum, GLuint};
 use std::ops::Range;
 
 use device::Device;
+use error::Result;
 use format::{BaseFormat, Format, FormatLayout};
 use {Extent, Offset};
 
@@ -100,7 +101,7 @@ pub struct SubresourceRange {
 
 impl Device {
     ///
-    pub fn create_image(&self, ty: ImageType, format: Format, levels: u32) -> Image {
+    pub fn create_image(&self, ty: ImageType, format: Format, levels: u32) -> Result<Image> {
         let target = match ty {
             ImageType::D1 { layers: 1, .. } => __gl::TEXTURE_1D,
             ImageType::D1 { .. } => __gl::TEXTURE_1D_ARRAY,
@@ -131,13 +132,12 @@ impl Device {
         unsafe {
             self.0.CreateTextures(target, 1, &mut image);
         }
-        self.get_error("CreateTextures");
+        self.get_error()?;
 
         match ty {
             ImageType::D1 { width, layers: 1 } => unsafe {
                 self.0
                     .TextureStorage1D(image, levels as _, format as _, width as _);
-                self.get_error("TextureStorage1D");
             },
             ImageType::D1 {
                 width,
@@ -157,7 +157,6 @@ impl Device {
             } => unsafe {
                 self.0
                     .TextureStorage2D(image, levels as _, format as _, width as _, height as _);
-                self.get_error("TextureStorage2D");
             },
             ImageType::D2 {
                 width,
@@ -178,12 +177,12 @@ impl Device {
                     height as _,
                     depth as _,
                 );
-                self.get_error("TextureStorage3D");
             },
             _ => unimplemented!(),
         }
+        self.get_error()?;
 
-        Image { raw: image, target }
+        Ok(Image { raw: image, target })
     }
 
     /// Delete an images.
@@ -237,7 +236,7 @@ impl Device {
         ty: ImageViewType,
         format: Format,
         range: SubresourceRange,
-    ) -> ImageView {
+    ) -> Result<ImageView> {
         let target = match ty {
             ImageViewType::D1 => __gl::TEXTURE_1D,
             ImageViewType::D2 if image.target == __gl::TEXTURE_2D_MULTISAMPLE => {
@@ -257,7 +256,7 @@ impl Device {
         unsafe {
             self.0.GenTextures(1, &mut view);
         }
-        self.get_error("GenTextures");
+        self.get_error()?;
 
         unsafe {
             self.0.TextureView(
@@ -271,9 +270,9 @@ impl Device {
                 range.layers.end - range.layers.start,
             );
         }
-        self.get_error("TextureView");
+        self.get_error()?;
 
-        ImageView(view)
+        Ok(ImageView(view))
     }
 
     /// Delete an image views.
@@ -297,7 +296,6 @@ impl Device {
         unsafe {
             self.0.BindTextures(first, views.len() as _, views.as_ptr());
         }
-        self.get_error("BindTextures");
     }
 
     /// Generate mipmaps.
@@ -311,6 +309,5 @@ impl Device {
         unsafe {
             self.0.GenerateTextureMipmap(image.raw);
         }
-        self.get_error("GenerateTextureMipmap");
     }
 }

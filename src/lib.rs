@@ -17,8 +17,8 @@ mod vertex;
 
 pub use buffer::{Buffer, MappingFlags, MemoryFlags};
 pub use command::Constant;
-pub use device::Device;
-pub use error::Error;
+pub use device::{Debug, DebugReport, DebugSource, DebugType, Device};
+pub use error::{Error, Result};
 pub use format::{BaseFormat, Format, FormatLayout};
 pub use framebuffer::{Attachment, AttachmentView, ClearAttachment, Framebuffer, Renderbuffer};
 pub use image::{Image, ImageType, ImageView, ImageViewType, SubresourceRange};

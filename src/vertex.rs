@@ -3,6 +3,7 @@ use __gl::types::GLuint;
 
 use buffer::Buffer;
 use device::Device;
+use error::Result;
 
 ///
 #[repr(transparent)]
@@ -135,12 +136,12 @@ impl Device {
     ///
     /// The vertex array specified the vertex attributes and their binding to
     /// vertex buffer objects.
-    pub fn create_vertex_array(&self, attributes: &[VertexAttributeDesc]) -> VertexArray {
+    pub fn create_vertex_array(&self, attributes: &[VertexAttributeDesc]) -> Result<VertexArray> {
         let mut vao = 0;
         unsafe {
             self.0.CreateVertexArrays(1, &mut vao);
         }
-        self.get_error("CreateVertexArrays");
+        self.get_error()?;
 
         enum VertexBase {
             Int,
@@ -250,13 +251,10 @@ impl Device {
 
             unsafe {
                 self.0.EnableVertexArrayAttrib(vao, desc.location);
-                self.get_error("EnableVertexArrayAttrib");
-
                 match base {
                     VertexBase::Int => {
                         self.0
                             .VertexArrayAttribIFormat(vao, desc.location, num, ty, desc.offset);
-                        self.get_error("VertexArrayAttribIFormat");
                     }
                     VertexBase::Float => {
                         self.0.VertexArrayAttribFormat(
@@ -267,22 +265,19 @@ impl Device {
                             norm as _,
                             desc.offset,
                         );
-                        self.get_error("VertexArrayAttribFormat");
                     }
                     VertexBase::Double => {
                         self.0
                             .VertexArrayAttribLFormat(vao, desc.location, num, ty, desc.offset);
-                        self.get_error("VertexArrayAttribLFormat");
                     }
                 }
 
                 self.0
                     .VertexArrayAttribBinding(vao, desc.location, desc.binding);
-                self.get_error("VertexArrayAttribBinding");
             }
         }
 
-        VertexArray(vao)
+        Ok(VertexArray(vao))
     }
 
     /// Delete a vertex array.
@@ -298,7 +293,6 @@ impl Device {
                 vao.as_ptr() as *const _, // newtype
             );
         }
-        self.get_error("DeleteVertexArrays");
     }
 
     /// Bind a vertex array for usage.
@@ -306,7 +300,6 @@ impl Device {
         unsafe {
             self.0.BindVertexArray(vao.0);
         }
-        self.get_error("BindVertexArray");
     }
 
     /// Bind vertex buffers to a vertex array.
@@ -333,7 +326,6 @@ impl Device {
                 strides.as_ptr(),
             );
         }
-        self.get_error("VertexArrayVertexBuffers");
 
         for (binding, view) in views.iter().enumerate() {
             let divisor = match view.input_rate {
@@ -345,13 +337,11 @@ impl Device {
                 self.0
                     .VertexArrayBindingDivisor(vao.0, first + binding as u32, divisor as _);
             }
-            self.get_error("VertexArrayBindingDivisor");
         }
     }
 
     /// Bind a index buffer to a vertex array.
     pub fn bind_index_buffer(&self, vao: &VertexArray, buffer: &Buffer) {
         unsafe { self.0.VertexArrayElementBuffer(vao.0, buffer.0) }
-        self.get_error("VertexArrayElementBuffer");
     }
 }

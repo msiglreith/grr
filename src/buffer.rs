@@ -5,6 +5,7 @@ use std::ops::Range;
 use std::{mem, ptr, slice};
 
 use device::Device;
+use error::Result;
 
 ///
 pub struct Buffer(pub(crate) GLuint, GLbitfield);
@@ -23,7 +24,7 @@ impl Device {
     /// - `size`: Length in bytes of the associated storage memory.
     /// - `memory`: Properties of the internal memory slice. Indicating the usage
     ///             and locality of the allocation.
-    pub fn create_buffer(&self, size: u64, memory: MemoryFlags) -> Buffer {
+    pub fn create_buffer(&self, size: u64, memory: MemoryFlags) -> Result<Buffer> {
         let flags = {
             let mut flags = 0;
             if !memory.contains(MemoryFlags::DEVICE_LOCAL) {
@@ -47,11 +48,13 @@ impl Device {
         let mut buffer = 0;
         unsafe {
             self.0.CreateBuffers(1, &mut buffer);
+            self.get_error()?;
             self.0
                 .NamedBufferStorage(buffer, size as _, ptr::null(), flags);
+            self.get_error()?;
         }
 
-        Buffer(buffer, flags)
+        Ok(Buffer(buffer, flags))
     }
 
     /// Persistently map memory to host accessible virtual memory.
@@ -123,7 +126,6 @@ impl Device {
         unsafe {
             self.0.DeleteBuffers(buffers.len() as _, buffers.as_ptr());
         }
-        self.get_error("DeleteBuffers");
     }
 
     pub fn copy_host_to_buffer(&self, buffer: &Buffer, offset: isize, data: &[u8]) {
@@ -131,7 +133,6 @@ impl Device {
             self.0
                 .NamedBufferSubData(buffer.0, offset, data.len() as _, data.as_ptr() as *const _);
         }
-        self.get_error("TextureStorage2D");
     }
 
     pub fn bind_uniform_buffers(&self, first: u32, ranges: &[BufferRange]) {
@@ -152,7 +153,6 @@ impl Device {
                 sizes.as_ptr(),
             );
         }
-        self.get_error("BindBuffersRange");
     }
 }
 

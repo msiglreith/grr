@@ -2,6 +2,7 @@ use __gl;
 use __gl::types::{GLenum, GLuint};
 
 use device::Device;
+use error::Result;
 use Compare;
 
 use std::ops::Range;
@@ -12,12 +13,12 @@ pub struct Sampler(GLuint);
 
 impl Device {
     /// Create a sampler object.
-    pub fn create_sampler(&self, desc: SamplerDesc) -> Sampler {
+    pub fn create_sampler(&self, desc: SamplerDesc) -> Result<Sampler> {
         let mut sampler = 0;
         unsafe {
             self.0.CreateSamplers(1, &mut sampler);
         }
-        self.get_error("CreateSamplers");
+        self.get_error()?;
 
         // Texture min filter
         let min_filter = map_min_filter(desc.min_filter, desc.mip_map);
@@ -25,7 +26,6 @@ impl Device {
             self.0
                 .SamplerParameteri(sampler, __gl::TEXTURE_MIN_FILTER, min_filter as _);
         }
-        self.get_error("SamplerParameteri (MIN_FILTER)");
 
         // Texture mag filter
         let mag_filter = match desc.mag_filter {
@@ -36,7 +36,6 @@ impl Device {
             self.0
                 .SamplerParameteri(sampler, __gl::TEXTURE_MAG_FILTER, mag_filter as _);
         }
-        self.get_error("SamplerParameteri (MAG_FILTER)");
 
         // Texture address wrap modes
         let (wrap_s, wrap_t, wrap_r) = (
@@ -48,36 +47,30 @@ impl Device {
             self.0
                 .SamplerParameteri(sampler, __gl::TEXTURE_WRAP_S, wrap_s as _);
         }
-        self.get_error("SamplerParameteri (WRAP_S)");
         unsafe {
             self.0
                 .SamplerParameteri(sampler, __gl::TEXTURE_WRAP_T, wrap_t as _);
         }
-        self.get_error("SamplerParameteri (WRAP_T)");
         unsafe {
             self.0
                 .SamplerParameteri(sampler, __gl::TEXTURE_WRAP_R, wrap_r as _);
         }
-        self.get_error("SamplerParameteri (WRAP_R)");
 
         // LOD bias
         unsafe {
             self.0
                 .SamplerParameterf(sampler, __gl::TEXTURE_LOD_BIAS, desc.lod_bias);
         }
-        self.get_error("SamplerParameterf (LOD_BIAS)");
 
         // LOD range
         unsafe {
             self.0
                 .SamplerParameterf(sampler, __gl::TEXTURE_MIN_LOD, desc.lod.start);
         }
-        self.get_error("SamplerParameterf (MIN_LOD)");
         unsafe {
             self.0
                 .SamplerParameterf(sampler, __gl::TEXTURE_MAX_LOD, desc.lod.end);
         }
-        self.get_error("SamplerParameterf (MAX_LOD)");
 
         // Texture comparison mode
         let (compare_mode, compare_op): (GLenum, Option<GLenum>) = match desc.compare {
@@ -88,14 +81,12 @@ impl Device {
             self.0
                 .SamplerParameteri(sampler, __gl::TEXTURE_COMPARE_MODE, compare_mode as _);
         }
-        self.get_error("SamplerParameteri (COMPARE_MODE)");
 
         if let Some(op) = compare_op {
             unsafe {
                 self.0
                     .SamplerParameteri(sampler, __gl::TEXTURE_COMPARE_FUNC, op as _);
             }
-            self.get_error("SamplerParameteri (COMPARE_FUNC)");
         }
 
         // Border color
@@ -106,9 +97,8 @@ impl Device {
                 desc.border_color.as_ptr(),
             );
         }
-        self.get_error("SamplerParameterfv (BORDER_COLOR)");
 
-        Sampler(sampler)
+        Ok(Sampler(sampler))
     }
 
     /// Bind samplers to specific texture units.
@@ -118,7 +108,6 @@ impl Device {
             self.0
                 .BindSamplers(first, samplers.len() as _, samplers.as_ptr());
         }
-        self.get_error("BindSamplers");
     }
 
     // Delete a sampler.
@@ -134,7 +123,6 @@ impl Device {
                 samplers.as_ptr() as *const _, // newtype
             );
         }
-        self.get_error("DeleteSamplers");
     }
 }
 

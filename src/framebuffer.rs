@@ -2,6 +2,7 @@ use __gl;
 use __gl::types::{GLenum, GLuint};
 
 use device::Device;
+use error::Result;
 use ImageView;
 use Region;
 
@@ -43,14 +44,14 @@ pub struct Renderbuffer(GLuint);
 
 impl Device {
     ///
-    pub fn create_framebuffer(&self) -> Framebuffer {
+    pub fn create_framebuffer(&self) -> Result<Framebuffer> {
         let mut framebuffer = 0;
         unsafe {
             self.0.CreateFramebuffers(1, &mut framebuffer);
         }
-        self.get_error("CreateFramebuffers");
+        self.get_error()?;
 
-        Framebuffer(framebuffer)
+        Ok(Framebuffer(framebuffer))
     }
 
     /// Delete a framebuffer.
@@ -66,18 +67,17 @@ impl Device {
                 framebuffers.as_ptr() as *const _, // newtype
             );
         }
-        self.get_error("DeleteFramebuffers");
     }
 
     ///
-    pub fn create_renderbuffer(&self) -> Renderbuffer {
+    pub fn create_renderbuffer(&self) -> Result<Renderbuffer> {
         let mut renderbuffer = 0;
         unsafe {
             self.0.CreateRenderbuffers(1, &mut renderbuffer);
         }
-        self.get_error("CreateRenderbuffers");
+        self.get_error()?;
 
-        Renderbuffer(renderbuffer)
+        Ok(Renderbuffer(renderbuffer))
     }
 
     /// Delete a renderbuffer.
@@ -93,7 +93,6 @@ impl Device {
                 renderbuffers.as_ptr() as *const _, // newtype
             );
         }
-        self.get_error("DeleteRenderbuffers");
     }
 
     /// Clear framebuffer attachment.
@@ -103,32 +102,26 @@ impl Device {
                 ClearAttachment::ColorInt(id, color) => {
                     self.0
                         .ClearNamedFramebufferiv(fb.0, __gl::COLOR, id as _, color.as_ptr());
-                    self.get_error("ClearNamedFramebufferiv (Color)");
                 }
                 ClearAttachment::ColorUint(id, color) => {
                     self.0
                         .ClearNamedFramebufferuiv(fb.0, __gl::COLOR, id as _, color.as_ptr());
-                    self.get_error("ClearNamedFramebufferuiv (Color)");
                 }
                 ClearAttachment::ColorFloat(id, color) => {
                     self.0
                         .ClearNamedFramebufferfv(fb.0, __gl::COLOR, id as _, color.as_ptr());
-                    self.get_error("ClearNamedFramebufferfv (Color)");
                 }
                 ClearAttachment::Depth(depth) => {
                     self.0
                         .ClearNamedFramebufferfv(fb.0, __gl::DEPTH, 0, &depth as *const _);
-                    self.get_error("ClearNamedFramebufferfv (Depth)");
                 }
                 ClearAttachment::Stencil(stencil) => {
                     self.0
                         .ClearNamedFramebufferiv(fb.0, __gl::STENCIL, 0, &stencil as *const _);
-                    self.get_error("ClearNamedFramebufferiv (Stencil");
                 }
                 ClearAttachment::DepthStencil(depth, stencil) => {
                     self.0
                         .ClearNamedFramebufferfi(fb.0, __gl::DEPTH_STENCIL, 0, depth, stencil);
-                    self.get_error("ClearNamedFramebufferfi (Depth-Stencil)");
                 }
             }
         }
@@ -169,7 +162,6 @@ impl Device {
             self.0
                 .BindFramebuffer(__gl::DRAW_FRAMEBUFFER, framebuffer.0);
         }
-        self.get_error("BindFramebuffer");
     }
 
     ///
@@ -189,7 +181,7 @@ impl Device {
                 &AttachmentView::Image(image) => {
                     self.0
                         .NamedFramebufferTexture(framebuffer.0, attachment, image.0, 0);
-                    self.get_error("NamedFramebufferTexture");
+                    self.get_error();
                 }
                 &AttachmentView::Renderbuffer(_) => unimplemented!(),
             }
@@ -222,6 +214,5 @@ impl Device {
                 attachments.as_ptr(),
             );
         }
-        self.get_error("NamedFramebufferDrawBuffers");
     }
 }

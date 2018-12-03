@@ -19,16 +19,13 @@ impl Device {
             match constant {
                 Constant::U32(val) => unsafe {
                     self.0.ProgramUniform1ui(pipeline.0, location, *val as _);
-                    self.get_error("ProgramUniform1ui");
                 },
                 Constant::F32(val) => unsafe {
                     self.0.ProgramUniform1f(pipeline.0, location, *val as _);
-                    self.get_error("ProgramUniform1f");
                 },
                 Constant::Vec3(v) => unsafe {
                     self.0
                         .ProgramUniform3f(pipeline.0, location, v[0], v[1], v[2]);
-                    self.get_error("ProgramUniform3f");
                 },
                 Constant::Mat3x3(mat) => unsafe {
                     self.0.ProgramUniformMatrix3fv(
@@ -38,7 +35,6 @@ impl Device {
                         __gl::FALSE,
                         mat.as_ptr() as *const _,
                     );
-                    self.get_error("ProgramUniformMatrix3fv");
                 },
                 Constant::Mat4x4(mat) => unsafe {
                     self.0.ProgramUniformMatrix4fv(
@@ -48,7 +44,6 @@ impl Device {
                         __gl::FALSE,
                         mat.as_ptr() as *const _,
                     );
-                    self.get_error("ProgramUniformMatrix4fv");
                 },
             }
         }
@@ -68,7 +63,6 @@ impl Device {
             self.0
                 .ViewportArrayv(first, viewports.len() as _, rects.as_ptr());
         }
-        self.get_error("ViewportArrayv");
 
         let depth_ranges = viewports
             .iter()
@@ -79,7 +73,6 @@ impl Device {
             self.0
                 .DepthRangeArrayv(first, viewports.len() as _, depth_ranges.as_ptr());
         }
-        self.get_error("DepthRangeArrayv");
     }
 
     /// Set scissor rectangles for viewports.
@@ -97,7 +90,6 @@ impl Device {
             self.0
                 .ScissorArrayv(first, scissors.len() as _, scissors_raw.as_ptr());
         }
-        self.get_error("ScissorArrayv");
     }
 
     /// Submit a (non-indexed) draw call.
@@ -124,7 +116,6 @@ impl Device {
                 instance.start as _,
             )
         }
-        self.get_error("DrawArraysInstancedBaseInstance");
     }
 
     /// Submit an indexed draw call.
@@ -160,7 +151,6 @@ impl Device {
                 instance.start as _,
             )
         }
-        self.get_error("DrawElementsInstancedBaseVertexBaseInstance");
     }
 
     /// Dispatch a workgroup for computation.
@@ -173,6 +163,5 @@ impl Device {
         unsafe {
             self.0.DispatchCompute(groups_x, groups_y, groups_z);
         }
-        self.get_error("DispatchCompute");
     }
 }

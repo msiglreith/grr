@@ -2,6 +2,7 @@ use __gl;
 use __gl::types::GLuint;
 
 use device::Device;
+use error::Result;
 use Compare;
 
 ///
@@ -215,7 +216,7 @@ impl Device {
     /// - `source` must be a NULL-terminated C-String.
     /// - The GLSL shader version must be `450 core` or higher.
     /// - The `stage` parameter must be a valid stage of the passed shader source.
-    pub fn create_shader(&self, stage: ShaderStage, source: &[u8]) -> Shader {
+    pub fn create_shader(&self, stage: ShaderStage, source: &[u8]) -> Result<Shader> {
         let stage = match stage {
             ShaderStage::Vertex => __gl::VERTEX_SHADER,
             ShaderStage::TessellationControl => __gl::TESS_CONTROL_SHADER,
@@ -227,16 +228,14 @@ impl Device {
 
         let shader = unsafe {
             let shader = self.0.CreateShader(stage);
-            self.get_error("CreateShader");
+            self.get_error()?;
             self.0.ShaderSource(
                 shader,
                 1,
                 &(source.as_ptr() as *const _),
                 &(source.len() as _),
             );
-            self.get_error("ShaderSource");
             self.0.CompileShader(shader);
-            self.get_error("CompileShader");
 
             shader
         };
@@ -245,7 +244,6 @@ impl Device {
             let mut status = 0;
             self.0
                 .GetShaderiv(shader, __gl::COMPILE_STATUS, &mut status);
-            self.get_error("GetShaderiv");
             status
         };
 
@@ -278,7 +276,7 @@ impl Device {
             println!("Shader Info Log: {}", log);
         }
 
-        Shader(shader)
+        Ok(Shader(shader))
     }
 
     /// Delete a shader.
@@ -286,7 +284,6 @@ impl Device {
         unsafe {
             self.0.DeleteShader(shader.0);
         }
-        self.get_error("DeleteShader");
     }
 
     /// Delete multiple shaders.
@@ -295,7 +292,6 @@ impl Device {
             unsafe {
                 self.0.DeleteShader(shader.0);
             }
-            self.get_error("DeleteShader");
         }
     }
 
@@ -314,8 +310,9 @@ impl Device {
     ///   `ShaderStage::Geometry` if specified.
     /// - The fragment shader in `desc` must be valid and created with
     ///   `ShaderStage::Fragment` if specified.
-    pub fn create_graphics_pipeline(&self, desc: GraphicsPipelineDesc) -> Pipeline {
+    pub fn create_graphics_pipeline(&self, desc: GraphicsPipelineDesc) -> Result<Pipeline> {
         let pipeline = unsafe { self.0.CreateProgram() };
+        self.get_error()?;
 
         unsafe {
             // Attach
@@ -334,7 +331,6 @@ impl Device {
             }
 
             self.0.LinkProgram(pipeline);
-            self.get_error("LinkProgram");
 
             // Detach
             self.0.DetachShader(pipeline, desc.vertex_shader.0);
@@ -364,7 +360,7 @@ impl Device {
         }
 
         self.check_pipeline_log(pipeline);
-        Pipeline(pipeline)
+        Ok(Pipeline(pipeline))
     }
 
     /// Create a compute pipeline.
@@ -374,16 +370,14 @@ impl Device {
     /// # Valid usage
     ///
     /// - The compute shader in must be valid and created with `ShaderStage::Compute`.
-    pub fn create_compute_pipeline(&self, compute_shader: &Shader) -> Pipeline {
+    pub fn create_compute_pipeline(&self, compute_shader: &Shader) -> Result<Pipeline> {
         let pipeline = unsafe { self.0.CreateProgram() };
+        self.get_error()?;
 
         unsafe {
             self.0.AttachShader(pipeline, compute_shader.0);
-            self.get_error("AttachShader");
             self.0.LinkProgram(pipeline);
-            self.get_error("LinkProgram");
             self.0.DetachShader(pipeline, compute_shader.0);
-            self.get_error("DetachShader");
         }
 
         let status = unsafe {
@@ -398,7 +392,7 @@ impl Device {
         }
 
         self.check_pipeline_log(pipeline);
-        Pipeline(pipeline)
+        Ok(Pipeline(pipeline))
     }
 
     ///
@@ -406,20 +400,16 @@ impl Device {
         unsafe {
             self.0.DeleteProgram(pipeline.0);
         }
-        self.get_error("DeleteProgram");
     }
 
     pub fn bind_input_assembly_state(&self, state: &InputAssembly) {
         match state.primitive_restart {
             Some(index) => unsafe {
                 self.0.Enable(__gl::PRIMITIVE_RESTART);
-                self.get_error("Enable (Primitive Restart)");
                 self.0.PrimitiveRestartIndex(index);
-                self.get_error("PrimitiveRestartIndex");
             },
             None => unsafe {
                 self.0.Disable(__gl::PRIMITIVE_RESTART);
-                self.get_error("Disable (Primitive Restart)");
             },
         }
     }
@@ -430,13 +420,11 @@ impl Device {
             if attachment.blend_enable {
                 unsafe {
                     self.0.Enablei(__gl::BLEND, slot);
-                    self.get_error("Enable (Blend)");
                     self.0.BlendEquationSeparatei(
                         slot,
                         attachment.color.blend_op as _,
                         attachment.alpha.blend_op as _,
                     );
-                    self.get_error("BlendEquationSeparatei");
                     self.0.BlendFuncSeparatei(
                         slot,
                         attachment.color.src_factor as _,
@@ -444,12 +432,10 @@ impl Device {
                         attachment.alpha.src_factor as _,
                         attachment.alpha.dst_factor as _,
                     );
-                    self.get_error("BlendFuncSeparatei");
                 }
             } else {
                 unsafe {
                     self.0.Disablei(__gl::BLEND, slot);
-                    self.get_error("Disable (Blend)");
                 }
             }
         }
@@ -459,61 +445,51 @@ impl Device {
         if state.depth_test {
             unsafe {
                 self.0.Enable(__gl::DEPTH_TEST);
-                self.get_error("Enable (Depth Test)");
                 self.0.DepthMask(if state.depth_write {
                     __gl::TRUE
                 } else {
                     __gl::FALSE
                 });
-                self.get_error("DepthMask");
                 self.0.DepthFunc(state.depth_compare_op as _);
-                self.get_error("DepthFunc");
             }
         } else {
             unsafe {
                 self.0.Disable(__gl::DEPTH_TEST);
             }
-            self.get_error("Disable (Depth Test)");
         }
 
         if state.stencil_test {
             unsafe {
                 self.0.Enable(__gl::STENCIL_TEST);
-                self.get_error("Enable (Stencil Test)");
                 self.0.StencilFuncSeparate(
                     __gl::FRONT,
                     state.stencil_front.compare_op as _,
                     state.stencil_front.reference as _,
                     state.stencil_front.compare_mask,
                 );
-                self.get_error("StencilFuncSeparate (Front)");
                 self.0.StencilOpSeparate(
                     __gl::FRONT,
                     state.stencil_front.fail as _,
                     state.stencil_front.depth_fail as _,
                     state.stencil_front.pass as _,
                 );
-                self.get_error("StencilOpSeparate (Front)");
                 self.0.StencilFuncSeparate(
                     __gl::BACK,
                     state.stencil_back.compare_op as _,
                     state.stencil_back.reference as _,
                     state.stencil_back.compare_mask,
                 );
-                self.get_error("StencilFuncSeparate (Back)");
                 self.0.StencilOpSeparate(
                     __gl::BACK,
                     state.stencil_back.fail as _,
                     state.stencil_back.depth_fail as _,
                     state.stencil_back.pass as _,
                 );
-                self.get_error("StencilOpSeparate (Back)");
             }
         } else {
             unsafe {
                 self.0.Disable(__gl::STENCIL_TEST);
             }
-            self.get_error("Disable (Stencil Test)");
         }
     }
 
@@ -522,24 +498,20 @@ impl Device {
             unsafe {
                 self.0.Enable(__gl::DEPTH_CLAMP);
             }
-            self.get_error("Enable (Depth Clamp)");
         } else {
             unsafe {
                 self.0.Disable(__gl::DEPTH_CLAMP);
             }
-            self.get_error("Disable (Depth Clamp)");
         }
 
         if state.rasterizer_discard {
             unsafe {
                 self.0.Enable(__gl::RASTERIZER_DISCARD);
             }
-            self.get_error("Enable (Rasterizer Discard)");
         } else {
             unsafe {
                 self.0.Disable(__gl::RASTERIZER_DISCARD);
             }
-            self.get_error("Disable (Rasterizer Discard)");
         }
 
         let bias_primitive = match state.polygon_mode {
@@ -552,32 +524,25 @@ impl Device {
             unsafe {
                 self.0.Enable(bias_primitive);
             }
-            self.get_error("Enable (Depth Bias)");
         } else {
             unsafe {
                 self.0.Disable(bias_primitive);
             }
-            self.get_error("Disable (Depth Bias)");
         }
 
         unsafe {
             self.0
                 .PolygonMode(__gl::FRONT_AND_BACK, state.polygon_mode as _);
-            self.get_error("PolygonMode");
             self.0.FrontFace(state.front_face as _);
-            self.get_error("PolygonMode");
         }
 
         match state.cull_mode {
             Some(cull) => unsafe {
                 self.0.Enable(__gl::CULL_FACE);
-                self.get_error("Enable (Cull Face)");
                 self.0.CullFace(cull as _);
-                self.get_error("CullFace");
             },
             None => unsafe {
                 self.0.Disable(__gl::CULL_FACE);
-                self.get_error("Disable (Cull Face)");
             },
         }
     }
@@ -587,6 +552,5 @@ impl Device {
         unsafe {
             self.0.UseProgram(pipeline.0);
         }
-        self.get_error("UseProgram");
     }
 }

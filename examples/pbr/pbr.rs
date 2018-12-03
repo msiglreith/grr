@@ -52,14 +52,15 @@ fn max_mip_levels_2d(width: u32, height: u32) -> u32 {
     (width.max(height) as f32).log2() as u32 + 1
 }
 
-fn main() {
+fn main() -> grr::Result<()> {
     let mut events_loop = glutin::EventsLoop::new();
     let window = glutin::WindowBuilder::new()
         .with_title("grr - PBR sample")
         .with_dimensions(1440, 700);
     let context = glutin::ContextBuilder::new()
         .with_vsync(true)
-        .with_srgb(true);
+        .with_srgb(true)
+        .with_gl_debug_flag(true);
 
     let window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
     let (w, h) = window.get_inner_size().unwrap();
@@ -68,7 +69,10 @@ fn main() {
         window.make_current().unwrap();
     }
 
-    let grr = grr::Device::new(|symbol| window.get_proc_address(symbol) as *const _);
+    let grr = grr::Device::new(
+        |symbol| window.get_proc_address(symbol) as *const _,
+        grr::Debug::Disable,
+    );
 
     let mut importer = Importer::new();
     importer.triangulate(true);
@@ -91,14 +95,14 @@ fn main() {
     let mesh_data = grr.create_buffer(
         mesh_data_len,
         grr::MemoryFlags::CPU_MAP_WRITE | grr::MemoryFlags::COHERENT,
-    );
+    )?;
 
     let index_size = 4; // u32
     let index_data_len = index_size * num_indices as u64;
     let index_data = grr.create_buffer(
         index_data_len,
         grr::MemoryFlags::CPU_MAP_WRITE | grr::MemoryFlags::COHERENT,
-    );
+    )?;
 
     println!("{:?}", (num_vertices, num_indices));
 
@@ -168,7 +172,7 @@ fn main() {
             },
             format,
             num_levels,
-        );
+        )?;
         grr.copy_host_to_image(
             &texture,
             0,
@@ -193,21 +197,21 @@ fn main() {
                 layers: 0..1,
                 levels: 0..num_levels,
             },
-        );
+        )?;
 
-        (texture, view)
+        Ok((texture, view))
     };
 
     let (albedo, albedo_view) =
-        load_image_rgba("Textures/Cerberus_A.tga", grr::Format::R8G8B8A8_SRGB);
+        load_image_rgba("Textures/Cerberus_A.tga", grr::Format::R8G8B8A8_SRGB)?;
     let (normals, normals_view) =
-        load_image_rgba("Textures/Cerberus_N.tga", grr::Format::R8G8B8A8_UNORM);
+        load_image_rgba("Textures/Cerberus_N.tga", grr::Format::R8G8B8A8_UNORM)?;
     let (metalness, metalness_view) =
-        load_image_rgba("Textures/Cerberus_M.tga", grr::Format::R8_UNORM);
+        load_image_rgba("Textures/Cerberus_M.tga", grr::Format::R8_UNORM)?;
     let (roughness, roughness_view) =
-        load_image_rgba("Textures/Cerberus_R.tga", grr::Format::R8_UNORM);
+        load_image_rgba("Textures/Cerberus_R.tga", grr::Format::R8_UNORM)?;
     let (occlusion, occlusion_view) =
-        load_image_rgba("Textures/Raw/Cerberus_AO.tga", grr::Format::R8_UNORM);
+        load_image_rgba("Textures/Raw/Cerberus_AO.tga", grr::Format::R8_UNORM)?;
 
     let sampler_trilinear = grr.create_sampler(grr::SamplerDesc {
         min_filter: grr::Filter::Linear,
@@ -222,16 +226,16 @@ fn main() {
         lod: 0.0..1024.0,
         compare: None,
         border_color: [0.0, 0.0, 0.0, 1.0],
-    });
+    })?;
 
     let pbr_vs = grr.create_shader(
         grr::ShaderStage::Vertex,
         include_bytes!("assets/Shaders/pbr.vs"),
-    );
+    )?;
     let pbr_fs = grr.create_shader(
         grr::ShaderStage::Fragment,
         include_bytes!("assets/Shaders/pbr.fs"),
-    );
+    )?;
 
     let pbr_pipeline = grr.create_graphics_pipeline(grr::GraphicsPipelineDesc {
         vertex_shader: &pbr_vs,
@@ -239,7 +243,7 @@ fn main() {
         tessellation_evaluation_shader: None,
         geometry_shader: None,
         fragment_shader: Some(&pbr_fs),
-    });
+    })?;
 
     let pbr_vertex_array = grr.create_vertex_array(&[
         grr::VertexAttributeDesc {
@@ -260,7 +264,7 @@ fn main() {
             format: grr::VertexFormat::Xyz32Float,
             offset: 20,
         },
-    ]);
+    ])?;
 
     let depth_stencil_state = grr::DepthStencil {
         depth_test: true,
@@ -311,7 +315,7 @@ fn main() {
         },
         grr::Format::R16G16B16_SFLOAT,
         hdr_image_levels,
-    );
+    )?;
 
     let hdr_texture_view = grr.create_image_view(
         &hdr_texture,
@@ -321,7 +325,7 @@ fn main() {
             layers: 0..1,
             levels: 0..1,
         },
-    );
+    )?;
 
     println!("Uploading HDR image into GPU memory");
     grr.copy_host_to_image(
@@ -354,7 +358,7 @@ fn main() {
         lod: 0.0..10.0,
         compare: None,
         border_color: [0.0, 0.0, 0.0, 1.0],
-    });
+    })?;
 
     println!("Creating Env Cubemap");
     let env_size = 512;
@@ -367,7 +371,7 @@ fn main() {
         },
         grr::Format::R16G16B16_SFLOAT,
         1,
-    );
+    )?;
 
     let env_cubemap_view = grr.create_image_view(
         &env_cubmap,
@@ -377,7 +381,7 @@ fn main() {
             layers: 0..6,
             levels: 0..1,
         },
-    );
+    )?;
 
     let env_cubemap_sampler = grr.create_sampler(grr::SamplerDesc {
         min_filter: grr::Filter::Linear,
@@ -392,9 +396,9 @@ fn main() {
         lod: 0.0..10.0,
         compare: None,
         border_color: [0.0, 0.0, 0.0, 1.0],
-    });
+    })?;
 
-    let env_proj_fbo = grr.create_framebuffer();
+    let env_proj_fbo = grr.create_framebuffer()?;
 
     let env_proj = glm::perspective(1.0, glm::half_pi(), 0.1, 10.0);
     let env_eye = glm::vec3(0.0, 0.0, 0.0);
@@ -435,11 +439,11 @@ fn main() {
     let cubemap_proj_vs = grr.create_shader(
         grr::ShaderStage::Vertex,
         include_bytes!("assets/Shaders/cubemap.vs"),
-    );
+    )?;
     let cubemap_proj_fs = grr.create_shader(
         grr::ShaderStage::Fragment,
         include_bytes!("assets/Shaders/cubemap_proj.fs"),
-    );
+    )?;
 
     let cubemap_proj_pipeline = grr.create_graphics_pipeline(grr::GraphicsPipelineDesc {
         vertex_shader: &cubemap_proj_vs,
@@ -447,7 +451,7 @@ fn main() {
         tessellation_evaluation_shader: None,
         geometry_shader: None,
         fragment_shader: Some(&cubemap_proj_fs),
-    });
+    })?;
 
     grr.bind_framebuffer(&env_proj_fbo);
     grr.set_color_attachments(&env_proj_fbo, &[0]);
@@ -484,7 +488,7 @@ fn main() {
                 layers: i..i + 1,
                 levels: 0..1,
             },
-        );
+        )?;
 
         grr.bind_attachments(
             &env_proj_fbo,
@@ -509,11 +513,11 @@ fn main() {
     let brdf_integration_vs = grr.create_shader(
         grr::ShaderStage::Vertex,
         include_bytes!("assets/Shaders/brdf_integration.vs"),
-    );
+    )?;
     let brdf_integration_fs = grr.create_shader(
         grr::ShaderStage::Fragment,
         include_bytes!("assets/Shaders/brdf_integration.fs"),
-    );
+    )?;
 
     let brdf_integration_pipeline = grr.create_graphics_pipeline(grr::GraphicsPipelineDesc {
         vertex_shader: &brdf_integration_vs,
@@ -521,7 +525,7 @@ fn main() {
         tessellation_evaluation_shader: None,
         geometry_shader: None,
         fragment_shader: Some(&brdf_integration_fs),
-    });
+    })?;
 
     let brdf_lut = grr.create_image(
         grr::ImageType::D2 {
@@ -532,7 +536,7 @@ fn main() {
         },
         grr::Format::R16G16_SFLOAT,
         1,
-    );
+    )?;
     let brdf_lut_view = grr.create_image_view(
         &brdf_lut,
         grr::ImageViewType::D2,
@@ -541,7 +545,7 @@ fn main() {
             layers: 0..1,
             levels: 0..1,
         },
-    );
+    )?;
 
     let brdf_lut_sampler = grr.create_sampler(grr::SamplerDesc {
         min_filter: grr::Filter::Linear,
@@ -556,9 +560,9 @@ fn main() {
         lod: 0.0..10.0,
         compare: None,
         border_color: [0.0, 0.0, 0.0, 1.0],
-    });
+    })?;
 
-    let brdf_fbo = grr.create_framebuffer();
+    let brdf_fbo = grr.create_framebuffer()?;
     grr.bind_pipeline(&brdf_integration_pipeline);
     grr.bind_framebuffer(&brdf_fbo);
     grr.bind_attachments(
@@ -593,11 +597,11 @@ fn main() {
     let env_irradiance_vs = grr.create_shader(
         grr::ShaderStage::Vertex,
         include_bytes!("assets/Shaders/cubemap.vs"),
-    );
+    )?;
     let env_irradiance_fs = grr.create_shader(
         grr::ShaderStage::Fragment,
         include_bytes!("assets/Shaders/cubemap_irradiance.fs"),
-    );
+    )?;
 
     let env_irradiance_pipeline = grr.create_graphics_pipeline(grr::GraphicsPipelineDesc {
         vertex_shader: &env_irradiance_vs,
@@ -605,7 +609,7 @@ fn main() {
         tessellation_evaluation_shader: None,
         geometry_shader: None,
         fragment_shader: Some(&env_irradiance_fs),
-    });
+    })?;
 
     let env_irradiance_size = 32;
     let env_irradiance = grr.create_image(
@@ -617,7 +621,7 @@ fn main() {
         },
         grr::Format::R16G16B16_SFLOAT,
         1,
-    );
+    )?;
     let env_irradiance_view = grr.create_image_view(
         &env_irradiance,
         grr::ImageViewType::Cube,
@@ -626,7 +630,7 @@ fn main() {
             layers: 0..6,
             levels: 0..1,
         },
-    );
+    )?;
     let env_irradiance_sampler = grr.create_sampler(grr::SamplerDesc {
         min_filter: grr::Filter::Linear,
         mag_filter: grr::Filter::Linear,
@@ -640,9 +644,9 @@ fn main() {
         lod: 0.0..10.0,
         compare: None,
         border_color: [0.0, 0.0, 0.0, 1.0],
-    });
+    })?;
 
-    let env_irradiance_fbo = grr.create_framebuffer();
+    let env_irradiance_fbo = grr.create_framebuffer()?;
     grr.bind_framebuffer(&env_irradiance_fbo);
     grr.set_color_attachments(&env_irradiance_fbo, &[0]);
     grr.set_viewport(
@@ -678,7 +682,7 @@ fn main() {
                 layers: i..i + 1,
                 levels: 0..1,
             },
-        );
+        )?;
 
         grr.bind_attachments(
             &env_irradiance_fbo,
@@ -703,11 +707,11 @@ fn main() {
     let env_prefilter_vs = grr.create_shader(
         grr::ShaderStage::Vertex,
         include_bytes!("assets/Shaders/cubemap.vs"),
-    );
+    )?;
     let env_prefilter_fs = grr.create_shader(
         grr::ShaderStage::Fragment,
         include_bytes!("assets/Shaders/cubemap_specular_filtered.fs"),
-    );
+    )?;
 
     let env_prefilter_pipeline = grr.create_graphics_pipeline(grr::GraphicsPipelineDesc {
         vertex_shader: &env_prefilter_vs,
@@ -715,7 +719,7 @@ fn main() {
         tessellation_evaluation_shader: None,
         geometry_shader: None,
         fragment_shader: Some(&env_prefilter_fs),
-    });
+    })?;
 
     let num_prefiltered_levels = 5;
     let env_prefiltered_size = 128;
@@ -728,7 +732,7 @@ fn main() {
         },
         grr::Format::R16G16B16_SFLOAT,
         num_prefiltered_levels,
-    );
+    )?;
     let env_prefiltered_view = grr.create_image_view(
         &env_prefiltered,
         grr::ImageViewType::Cube,
@@ -737,7 +741,7 @@ fn main() {
             layers: 0..6,
             levels: 0..num_prefiltered_levels,
         },
-    );
+    )?;
 
     let env_prefiltered_sampler = grr.create_sampler(grr::SamplerDesc {
         min_filter: grr::Filter::Linear,
@@ -752,9 +756,9 @@ fn main() {
         lod: 0.0..1024.0,
         compare: None,
         border_color: [0.0, 0.0, 0.0, 1.0],
-    });
+    })?;
 
-    let env_prefilter_fbo = grr.create_framebuffer();
+    let env_prefilter_fbo = grr.create_framebuffer()?;
     grr.bind_pipeline(&env_prefilter_pipeline);
     grr.bind_image_views(0, &[&env_cubemap_view]);
     grr.bind_samplers(0, &[&env_cubemap_sampler]);
@@ -813,7 +817,7 @@ fn main() {
                     layers: face..face + 1,
                     levels: mip..mip + 1,
                 },
-            );
+            )?;
 
             grr.bind_attachments(
                 &env_prefilter_fbo,
@@ -831,11 +835,11 @@ fn main() {
     let skybox_vs = grr.create_shader(
         grr::ShaderStage::Vertex,
         include_bytes!("assets/Shaders/cubemap.vs"),
-    );
+    )?;
     let skybox_fs = grr.create_shader(
         grr::ShaderStage::Fragment,
         include_bytes!("assets/Shaders/skybox.fs"),
-    );
+    )?;
 
     let skybox_pipeline = grr.create_graphics_pipeline(grr::GraphicsPipelineDesc {
         vertex_shader: &skybox_vs,
@@ -843,7 +847,7 @@ fn main() {
         tessellation_evaluation_shader: None,
         geometry_shader: None,
         fragment_shader: Some(&skybox_fs),
-    });
+    })?;
 
     // Scene description
     let mut camera = camera::Camera::new(glm::vec3(-16.0, 12.0, -50.0), glm::vec3(-0.1, 3.3, 0.0));
@@ -983,4 +987,6 @@ fn main() {
     }
 
     grr.delete_images(&[albedo, normals, occlusion, metalness, roughness]);
+
+    Ok(())
 }

@@ -30,14 +30,15 @@ const VERTICES: [f32; 15] = [
     -0.5, -0.5, 1.0, 0.0, 0.0, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 0.5, 0.0, 0.0, 1.0,
 ];
 
-fn main() {
+fn main() -> grr::Result<()> {
     let mut events_loop = glutin::EventsLoop::new();
     let window = glutin::WindowBuilder::new()
         .with_title("Hello, world!")
         .with_dimensions(1024, 768);
     let context = glutin::ContextBuilder::new()
         .with_vsync(true)
-        .with_srgb(true);
+        .with_srgb(true)
+        .with_gl_debug_flag(true);
 
     let window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
     let (w, h) = window.get_inner_size().unwrap();
@@ -46,10 +47,18 @@ fn main() {
         window.make_current().unwrap();
     }
 
-    let grr = grr::Device::new(|symbol| window.get_proc_address(symbol) as *const _);
+    let grr = grr::Device::new(
+        |symbol| window.get_proc_address(symbol) as *const _,
+        grr::Debug::Enable {
+            callback: |_, _, _, _, msg| {
+                println!("{:?}", msg);
+            },
+            flags: grr::DebugReport::empty(),
+        },
+    );
 
-    let vs = grr.create_shader(grr::ShaderStage::Vertex, VERTEX_SRC.as_bytes());
-    let fs = grr.create_shader(grr::ShaderStage::Fragment, FRAGMENT_SRC.as_bytes());
+    let vs = grr.create_shader(grr::ShaderStage::Vertex, VERTEX_SRC.as_bytes())?;
+    let fs = grr.create_shader(grr::ShaderStage::Fragment, FRAGMENT_SRC.as_bytes())?;
 
     let pipeline = grr.create_graphics_pipeline(grr::GraphicsPipelineDesc {
         vertex_shader: &vs,
@@ -57,7 +66,7 @@ fn main() {
         tessellation_evaluation_shader: None,
         geometry_shader: None,
         fragment_shader: Some(&fs),
-    });
+    })?;
 
     let vertex_array = grr.create_vertex_array(&[
         grr::VertexAttributeDesc {
@@ -72,7 +81,7 @@ fn main() {
             format: grr::VertexFormat::Xyz32Float,
             offset: (2 * std::mem::size_of::<f32>()) as _,
         },
-    ]);
+    ])?;
 
     let triangle_data = {
         let len = (std::mem::size_of::<f32>() * VERTICES.len()) as u64;
@@ -80,7 +89,7 @@ fn main() {
         let buffer = grr.create_buffer(
             len,
             grr::MemoryFlags::CPU_MAP_WRITE | grr::MemoryFlags::COHERENT,
-        );
+        )?;
 
         let data = grr.map_buffer::<f32>(&buffer, 0..len, grr::MappingFlags::empty());
         data.clone_from_slice(&VERTICES);
@@ -147,4 +156,6 @@ fn main() {
     grr.delete_pipeline(pipeline);
     grr.delete_buffer(triangle_data);
     grr.delete_vertex_array(vertex_array);
+
+    Ok(())
 }
