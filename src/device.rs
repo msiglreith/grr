@@ -1,8 +1,8 @@
 use __gl;
 use __gl::types::{GLchar, GLenum, GLsizei, GLuint};
 
-use std::ffi;
 use std::os::raw::c_void;
+use std::{ffi, mem};
 
 bitflags!(
     /// Debug report flags.
@@ -48,7 +48,7 @@ pub enum Debug<F> {
 ///
 /// This wraps an existing GL context and acts as the main API interface.
 /// It's the responsibility of the user to keep the context alive.
-pub struct Device(pub(crate) __gl::Gl);
+pub struct Device(pub(crate) __gl::Gl, Option<Box<DebugCallback>>);
 
 type DebugCallback = fn(DebugReport, DebugSource, DebugType, u32, &str);
 
@@ -63,6 +63,45 @@ impl Device {
     {
         let ctxt = __gl::Gl::load_with(loader);
 
+        let cb = match debug {
+            Debug::Enable { callback, flags } => unsafe {
+                extern "system" fn callback_ffi(
+                    source: GLenum,
+                    gltype: GLenum,
+                    id: GLuint,
+                    severity: GLenum,
+                    _length: GLsizei,
+                    message: *const GLchar,
+                    user_param: *mut c_void,
+                ) {
+                    unsafe {
+                        let cb = Box::from_raw(user_param as *mut DebugCallback);
+                        let msg = ffi::CStr::from_ptr(message).to_str().unwrap();
+                        cb(
+                            mem::transmute(severity),
+                            mem::transmute(source),
+                            mem::transmute(gltype),
+                            id,
+                            msg,
+                        );
+                        Box::into_raw(cb);
+                    }
+                }
+
+                // TODO: flags
+
+                let cb = Box::new(callback);
+                let cb_raw = Box::into_raw(cb);
+                ctxt.Enable(__gl::DEBUG_OUTPUT);
+                ctxt.DebugMessageCallback(callback_ffi, cb_raw as *mut _);
+                Some(Box::from_raw(cb_raw))
+            },
+            Debug::Disable => unsafe {
+                ctxt.Disable(__gl::DEBUG_OUTPUT);
+                None
+            },
+        };
+
         unsafe {
             // Enforce sRGB frmaebuffer handling
             ctxt.Enable(__gl::FRAMEBUFFER_SRGB);
@@ -74,38 +113,6 @@ impl Device {
             ctxt.Enable(__gl::PROGRAM_POINT_SIZE);
         }
 
-        match debug {
-            Debug::Enable { callback, flags } => unsafe {
-                extern "system" fn callback_ffi(
-                    source: GLenum,
-                    gltype: GLenum,
-                    id: GLuint,
-                    severity: GLenum,
-                    length: GLsizei,
-                    message: *const GLchar,
-                    user_param: *mut c_void,
-                ) {
-                    let cb = unsafe { Box::from_raw(user_param as *mut DebugCallback) };
-                    let msg = unsafe { ffi::CStr::from_ptr(message).to_str().unwrap() };
-                    cb(
-                        DebugReport::NOTIFICATION,
-                        DebugSource::Api,
-                        DebugType::Other,
-                        id,
-                        msg,
-                    ); // TODO
-                    Box::into_raw(cb);
-                }
-
-                let cb = Box::new(callback);
-                ctxt.Enable(__gl::DEBUG_OUTPUT);
-                ctxt.DebugMessageCallback(callback_ffi, Box::into_raw(cb) as *mut _);
-            },
-            Debug::Disable => unsafe {
-                ctxt.Disable(__gl::DEBUG_OUTPUT);
-            },
-        };
-
-        Device(ctxt)
+        Device(ctxt, cb)
     }
 }
