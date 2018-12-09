@@ -7,25 +7,82 @@ use device::Device;
 use error::Result;
 use Compare;
 
+/// Shader.
 ///
+/// Shaders are programmable parts of [`Pipelines`](struct.Pipeline.html). Each shader has a fixed
+/// [`ShaderStage`](struct.ShaderStage.html) in the pipeline. Shaders may be reused in different pipelines
+/// and specify the operations which will transform a predefined set of inputs into a set of output variables.
+/// The shader stages defines the input and output layout.
+///
+/// Beside the input and output variables, shaders can also access GPU memory via bound buffers and images.
+///
+/// ## Shading Lanuage
+///
+/// OpenGL comes with an defined Shading Language (GLSL), which will be also used in the documentation
+/// for writing shaders. The OpenGL drivers will translate the GLSL shaders into IHV specific machine language
+/// via an built-in compiler. Beside the shader representation in text form (GLSL) with GL 4.6 comes also support
+/// for the binary SPIR-V format.
 #[repr(transparent)]
 pub struct Shader(GLuint);
 
+/// Graphics or Compute pipeline.
 ///
+/// Specifies how draw or dispatch commands are executed.
 #[repr(transparent)]
 pub struct Pipeline(pub(crate) GLuint);
 
+/// Shader Stages.
 ///
+/// Each [`Shader`](struct.Shader.html) has an associated stage in the pipeline.
+/// See [`GraphicsPipelineDesc`](struct.GraphicsPipelineDesc.html) for more details about graphics pipeline stages.
 #[derive(Debug, Clone, Copy)]
 pub enum ShaderStage {
+    /// Vertex stage.
     Vertex,
+    /// Tessellation (Control) stage.
     TessellationControl,
+    /// Tessellation (Evaluation) stage.
     TessellationEvaluation,
+    /// Geometry stage.
     Geometry,
+    /// Fragment stage.
     Fragment,
+    /// Compute stage.
     Compute,
 }
 
+/// Graphics Pipeline Descriptor.
+///
+/// ## Overview
+///
+/// The graphics pipeline is invoked by executing a draw command. The pipeline consists of multiple stages,
+/// where some are fully programmable ([`Shader`](struct.Shader.html)) and other fixed-function stages can be only configured.
+///
+/// ## Stages
+///
+/// We will go through the the different stages starting from top to bottom.
+/// At the highest abstraction level we split the graphics pipeline into three components (`grr` terminology):
+///
+///  * *Primitive Stage*: Reading data from buffers and generates primitives.
+///  * *Rasterizer*: Transforms primitives into fragments.
+///  * *Fragment Stage*: Shades fragments and blends them into the [`framebuffer`](struct.Framebuffer.html).
+///
+/// Fig. 1 shows a very simplistic view of a graphics pipeline consisting of a vertex (VS) and fragment (FS) shader. We will discuss the different
+/// stages in more detail later on. The *Primitive Stage* in this examples consists of the Input Assembler (IA) and the Vertex Shader (VS).
+/// The *Rasterizer* is shown as the fixed function RS stage. The fragment shader together with the framebuffer output (FB) build the *Fragment Stage*.
+///
+/// <figure>
+///     <img src="https://raw.githubusercontent.com/msiglreith/grr/master/info/doc/graphics_pipeline_base_vs_ps.png" width="500px">
+///     <figcaption>Fig.1 Basic Vertex-Fragment Shader Pipeline</figcaption>
+/// </figure>
+///
+/// In the following the different top-level stages will be split up and discussed in more detail
+///
+/// ### Primitive Stage
+///
+/// ### Rasterizer
+///
+/// ### Fragment Stage
 ///
 pub struct GraphicsPipelineDesc<'a> {
     pub vertex_shader: &'a Shader,
