@@ -1,3 +1,5 @@
+//! Graphics and Compute pipeline
+
 use __gl;
 use __gl::types::GLuint;
 
@@ -310,7 +312,7 @@ impl Device {
     ///   `ShaderStage::Geometry` if specified.
     /// - The fragment shader in `desc` must be valid and created with
     ///   `ShaderStage::Fragment` if specified.
-    pub fn create_graphics_pipeline(&self, desc: GraphicsPipelineDesc) -> Result<Pipeline> {
+    pub fn create_graphics_pipeline(&self, desc: &GraphicsPipelineDesc) -> Result<Pipeline> {
         let pipeline = unsafe { self.0.CreateProgram() };
         self.get_error()?;
 

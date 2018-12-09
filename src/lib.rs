@@ -3,20 +3,20 @@ extern crate bitflags;
 
 mod __gl;
 
-mod buffer;
-mod command;
-mod device;
-mod error;
-mod format;
-mod framebuffer;
-mod image;
-mod pipeline;
-mod sampler;
-mod sync;
-mod vertex;
+pub mod buffer;
+pub mod command;
+pub mod device;
+pub mod error;
+pub mod format;
+pub mod framebuffer;
+pub mod image;
+pub mod pipeline;
+pub mod sampler;
+pub mod sync;
+pub mod vertex;
 
 pub use buffer::{Buffer, MappingFlags, MemoryFlags};
-pub use command::Constant;
+pub use command::{Constant, IndexTy, Primitive, Viewport};
 pub use device::{Debug, DebugReport, DebugSource, DebugType, Device};
 pub use error::{Error, Result};
 pub use format::{BaseFormat, Format, FormatLayout};
@@ -29,20 +29,6 @@ pub use pipeline::{
 pub use sampler::{Filter, Sampler, SamplerAddress, SamplerDesc};
 pub use sync::{Barrier, RegionBarrier};
 pub use vertex::{InputRate, VertexArray, VertexAttributeDesc, VertexBufferView, VertexFormat};
-
-///
-pub struct Viewport {
-    pub x: f32,
-    pub y: f32,
-    /// Width
-    pub w: f32,
-    /// Height
-    pub h: f32,
-    // Near
-    pub n: f64,
-    // Far
-    pub f: f64,
-}
 
 ///
 pub struct Region {
@@ -68,30 +54,9 @@ pub struct Extent {
     pub depth: u32,
 }
 
+/// Comparison operator.
 ///
-#[repr(u32)]
-pub enum Primitive {
-    Points = __gl::POINTS,
-    Lines = __gl::LINES,
-    LineStrip = __gl::LINE_STRIP,
-    Triangles = __gl::TRIANGLES,
-    TriangleStrip = __gl::TRIANGLE_STRIP,
-    LinesAdjacency = __gl::LINES_ADJACENCY,
-    LinesStripAdjacency = __gl::LINE_STRIP_ADJACENCY,
-    TrianglesAdjacency = __gl::TRIANGLES_ADJACENCY,
-    TrianglesStripAdjacency = __gl::TRIANGLE_STRIP_ADJACENCY,
-    Patches = __gl::PATCHES,
-}
-
-///
-#[repr(u32)]
-pub enum IndexTy {
-    U8 = __gl::UNSIGNED_BYTE,
-    U16 = __gl::UNSIGNED_SHORT,
-    U32 = __gl::UNSIGNED_INT,
-}
-
-///
+/// Used in depth test, stencil test and sampling depth textures.
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Compare {

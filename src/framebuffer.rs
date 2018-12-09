@@ -1,3 +1,5 @@
+//! Framebuffers
+
 use __gl;
 use __gl::types::{GLenum, GLuint};
 
@@ -6,7 +8,7 @@ use error::Result;
 use ImageView;
 use Region;
 
-///
+/// Attachment clearing description.
 pub enum ClearAttachment {
     ColorInt(usize, [i32; 4]),
     ColorUint(usize, [u32; 4]),
@@ -16,7 +18,7 @@ pub enum ClearAttachment {
     DepthStencil(f32, i32),
 }
 
-///
+/// Attachment reference.
 pub enum Attachment {
     Color(usize),
     Depth,
@@ -30,20 +32,24 @@ pub enum AttachmentView<'a> {
     Renderbuffer(&'a Renderbuffer),
 }
 
-///
+/// Framebuffer handle.
 #[repr(transparent)]
 pub struct Framebuffer(GLuint);
 
 impl Framebuffer {
+    /// Default framebuffer handle.
+    ///
+    /// Thie is the base framebuffer associated with the context.
+    /// It also represents the internal swapchain for presentation.
     pub const DEFAULT: &'static Self = &Framebuffer(0);
 }
 
-///
+/// Renderbuffer handle.
 #[repr(transparent)]
 pub struct Renderbuffer(GLuint);
 
 impl Device {
-    ///
+    /// Create a new framebuffer.
     pub fn create_framebuffer(&self) -> Result<Framebuffer> {
         let mut framebuffer = 0;
         unsafe {
@@ -69,7 +75,7 @@ impl Device {
         }
     }
 
-    ///
+    /// Create a new framebuffer.
     pub fn create_renderbuffer(&self) -> Result<Renderbuffer> {
         let mut renderbuffer = 0;
         unsafe {
@@ -141,7 +147,8 @@ impl Device {
                 Attachment::Depth => __gl::DEPTH_ATTACHMENT,
                 Attachment::Stencil => __gl::STENCIL_ATTACHMENT,
                 Attachment::DepthStencil => __gl::DEPTH_STENCIL_ATTACHMENT,
-            }).collect::<Vec<_>>();
+            })
+            .collect::<Vec<_>>();
 
         unsafe {
             self.0.InvalidateNamedFramebufferSubData(
@@ -156,7 +163,7 @@ impl Device {
         }
     }
 
-    ///
+    /// Bind a framebuffer for draw commands.
     pub fn bind_framebuffer(&self, framebuffer: &Framebuffer) {
         unsafe {
             self.0
@@ -164,7 +171,9 @@ impl Device {
         }
     }
 
+    /// Bind attachments to the framebuffer.
     ///
+    /// All previously bound attachments become invalid.
     pub fn bind_attachments(
         &self,
         framebuffer: &Framebuffer,
@@ -177,12 +186,12 @@ impl Device {
         );
 
         let bind_attachment_view = |attachment: GLenum, view: &AttachmentView| unsafe {
-            match view {
-                &AttachmentView::Image(image) => {
+            match *view {
+                AttachmentView::Image(image) => {
                     self.0
                         .NamedFramebufferTexture(framebuffer.0, attachment, image.0, 0);
                 }
-                &AttachmentView::Renderbuffer(_) => unimplemented!(),
+                AttachmentView::Renderbuffer(_) => unimplemented!(),
             }
         };
 
@@ -195,7 +204,11 @@ impl Device {
         }
     }
 
+    /// Specify color attachments.
     ///
+    /// Defines the color render targets for the next draw calls.
+    /// This builds the link between fragment outputs in the fragment shader
+    /// and attachments bound on the framebuffer.
     pub fn set_color_attachments(&self, framebuffer: &Framebuffer, attachments: &[u32]) {
         assert_ne!(
             framebuffer.0, 0,

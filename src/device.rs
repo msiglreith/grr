@@ -39,6 +39,7 @@ pub enum DebugType {
     Other = __gl::DEBUG_TYPE_OTHER,
 }
 
+/// Device debug control.
 pub enum Debug<F> {
     Enable { callback: F, flags: DebugReport },
     Disable,
@@ -50,12 +51,13 @@ pub enum Debug<F> {
 /// It's the responsibility of the user to keep the context alive.
 pub struct Device(pub(crate) __gl::Gl, Option<Box<DebugCallback>>);
 
-type DebugCallback = fn(DebugReport, DebugSource, DebugType, u32, &str);
+///
+pub type DebugCallback = fn(DebugReport, DebugSource, DebugType, u32, &str);
 
 impl Device {
     /// Create a new device from an existing context.
     ///
-    /// The context must be initialized with GL 4.5+ core.
+    /// The context must be initialized with GL 4.5+ core profile.
     /// The passed `loader` is used to obtain the function pointers from the context.
     pub fn new<F>(loader: F, debug: Debug<DebugCallback>) -> Self
     where

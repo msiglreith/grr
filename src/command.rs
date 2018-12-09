@@ -1,18 +1,101 @@
+//! Drawing and Dispatching related commands.
+
 use __gl;
 use std::ops::Range;
 
 use device::Device;
-use {IndexTy, Pipeline, Primitive, Region, Viewport};
+use {Pipeline, Region};
 
+/// Primitve topology.
+///
+/// Specifies how the input assembler (fixed-function) of the graphics pipeline will
+/// assemble primitives based on the incoming vertex data.
+#[repr(u32)]
+pub enum Primitive {
+    /// Independent vertex points.
+    ///
+    /// One vertex corresponds to one point. The size of a point can be changed
+    /// dynamically in the vertex, geometry or tessellation evaluation stage.
+    /// A point is rendered as square.
+    ///
+    /// GLSL: `gl_PointSize`.
+    Points = __gl::POINTS,
+
+    /// Lines segment list.
+    ///
+    ///
+    Lines = __gl::LINES,
+    LineStrip = __gl::LINE_STRIP,
+    Triangles = __gl::TRIANGLES,
+    TriangleStrip = __gl::TRIANGLE_STRIP,
+    LinesAdjacency = __gl::LINES_ADJACENCY,
+    LinesStripAdjacency = __gl::LINE_STRIP_ADJACENCY,
+    TrianglesAdjacency = __gl::TRIANGLES_ADJACENCY,
+    TrianglesStripAdjacency = __gl::TRIANGLE_STRIP_ADJACENCY,
+    Patches = __gl::PATCHES,
+}
+
+/// Index size.
+///
+/// Specifies the size of indices during indexed draw calls.
+#[repr(u32)]
+pub enum IndexTy {
+    /// 8-bit unsigned integer.
+    U8 = __gl::UNSIGNED_BYTE,
+    // 16-bit unsigned integer.
+    U16 = __gl::UNSIGNED_SHORT,
+    // 32-bit unsigned integer.
+    U32 = __gl::UNSIGNED_INT,
+}
+
+/// Viewport transformation.
+///
+/// Viewport transformation is part of the fixed-function Vertex Post-Processing pipeline.
+/// The returning vertex positions (GLSL: `gl_Position`) in clip space are transformed to
+/// normalized device coordinates (NDC) by perspective division. Viewport transformation
+/// further converts the NDC into framebuffer coordinates.
+///
+/// During the geometry a primitive will be assigned a viewport index (GLSL: `gl_ViewportIndex`)
+/// either automatically or manually. This index controls which viewport from the bounded
+/// viewports will be selected for applying the transformation for the current **primitive**.
+pub struct Viewport {
+    /// Offset (x).
+    pub x: f32,
+    /// Offset (y).
+    pub y: f32,
+    /// Width.
+    pub w: f32,
+    /// Height.
+    pub h: f32,
+    // Near.
+    pub n: f64,
+    // Far.
+    pub f: f64,
+}
+
+/// Uniform constant.
+///
+/// Small values which can be written directly by the API.
+/// No additional buffers and binding calls are required.
+///
+/// ## Example
+///
+/// GLSL: `layout (location = 0) uniform mat4 u_perspective;`
 pub enum Constant {
+    /// 32-bit unsigned integer.
     U32(u32),
+    /// 32-bit single precision floating point.
     F32(f32),
+    /// 3 elements single precision floating point vector.
     Vec3([f32; 3]),
+    /// 3x3 elements single precision floating point matrix.
     Mat3x3([[f32; 3]; 3]),
+    /// 4x4 elements single precision floating point matrix.
     Mat4x4([[f32; 4]; 4]),
 }
 
 impl Device {
+    /// Set uniform constants for a pipeline.
     pub fn bind_uniform_constants(&self, pipeline: &Pipeline, first: u32, constants: &[Constant]) {
         for (i, constant) in constants.iter().enumerate() {
             let location = first as i32 + i as i32;
@@ -52,7 +135,10 @@ impl Device {
     /// Set viewport transformation parameters.
     ///
     /// The viewport determines the mapping from NDC (normalized device coordinates)
-    /// into window coordinates.
+    /// into framebuffer coordinates.
+    ///
+    /// See [Viewport](../command/struct.Viewport.html) for more information
+    /// about the viewport transformation.
     pub fn set_viewport(&self, first: u32, viewports: &[Viewport]) {
         let rects = viewports
             .iter()
@@ -130,7 +216,7 @@ impl Device {
     ///   specified in the shader with matching format and location.
     /// - The access vertices must be in bound of the vertex buffers bound.
     /// - `indices.end` must be larger than `indices.start`.
-    /// - `indices.end - indices.start` must be allow assembling complete primitives.
+    /// - `indices.end - indices.start` must allow to assemble complete primitives.
     /// - `instances.end` must be larger than `instances.start`.
     pub fn draw_indexed(
         &self,
