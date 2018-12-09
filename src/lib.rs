@@ -44,7 +44,23 @@
 //!
 //!     Ok(())
 //! }
+//! ```
 //!
+//! # Modules
+//!
+//! The API has multiple concepts which interplay with each other. The main of interacting with the library is via
+//! function calls on a [`Device`](struct.Device.html) object. The calls often translate directly to one GL call.
+//! All other objects created are opaque handles!
+//!
+//! * **Resource**: Objects with associated memory. Can be a [`Buffer`](struct.Buffer.html) (untyped) or an [`Image`](struct.Image.html).
+//! * **Pipeline**: There currently are two sort of pipelines suppoerted:
+//!       [*Graphics*](struct.Device.html#method.create_graphics_pipeline) and
+//!       [*Compute*](struct.Device.html#method.create_compute_pipeline)
+//! * **Framebuffer**: Assembles the attachments ([`ImageView`](struct.ImageView.html) or [`RenderBuffer`](struct.RenderBuffer.html)) for draw calls
+//! * **Sampler**: Configures image filtering. An [`Image`](struct.Image.html) is bound together with a [`Sampler`](struct.Sampler.html) to a texture
+//!       unit for access in a shader stage.
+//! * **Vertex Array**: Specifies the vertex attributes and bindings for the input assembler stage. Buffers are bound to a [`VertexArray`](struct.VertexArray.html)
+//!       to declare the memory region to fetch attribute data from.
 
 #[macro_use]
 extern crate bitflags;

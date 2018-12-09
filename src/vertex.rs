@@ -5,11 +5,11 @@ use buffer::Buffer;
 use device::Device;
 use error::Result;
 
-///
+/// Vertex array handle.
 #[repr(transparent)]
 pub struct VertexArray(pub(crate) GLuint);
 
-///
+/// Buffer representation for vertex attributes
 pub struct VertexBufferView<'a> {
     pub buffer: &'a Buffer,
     pub offset: u64,
@@ -25,13 +25,23 @@ pub struct VertexAttributeDesc {
     pub offset: u32,
 }
 
+/// Vertex attribute addresssing.
 ///
+/// Specifies if the vertex attribute address depends on vertex index or instance index.
 pub enum InputRate {
+    /// Vertex index addressing.
+    ///
+    /// Attribute data is fetched from the bound vertex buffers depending on the current vertex index.
     Vertex,
+    /// Instance index addressing.
+    ///
+    /// Attribute data is fetched from the bound vertex buffers depending on the current instance index.
+    /// The `divisor` further defines how many consecutive instances will use the same vertex attribute data.
+    /// The instance index will be divided by the divisor to donate the addressing index.
     Instance { divisor: usize },
 }
 
-///
+/// Vertex attribute formats.
 pub enum VertexFormat {
     X8Int,
     X8Uint,
