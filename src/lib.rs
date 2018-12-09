@@ -1,19 +1,67 @@
+//! Bare metal OpenGL 4.5+ wrapper
+//!
+//! ## Overview
+//!
+//! `grr` aims at providing a modern and clean looking API with focus on
+//! direct state access. The terminology used follows mostly Vulkan and OpenGL.
+//!
+//! ## Initialization
+//!
+//! The main entry point for working with the library is a [`Device`](struct.Device.html).
+//! A device wraps an OpenGL context which needs to be created and managed externally.
+//! The documentation and examples will all use `glutin` for window and context management.
+//!
+//! ```rust
+//! extern crate glutin;
+//! extern crate grr;
+//!
+//! use glutin::GlContext;
+//!
+//! fn main() -> grr::Result<()> {
+//!     let mut events_loop = glutin::EventsLoop::new();
+//!     let window = glutin::WindowBuilder::new()
+//!         .with_title("Hello grr!")
+//!         .with_dimensions(1024, 768);
+//!     let context = glutin::ContextBuilder::new()
+//!         .with_vsync(true)
+//!         .with_srgb(true)
+//!         .with_gl_debug_flag(true);
+//!
+//!     let window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
+//!     unsafe {
+//!         window.make_current().unwrap();
+//!     }
+//!
+//!     let grr = grr::Device::new(
+//!         |symbol| window.get_proc_address(symbol) as *const _,
+//!         grr::Debug::Enable {
+//!             callback: |_, _, _, _, msg| {
+//!                 println!("{:?}", msg);
+//!             },
+//!             flags: grr::DebugReport::all(),
+//!         },
+//!     );
+//!
+//!     Ok(())
+//! }
+//!
+
 #[macro_use]
 extern crate bitflags;
 
 mod __gl;
 
-pub mod buffer;
-pub mod command;
-pub mod device;
-pub mod error;
-pub mod format;
-pub mod framebuffer;
-pub mod image;
-pub mod pipeline;
-pub mod sampler;
-pub mod sync;
-pub mod vertex;
+mod buffer;
+mod command;
+mod device;
+mod error;
+mod format;
+mod framebuffer;
+mod image;
+mod pipeline;
+mod sampler;
+mod sync;
+mod vertex;
 
 pub use buffer::{Buffer, MappingFlags, MemoryFlags};
 pub use command::{Constant, IndexTy, Primitive, Viewport};

@@ -1,23 +1,4 @@
 //!  Image storage and views.
-//!
-//! ## Image
-//!
-//! Images ares multisdimensional, formatted data arrays.
-//! Images are, together with buffers, resources and are typed representations
-//! of a memory slice.
-//!
-//! Images are often also called textures. We only denote with an image
-//! the actual **storage** of the data, meaning the memory with the
-//! associated layout metadata.
-//!
-//! The API only uses images directlt when the function call directly
-//! affects the underlying memory (e.g copy operations).
-//!
-//! ## Image View
-//!
-//! Image Views denote subranges of an image storage. Pipelines will
-//! only access image data via views. Views alias the memory of the associated
-//! image.
 
 use __gl;
 use __gl::types::{GLenum, GLuint};
@@ -30,6 +11,17 @@ use format::{BaseFormat, Format, FormatLayout};
 use {Extent, Offset};
 
 /// Image resource handle.
+///
+/// Images ares multisdimensional, formatted data arrays.
+/// Images are, together with buffers, resources and are typed representations
+/// of a memory slice.
+///
+/// Images are often also called textures. We only denote with an image
+/// the actual **storage** of the data, meaning the memory with the
+/// associated layout metadata.
+///
+/// The API only uses images directlt when the function call directly
+/// affects the underlying memory (e.g copy operations).
 pub struct Image {
     raw: GLuint,
     target: GLenum,
@@ -79,6 +71,10 @@ pub enum ImageType {
 }
 
 /// Image view handle.
+///
+/// Image Views denote subranges of an image storage. Pipelines will
+/// only access image data via views. Views alias the memory of the associated
+/// image.
 #[repr(transparent)]
 pub struct ImageView(pub(crate) GLuint);
 
