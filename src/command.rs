@@ -1,6 +1,7 @@
 //! Drawing and Dispatching related commands.
 
 use __gl;
+use std::mem;
 use std::ops::Range;
 
 use device::Device;
@@ -23,9 +24,17 @@ pub enum Primitive {
 
     /// Lines segment list.
     ///
-    ///
+    /// Every two consecutive vertices will form a line segment.
     Lines = __gl::LINES,
+
+    /// Lines segment strip.
+    ///
+    /// The vertices will build a connected list of line segments.
     LineStrip = __gl::LINE_STRIP,
+
+    /// Triangle list.
+    ///
+    /// Three consecutive vertices will form triangle.
     Triangles = __gl::TRIANGLES,
     TriangleStrip = __gl::TRIANGLE_STRIP,
     LinesAdjacency = __gl::LINES_ADJACENCY,
@@ -92,6 +101,36 @@ pub enum Constant {
     Mat3x3([[f32; 3]; 3]),
     /// 4x4 elements single precision floating point matrix.
     Mat4x4([[f32; 4]; 4]),
+}
+
+///
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+pub struct DrawIndirectCmd {
+    ///
+    pub vertex_count: u32,
+    ///
+    pub instance_count: u32,
+    ///
+    pub first_vertex: u32,
+    ///
+    pub first_instance: u32,
+}
+
+///
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+pub struct DrawIndexedIndirectCmd {
+    ///
+    pub index_count: u32,
+    ///
+    pub instance_count: u32,
+    ///
+    pub first_index: u32,
+    ///
+    pub base_vertex: i32,
+    ///
+    pub first_instance: u32,
 }
 
 impl Device {
@@ -236,6 +275,64 @@ impl Device {
                 base_vertex,
                 instance.start as _,
             )
+        }
+    }
+
+    ///
+    pub fn draw_indirect(&self, primitive: Primitive, offset: u64, count: u32, stride: u32) {
+        unsafe {
+            self.0
+                .MultiDrawArraysIndirect(primitive as _, offset as _, count as _, stride as _);
+        }
+    }
+
+    ///
+    pub fn draw_indirect_from_host(&self, primitive: Primitive, data: &[DrawIndirectCmd]) {
+        unsafe {
+            self.0.MultiDrawArraysIndirect(
+                primitive as _,
+                data.as_ptr() as *const _,
+                data.len() as _,
+                mem::size_of::<DrawIndirectCmd>() as _,
+            );
+        }
+    }
+
+    ///
+    pub fn draw_indexed_indirect(
+        &self,
+        primitive: Primitive,
+        index_ty: IndexTy,
+        offset: u64,
+        count: u32,
+        stride: u32,
+    ) {
+        unsafe {
+            self.0.MultiDrawElementsIndirect(
+                primitive as _,
+                index_ty as _,
+                offset as _,
+                count as _,
+                stride as _,
+            );
+        }
+    }
+
+    ///
+    pub fn draw_indexed_indirect_from_host(
+        &self,
+        primitive: Primitive,
+        index_ty: IndexTy,
+        data: &[DrawIndexedIndirectCmd],
+    ) {
+        unsafe {
+            self.0.MultiDrawElementsIndirect(
+                primitive as _,
+                index_ty as _,
+                data.as_ptr() as *const _,
+                data.len() as _,
+                mem::size_of::<DrawIndirectCmd>() as _,
+            );
         }
     }
 

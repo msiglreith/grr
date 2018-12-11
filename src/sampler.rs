@@ -1,3 +1,5 @@
+//! Sampler.
+
 use __gl;
 use __gl::types::{GLenum, GLuint};
 
@@ -7,7 +9,7 @@ use Compare;
 
 use std::ops::Range;
 
-///
+/// Sampler handle.
 #[repr(transparent)]
 pub struct Sampler(GLuint);
 
@@ -126,7 +128,7 @@ impl Device {
     }
 }
 
-///
+/// Sampler Descriptor.
 #[derive(Debug, Clone)]
 pub struct SamplerDesc {
     pub min_filter: Filter,
@@ -157,13 +159,21 @@ fn map_min_filter(filter: Filter, mip_map: Option<Filter>) -> GLenum {
     }
 }
 
+/// Sampler addressing mode.
 ///
+/// Specifies how coordinates outide of the texture coordinate system (`[0, 1]`) are treated during
+/// sampling operations.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum SamplerAddress {
+    ///
     Repeat,
+    ///
     MirrorRepeat,
+    ///
     ClampEdge,
+    ///
     ClampBorder,
+    ///
     MirrorClampEdge,
 }
 

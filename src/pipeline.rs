@@ -84,6 +84,8 @@ pub enum ShaderStage {
 ///
 /// ### Fragment Stage
 ///
+/// ## Examples
+///
 pub struct GraphicsPipelineDesc<'a> {
     pub vertex_shader: &'a Shader,
     pub tessellation_control_shader: Option<&'a Shader>,
@@ -92,24 +94,39 @@ pub struct GraphicsPipelineDesc<'a> {
     pub fragment_shader: Option<&'a Shader>,
 }
 
+/// Input Assembly Descriptor.
 ///
+/// Configures the input assembler for primitive shading.
 #[derive(Debug)]
 pub struct InputAssembly {
+    /// Specifies if a special vertex index indicates a restart of the primitive assembly.
     pub primitive_restart: Option<u32>,
 }
 
+/// Rasteriyer Descriptor.
 ///
+/// Controls the rasterization process for converting primitives into fragments.
 #[derive(Debug)]
 pub struct Rasterization {
+    /// Clamp depth values of fragments to the z-planes instead of clipping.
     pub depth_clamp: bool,
+    /// Discard primitives before rasterization.
     pub rasterizer_discard: bool,
+    /// Specifies how polygons will be rendered.
     pub polygon_mode: PolygonMode,
+    ///
     pub cull_mode: Option<CullMode>,
+    /// Specifes the winding order for triangles.
+    ///
+    /// The winding order determines which the visible face of a triangle.
     pub front_face: FrontFace,
+    ///
     pub depth_bias: bool,
 }
 
+/// Polygon rendering mode.
 ///
+/// Used during [`Rasterization`](struct.Rasterization.html).
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum PolygonMode {
@@ -118,7 +135,9 @@ pub enum PolygonMode {
     Fill = __gl::FILL,
 }
 
+/// Polygon culling mode.
 ///
+/// Used during [`Rasterization`](struct.Rasterization.html).
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum CullMode {
@@ -127,7 +146,9 @@ pub enum CullMode {
     FrontBack = __gl::FRONT_AND_BACK,
 }
 
+/// Polygon front face.
 ///
+/// Used during [`Rasterization`](struct.Rasterization.html).
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum FrontFace {
@@ -461,6 +482,7 @@ impl Device {
         }
     }
 
+    ///
     pub fn bind_input_assembly_state(&self, state: &InputAssembly) {
         match state.primitive_restart {
             Some(index) => unsafe {
@@ -473,6 +495,7 @@ impl Device {
         }
     }
 
+    ///
     pub fn bind_color_blend_state(&self, state: &ColorBlend) {
         for (i, attachment) in state.attachments.iter().enumerate() {
             let slot = i as u32;
@@ -500,6 +523,7 @@ impl Device {
         }
     }
 
+    ///
     pub fn bind_depth_stencil_state(&self, state: &DepthStencil) {
         if state.depth_test {
             unsafe {
@@ -552,6 +576,7 @@ impl Device {
         }
     }
 
+    ///
     pub fn bind_rasterization_state(&self, state: &Rasterization) {
         if state.depth_clamp {
             unsafe {

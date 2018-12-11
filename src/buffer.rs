@@ -1,3 +1,5 @@
+//! Buffer
+
 use __gl;
 use __gl::types::{GLbitfield, GLuint};
 
@@ -6,10 +8,14 @@ use std::{mem, ptr, slice};
 
 use device::Device;
 use error::Result;
+use format::{BaseFormat, Format, FormatLayout};
 
 ///
 pub struct Buffer(pub(crate) GLuint, GLbitfield);
 
+/// Buffer Range.
+///
+/// Specifies a subrange of a buffer resource.
 pub struct BufferRange<'a> {
     pub buffer: &'a Buffer,
     pub offset: usize,
@@ -111,6 +117,10 @@ impl Device {
     /// # Valid usage
     ///
     /// - The buffer must be currently mapped.
+    ///
+    /// # Return
+    ///
+    /// Returns if the unmapping operation was successfull.
     pub fn unmap_buffer(&self, buffer: &Buffer) -> bool {
         unsafe { self.0.UnmapNamedBuffer(buffer.0) != 0 }
     }
@@ -128,6 +138,7 @@ impl Device {
         }
     }
 
+    /// Copy memory from the host into the buffer memory.
     pub fn copy_host_to_buffer(&self, buffer: &Buffer, offset: isize, data: &[u8]) {
         unsafe {
             self.0
@@ -135,6 +146,7 @@ impl Device {
         }
     }
 
+    /// Copy data from one buffer into another buffer.
     pub fn copy_buffer(
         &self,
         src_buffer: &Buffer,
@@ -154,6 +166,31 @@ impl Device {
         }
     }
 
+    /// Fill buffer with data.
+    pub fn fill_buffer(
+        &self,
+        buffer: BufferRange,
+        buffer_format: Format,
+        base_format: BaseFormat,
+        format_layout: FormatLayout,
+        value: &[u8],
+    ) {
+        unsafe {
+            self.0.ClearNamedBufferSubData(
+                buffer.buffer.0,
+                buffer_format as _,
+                buffer.offset as _,
+                buffer.size as _,
+                format_layout as _,
+                base_format as _,
+                value.as_ptr() as *const _,
+            );
+        }
+    }
+
+    /// Bind buffer ranges as uniform buffers.
+    ///
+    /// Shader can access the buffer memory as readonly.
     pub fn bind_uniform_buffers(&self, first: u32, ranges: &[BufferRange]) {
         let buffers = ranges.iter().map(|view| view.buffer.0).collect::<Vec<_>>();
         let offsets = ranges
@@ -190,7 +227,7 @@ bitflags!(
         /// CPU can write to mapped memory.
         const CPU_MAP_WRITE = 0x8;
 
-        ///
+        /// Required for copies to buffer from host memory.
         const DYNAMIC = 0x10;
     }
 );
@@ -199,6 +236,8 @@ bitflags!(
     /// Memory mapping flags.
     pub struct MappingFlags: u8 {
         /// Driver won't synchronize memory access.
+        ///
+        /// The user needs to manually synchonize access via fences.
         const UNSYNCHRONIZED = 0x1;
     }
 );

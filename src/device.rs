@@ -16,6 +16,7 @@ bitflags!(
     }
 );
 
+/// Debug message source.
 #[repr(u32)]
 pub enum DebugSource {
     Api = __gl::DEBUG_SOURCE_API,
@@ -26,6 +27,7 @@ pub enum DebugSource {
     Other = __gl::DEBUG_SOURCE_OTHER,
 }
 
+/// Debug message type.
 #[repr(u32)]
 pub enum DebugType {
     Error = __gl::DEBUG_TYPE_ERROR,
