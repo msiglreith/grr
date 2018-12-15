@@ -103,7 +103,7 @@ pub enum Constant {
     Mat4x4([[f32; 4]; 4]),
 }
 
-///
+/// Indirect draw command structure.
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct DrawIndirectCmd {
@@ -117,7 +117,7 @@ pub struct DrawIndirectCmd {
     pub first_instance: u32,
 }
 
-///
+/// Indirect (indexed) draw command structure.
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct DrawIndexedIndirectCmd {
@@ -131,6 +131,18 @@ pub struct DrawIndexedIndirectCmd {
     pub base_vertex: i32,
     ///
     pub first_instance: u32,
+}
+
+/// Indirect dispatch command structure.
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+pub struct DispatchIndirectCmd {
+    /// Number of local workgroups in x dimension.
+    pub x: u32,
+    /// Number of local workgroups in y dimension.
+    pub y: u32,
+    /// Number of local workgroups in z dimension.
+    pub z: u32,
 }
 
 impl Device {
@@ -278,7 +290,12 @@ impl Device {
         }
     }
 
+    /// Submit an indirect draw call.
     ///
+    /// # Valid Usage
+    ///
+    /// - There must be a valid graphics pipeline currently bound.
+    /// - There must be a valid draw indirect buffer currently bound.
     pub fn draw_indirect(&self, primitive: Primitive, offset: u64, count: u32, stride: u32) {
         unsafe {
             self.0
@@ -286,7 +303,7 @@ impl Device {
         }
     }
 
-    ///
+    /// Submit an indirect draw call.
     pub fn draw_indirect_from_host(&self, primitive: Primitive, data: &[DrawIndirectCmd]) {
         unsafe {
             self.0.MultiDrawArraysIndirect(
@@ -298,7 +315,7 @@ impl Device {
         }
     }
 
-    ///
+    /// Indirect draw call.
     pub fn draw_indexed_indirect(
         &self,
         primitive: Primitive,
@@ -318,7 +335,7 @@ impl Device {
         }
     }
 
-    ///
+    /// Indirect (indexed) draw call.
     pub fn draw_indexed_indirect_from_host(
         &self,
         primitive: Primitive,
@@ -340,11 +357,17 @@ impl Device {
     ///
     /// # Valid usage
     ///
-    /// - `group_x`, `group_y` and `group_z` must be larger than 0.
     /// - There must be a valid compute shader currently bound.
-    pub fn dispatch(&self, groups_x: u32, groups_y: u32, groups_z: u32) {
+    pub fn dispatch(&self, x: u32, y: u32, z: u32) {
         unsafe {
-            self.0.DispatchCompute(groups_x, groups_y, groups_z);
+            self.0.DispatchCompute(x, y, z);
+        }
+    }
+
+    ///
+    pub fn dispatch_indirect(&self, offset: u64) {
+        unsafe {
+            self.0.DispatchComputeIndirect(offset as _);
         }
     }
 }

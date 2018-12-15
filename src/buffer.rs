@@ -210,6 +210,41 @@ impl Device {
             );
         }
     }
+
+    ///
+    pub fn bind_shader_storage_buffers(&self, first: u32, ranges: &[BufferRange]) {
+        let buffers = ranges.iter().map(|view| view.buffer.0).collect::<Vec<_>>();
+        let offsets = ranges
+            .iter()
+            .map(|view| view.offset as _)
+            .collect::<Vec<_>>();
+        let sizes = ranges.iter().map(|view| view.size as _).collect::<Vec<_>>();
+
+        unsafe {
+            self.0.BindBuffersRange(
+                __gl::SHADER_STORAGE_BUFFER,
+                first,
+                ranges.len() as _,
+                buffers.as_ptr(),
+                offsets.as_ptr(),
+                sizes.as_ptr(),
+            );
+        }
+    }
+
+    /// Bind indirect buffer for draw commands.
+    pub fn bind_draw_indirect_buffer(&self, buffer: &Buffer) {
+        unsafe {
+            self.0.BindBuffer(__gl::DRAW_INDIRECT_BUFFER, buffer.0);
+        }
+    }
+
+    /// Bind indirect buffer for dispatch commands.
+    pub fn bind_dispatch_indirect_buffer(&self, buffer: &Buffer) {
+        unsafe {
+            self.0.BindBuffer(__gl::DRAW_INDIRECT_BUFFER, buffer.0);
+        }
+    }
 }
 
 bitflags!(

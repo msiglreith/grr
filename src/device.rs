@@ -119,4 +119,60 @@ impl Device {
 
         Device(ctxt, cb)
     }
+
+    pub fn limits(&self) -> DeviceLimits {
+        DeviceLimits {
+            max_compute_work_group_invocations: self
+                .get_u32(__gl::MAX_COMPUTE_WORK_GROUP_INVOCATIONS, None),
+            max_compute_work_group_count: [
+                self.get_u32(__gl::MAX_COMPUTE_WORK_GROUP_COUNT, Some(0)),
+                self.get_u32(__gl::MAX_COMPUTE_WORK_GROUP_COUNT, Some(1)),
+                self.get_u32(__gl::MAX_COMPUTE_WORK_GROUP_COUNT, Some(2)),
+            ],
+            max_compute_work_group_size: [
+                self.get_u32(__gl::MAX_COMPUTE_WORK_GROUP_SIZE, Some(0)),
+                self.get_u32(__gl::MAX_COMPUTE_WORK_GROUP_SIZE, Some(1)),
+                self.get_u32(__gl::MAX_COMPUTE_WORK_GROUP_SIZE, Some(2)),
+            ],
+            max_compute_shared_memory_size: self
+                .get_u32(__gl::MAX_COMPUTE_SHARED_MEMORY_SIZE, None),
+            max_clip_distances: self.get_u32(__gl::MAX_CLIP_DISTANCES, None),
+            max_cull_distances: self.get_u32(__gl::MAX_CULL_DISTANCES, None),
+        }
+    }
+
+    fn get_u32(&self, target: GLenum, index: Option<usize>) -> u32 {
+        self.get_i32(target, index) as _
+    }
+
+    fn get_i32(&self, target: GLenum, index: Option<usize>) -> i32 {
+        let mut value = 0;
+        unsafe {
+            match index {
+                Some(i) => self.0.GetIntegeri_v(target, i as _, &mut value),
+                None => self.0.GetIntegerv(target, &mut value),
+            }
+        }
+        value
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct DeviceLimits {
+    /// Maximum number of total invocations in a single workgroup.
+    pub max_compute_work_group_invocations: u32,
+    /// Maximum number of local workgroups per dispatch call.
+    pub max_compute_work_group_count: [u32; 3],
+    /// Maximum size of a local workgroup in each dimensions.
+    pub max_compute_work_group_size: [u32; 3],
+    /// Maximum size in bytes of all shared memory variables in the compute pipeline.
+    pub max_compute_shared_memory_size: u32,
+    /// Maximum number of clip distances in a shader stage.
+    ///
+    /// Minimum value: 8
+    pub max_clip_distances: u32,
+    /// Maximum number of cull distances in a shader stage.
+    ///
+    /// Minimum value: 8
+    pub max_cull_distances: u32,
 }

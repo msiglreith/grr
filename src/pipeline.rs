@@ -475,14 +475,23 @@ impl Device {
         Ok(Pipeline(pipeline))
     }
 
-    ///
+    /// Delete a pipeline.
     pub fn delete_pipeline(&self, pipeline: Pipeline) {
         unsafe {
             self.0.DeleteProgram(pipeline.0);
         }
     }
 
-    ///
+    /// Delete multiple pipelines.
+    pub fn delete_pipelines(&self, pipelines: &[Pipeline]) {
+        for pipeline in pipelines {
+            unsafe {
+                self.0.DeleteProgram(pipeline.0);
+            }
+        }
+    }
+
+    /// Bind input assembly pipeline state.
     pub fn bind_input_assembly_state(&self, state: &InputAssembly) {
         match state.primitive_restart {
             Some(index) => unsafe {
@@ -495,7 +504,7 @@ impl Device {
         }
     }
 
-    ///
+    /// Bind color blending pipeline state.
     pub fn bind_color_blend_state(&self, state: &ColorBlend) {
         for (i, attachment) in state.attachments.iter().enumerate() {
             let slot = i as u32;
@@ -523,7 +532,22 @@ impl Device {
         }
     }
 
+    /// Bind depth-stencil pipeline state.
     ///
+    /// # Examples
+    ///
+    /// Basic `Less-Equal` depth test with write:
+    ///
+    /// ```rust
+    /// grr.bind_depth_stencil_state(&grr::DepthStencil {
+    ///     depth_test: true,
+    ///     depth_write: true,
+    ///     depth_compare_op: grr::Compare::LessEqual,
+    ///     stencil_test: false,
+    ///     stencil_front: grr::StencilFace::KEEP,
+    ///     stencil_back: grr::StencilFace::KEEP,
+    /// });
+    /// ```
     pub fn bind_depth_stencil_state(&self, state: &DepthStencil) {
         if state.depth_test {
             unsafe {
@@ -576,7 +600,7 @@ impl Device {
         }
     }
 
-    ///
+    /// Bind rasterization pipeline state.
     pub fn bind_rasterization_state(&self, state: &Rasterization) {
         if state.depth_clamp {
             unsafe {
