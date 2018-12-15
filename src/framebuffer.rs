@@ -3,6 +3,7 @@
 use __gl;
 use __gl::types::{GLenum, GLuint};
 
+use debug::{Object, ObjectType};
 use device::Device;
 use error::Result;
 use ImageView;
@@ -44,9 +45,23 @@ impl Framebuffer {
     pub const DEFAULT: &'static Self = &Framebuffer(0);
 }
 
+impl Object for Framebuffer {
+    const TYPE: ObjectType = ObjectType::Framebuffer;
+    fn handle(&self) -> GLuint {
+        self.0
+    }
+}
+
 /// Renderbuffer handle.
 #[repr(transparent)]
 pub struct Renderbuffer(GLuint);
+
+impl Object for Renderbuffer {
+    const TYPE: ObjectType = ObjectType::Renderbuffer;
+    fn handle(&self) -> GLuint {
+        self.0
+    }
+}
 
 impl Device {
     /// Create a new framebuffer.

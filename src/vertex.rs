@@ -2,12 +2,20 @@ use __gl;
 use __gl::types::GLuint;
 
 use buffer::Buffer;
+use debug::{Object, ObjectType};
 use device::Device;
 use error::Result;
 
 /// Vertex array handle.
 #[repr(transparent)]
 pub struct VertexArray(pub(crate) GLuint);
+
+impl Object for VertexArray {
+    const TYPE: ObjectType = ObjectType::VertexArray;
+    fn handle(&self) -> GLuint {
+        self.0
+    }
+}
 
 /// Buffer representation for vertex attributes
 pub struct VertexBufferView<'a> {

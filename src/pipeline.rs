@@ -3,6 +3,7 @@
 use __gl;
 use __gl::types::GLuint;
 
+use debug::{Object, ObjectType};
 use device::Device;
 use error::Result;
 use Compare;
@@ -25,11 +26,25 @@ use Compare;
 #[repr(transparent)]
 pub struct Shader(GLuint);
 
+impl Object for Shader {
+    const TYPE: ObjectType = ObjectType::Shader;
+    fn handle(&self) -> GLuint {
+        self.0
+    }
+}
+
 /// Graphics or Compute pipeline.
 ///
 /// Specifies how draw or dispatch commands are executed.
 #[repr(transparent)]
 pub struct Pipeline(pub(crate) GLuint);
+
+impl Object for Pipeline {
+    const TYPE: ObjectType = ObjectType::Pipeline;
+    fn handle(&self) -> GLuint {
+        self.0
+    }
+}
 
 /// Shader Stages.
 ///
@@ -390,7 +405,7 @@ impl Device {
     ///   `ShaderStage::Geometry` if specified.
     /// - The fragment shader in `desc` must be valid and created with
     ///   `ShaderStage::Fragment` if specified.
-    pub fn create_graphics_pipeline(&self, desc: &GraphicsPipelineDesc) -> Result<Pipeline> {
+    pub fn create_graphics_pipeline(&self, desc: GraphicsPipelineDesc) -> Result<Pipeline> {
         let pipeline = unsafe { self.0.CreateProgram() };
         self.get_error()?;
 

@@ -3,6 +3,7 @@
 use __gl;
 use __gl::types::{GLenum, GLuint};
 
+use debug::{Object, ObjectType};
 use device::Device;
 use error::Result;
 use Compare;
@@ -12,6 +13,13 @@ use std::ops::Range;
 /// Sampler handle.
 #[repr(transparent)]
 pub struct Sampler(GLuint);
+
+impl Object for Sampler {
+    const TYPE: ObjectType = ObjectType::Sampler;
+    fn handle(&self) -> GLuint {
+        self.0
+    }
+}
 
 impl Device {
     /// Create a sampler object.

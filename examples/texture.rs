@@ -135,6 +135,7 @@ fn main() -> grr::Result<()> {
         grr::Format::R8G8B8A8_SRGB,
         1,
     )?;
+    grr.object_name(&texture, "grr logo");
 
     grr.copy_host_to_image(
         &texture,

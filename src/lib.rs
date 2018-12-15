@@ -69,6 +69,7 @@ mod __gl;
 
 mod buffer;
 mod command;
+mod debug;
 mod device;
 mod error;
 mod format;
@@ -81,7 +82,8 @@ mod vertex;
 
 pub use buffer::{Buffer, MappingFlags, MemoryFlags};
 pub use command::{Constant, IndexTy, Primitive, Viewport};
-pub use device::{Debug, DebugReport, DebugSource, DebugType, Device};
+pub use debug::{DebugReport, DebugSource, DebugType};
+pub use device::{Debug, Device};
 pub use error::{Error, Result};
 pub use format::{BaseFormat, Format, FormatLayout};
 pub use framebuffer::{Attachment, AttachmentView, ClearAttachment, Framebuffer, Renderbuffer};

@@ -6,12 +6,21 @@ use __gl::types::{GLbitfield, GLuint};
 use std::ops::Range;
 use std::{mem, ptr, slice};
 
+use debug::{Object, ObjectType};
 use device::Device;
 use error::Result;
 use format::{BaseFormat, Format, FormatLayout};
 
 ///
 pub struct Buffer(pub(crate) GLuint, GLbitfield);
+
+impl Object for Buffer {
+    const TYPE: ObjectType = ObjectType::Buffer;
+
+    fn handle(&self) -> GLuint {
+        self.0
+    }
+}
 
 /// Buffer Range.
 ///

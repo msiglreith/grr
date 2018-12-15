@@ -5,6 +5,7 @@ use __gl::types::{GLenum, GLuint};
 
 use std::ops::Range;
 
+use debug::{Object, ObjectType};
 use device::Device;
 use error::Result;
 use format::{BaseFormat, Format, FormatLayout};
@@ -25,6 +26,13 @@ use {Extent, Offset};
 pub struct Image {
     raw: GLuint,
     target: GLenum,
+}
+
+impl Object for Image {
+    const TYPE: ObjectType = ObjectType::Image;
+    fn handle(&self) -> GLuint {
+        self.raw
+    }
 }
 
 /// Image dimensionality type.
@@ -113,11 +121,7 @@ impl Device {
             } => __gl::TEXTURE_CUBE_MAP,
             ImageType::D2 {
                 layers, samples: 1, ..
-            }
-                if layers % 6 == 0 =>
-            {
-                __gl::TEXTURE_CUBE_MAP_ARRAY
-            }
+            } if layers % 6 == 0 => __gl::TEXTURE_CUBE_MAP_ARRAY,
             ImageType::D2 { samples: 1, .. } => __gl::TEXTURE_2D_ARRAY,
             ImageType::D2 { layers: 1, .. } => __gl::TEXTURE_2D_MULTISAMPLE,
             ImageType::D2 { .. } => __gl::TEXTURE_2D_MULTISAMPLE_ARRAY,

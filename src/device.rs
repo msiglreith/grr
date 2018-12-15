@@ -4,48 +4,7 @@ use __gl::types::{GLchar, GLenum, GLsizei, GLuint};
 use std::os::raw::c_void;
 use std::{ffi, mem};
 
-bitflags!(
-    /// Debug report flags.
-    ///
-    /// Denotes which events will trigger a debug report.
-    pub struct DebugReport: GLenum {
-        const NOTIFICATION = __gl::DEBUG_SEVERITY_NOTIFICATION;
-        const WARNING = __gl::DEBUG_SEVERITY_MEDIUM;
-        const ERORR = __gl::DEBUG_SEVERITY_HIGH;
-        const PERFORMANCE_WARNING = __gl::DEBUG_SEVERITY_LOW;
-    }
-);
-
-/// Debug message source.
-#[repr(u32)]
-pub enum DebugSource {
-    Api = __gl::DEBUG_SOURCE_API,
-    ShaderCompiler = __gl::DEBUG_SOURCE_SHADER_COMPILER,
-    Wsi = __gl::DEBUG_SOURCE_WINDOW_SYSTEM,
-    ThirdParty = __gl::DEBUG_SOURCE_THIRD_PARTY,
-    Application = __gl::DEBUG_SOURCE_APPLICATION,
-    Other = __gl::DEBUG_SOURCE_OTHER,
-}
-
-/// Debug message type.
-#[repr(u32)]
-pub enum DebugType {
-    Error = __gl::DEBUG_TYPE_ERROR,
-    Deprecated = __gl::DEBUG_TYPE_DEPRECATED_BEHAVIOR,
-    UndefinedBehavior = __gl::DEBUG_TYPE_UNDEFINED_BEHAVIOR,
-    Performance = __gl::DEBUG_TYPE_PERFORMANCE,
-    Portability = __gl::DEBUG_TYPE_PORTABILITY,
-    Marker = __gl::DEBUG_TYPE_MARKER,
-    PushGroup = __gl::DEBUG_TYPE_PUSH_GROUP,
-    PopGroup = __gl::DEBUG_TYPE_POP_GROUP,
-    Other = __gl::DEBUG_TYPE_OTHER,
-}
-
-/// Device debug control.
-pub enum Debug<F> {
-    Enable { callback: F, flags: DebugReport },
-    Disable,
-}
+use debug::{DebugReport, DebugCallback};
 
 /// Logical device, representation one or multiple physical devices (hardware or software).
 ///
@@ -53,8 +12,11 @@ pub enum Debug<F> {
 /// It's the responsibility of the user to keep the context alive.
 pub struct Device(pub(crate) __gl::Gl, Option<Box<DebugCallback>>);
 
-///
-pub type DebugCallback = fn(DebugReport, DebugSource, DebugType, u32, &str);
+/// Device debug control.
+pub enum Debug<F> {
+    Enable { callback: F, flags: DebugReport },
+    Disable,
+}
 
 impl Device {
     /// Create a new device from an existing context.
