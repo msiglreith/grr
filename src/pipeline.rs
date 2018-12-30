@@ -271,6 +271,15 @@ pub struct DepthStencil {
     pub stencil_back: StencilFace,
 }
 
+///
+pub struct Multisample {
+    pub sample_shading: bool,
+    pub min_sample_shading: f32,
+    pub sample_mask: u64,
+    pub alpha_to_coverage: bool,
+    pub alpha_to_one: bool,
+}
+
 impl Device {
     fn check_pipeline_log(&self, pipeline: GLuint) {
         let log = {
@@ -666,6 +675,40 @@ impl Device {
             },
             None => unsafe {
                 self.0.Disable(__gl::CULL_FACE);
+            },
+        }
+    }
+
+    pub fn bind_multisample_state(&self, state: Option<&Multisample>) {
+        match state {
+            Some(state) => unsafe {
+                self.0.Enable(__gl::MULTISAMPLE);
+
+                if state.sample_shading {
+                    self.0.Enable(__gl::SAMPLE_SHADING);
+                    self.0.MinSampleShading(state.min_sample_shading);
+                } else {
+                    self.0.Disable(__gl::SAMPLE_SHADING);
+                }
+
+                self.0.SampleMaski(0, (state.sample_mask & 0xFFFFFFFF) as _);
+                self.0
+                    .SampleMaski(1, ((state.sample_mask >> 32) & 0xFFFFFFFF) as _);
+
+                if state.alpha_to_coverage {
+                    self.0.Enable(__gl::SAMPLE_ALPHA_TO_COVERAGE);
+                } else {
+                    self.0.Disable(__gl::SAMPLE_ALPHA_TO_COVERAGE);
+                }
+
+                if state.alpha_to_one {
+                    self.0.Enable(__gl::SAMPLE_ALPHA_TO_ONE);
+                } else {
+                    self.0.Disable(__gl::SAMPLE_ALPHA_TO_ONE);
+                }
+            },
+            None => unsafe {
+                self.0.Disable(__gl::MULTISAMPLE);
             },
         }
     }
