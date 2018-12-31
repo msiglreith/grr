@@ -13,7 +13,7 @@ bitflags!(
     pub struct DebugReport: GLenum {
         const NOTIFICATION = __gl::DEBUG_SEVERITY_NOTIFICATION;
         const WARNING = __gl::DEBUG_SEVERITY_MEDIUM;
-        const ERORR = __gl::DEBUG_SEVERITY_HIGH;
+        const ERROR = __gl::DEBUG_SEVERITY_HIGH;
         const PERFORMANCE_WARNING = __gl::DEBUG_SEVERITY_LOW;
     }
 );
@@ -76,6 +76,19 @@ impl Device {
                 label.len() as _,
                 label.as_ptr() as *const _,
             );
+        }
+    }
+
+    pub fn begin_debug_marker(&self, src: DebugSource, id: u32, msg: &str) {
+        unsafe {
+            self.0
+                .PushDebugGroup(src as _, id, msg.len() as _, msg.as_ptr() as *const _);
+        }
+    }
+
+    pub fn end_debug_marker(&self) {
+        unsafe {
+            self.0.PopDebugGroup();
         }
     }
 }

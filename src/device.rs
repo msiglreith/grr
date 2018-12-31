@@ -59,11 +59,58 @@ impl Device {
                 }
 
                 // TODO: flags
-
                 let cb = Box::new(callback);
                 let cb_raw = Box::into_raw(cb);
                 ctxt.Enable(__gl::DEBUG_OUTPUT);
                 ctxt.DebugMessageCallback(callback_ffi, cb_raw as *mut _);
+                ctxt.DebugMessageControl(
+                    __gl::DONT_CARE,
+                    __gl::DONT_CARE,
+                    __gl::DONT_CARE,
+                    0,
+                    std::ptr::null(),
+                    __gl::FALSE,
+                );
+                if flags.contains(DebugReport::NOTIFICATION) {
+                    ctxt.DebugMessageControl(
+                        __gl::DONT_CARE,
+                        __gl::DONT_CARE,
+                        DebugReport::NOTIFICATION.bits(),
+                        0,
+                        std::ptr::null(),
+                        __gl::FALSE,
+                    );
+                }
+                if flags.contains(DebugReport::WARNING) {
+                    ctxt.DebugMessageControl(
+                        __gl::DONT_CARE,
+                        __gl::DONT_CARE,
+                        DebugReport::WARNING.bits(),
+                        0,
+                        std::ptr::null(),
+                        __gl::FALSE,
+                    );
+                }
+                if flags.contains(DebugReport::ERROR) {
+                    ctxt.DebugMessageControl(
+                        __gl::DONT_CARE,
+                        __gl::DONT_CARE,
+                        DebugReport::ERROR.bits(),
+                        0,
+                        std::ptr::null(),
+                        __gl::FALSE,
+                    );
+                }
+                if flags.contains(DebugReport::PERFORMANCE_WARNING) {
+                    ctxt.DebugMessageControl(
+                        __gl::DONT_CARE,
+                        __gl::DONT_CARE,
+                        DebugReport::PERFORMANCE_WARNING.bits(),
+                        0,
+                        std::ptr::null(),
+                        __gl::FALSE,
+                    );
+                }
                 Some(Box::from_raw(cb_raw))
             },
             Debug::Disable => unsafe {
