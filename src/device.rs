@@ -4,7 +4,7 @@ use __gl::types::{GLchar, GLenum, GLsizei, GLuint};
 use std::os::raw::c_void;
 use std::{ffi, mem};
 
-use debug::{DebugReport, DebugCallback};
+use debug::{DebugCallback, DebugReport};
 
 /// Logical device, representation one or multiple physical devices (hardware or software).
 ///
@@ -77,6 +77,7 @@ impl Device {
             ctxt.Enable(__gl::SCISSOR_TEST);
             ctxt.Enable(__gl::TEXTURE_CUBE_MAP_SEAMLESS);
             ctxt.Enable(__gl::PROGRAM_POINT_SIZE);
+            ctxt.Enable(__gl::SAMPLE_MASK);
         }
 
         Device(ctxt, cb)
@@ -101,6 +102,10 @@ impl Device {
             max_clip_distances: self.get_u32(__gl::MAX_CLIP_DISTANCES, None),
             max_cull_distances: self.get_u32(__gl::MAX_CULL_DISTANCES, None),
         }
+    }
+
+    pub fn features(&self) -> DeviceFeatures {
+        DeviceFeatures {}
     }
 
     fn get_u32(&self, target: GLenum, index: Option<usize>) -> u32 {
@@ -138,3 +143,6 @@ pub struct DeviceLimits {
     /// Minimum value: 8
     pub max_cull_distances: u32,
 }
+
+#[derive(Clone, Debug)]
+pub struct DeviceFeatures {}

@@ -1,15 +1,68 @@
 use __gl;
-use __gl::types::{GLenum, GLuint};
+use __gl::types::GLuint;
 
+use device::Device;
+
+///
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum QueryType {
+    ///
+    Timestamp = __gl::TIMESTAMP,
+    ///
+    TimeElapsed = __gl::TIME_ELAPSED,
+    ///
     Occlusion = __gl::ANY_SAMPLES_PASSED,
+    ///
     OcclusionConservative = __gl::ANY_SAMPLES_PASSED_CONSERVATIVE,
-    OcclusionPrecis = __gl::SAMPLES_PASSED,
+    ///
+    OcclusionPrecision = __gl::SAMPLES_PASSED,
+    ///
     InputAssemblyVertices = __gl::VERTICES_SUBMITTED,
+    ///
     InputAssemblyPrimitives = __gl::PRIMITIVES_SUBMITTED,
+    /// Number of vertex shader invocations.
     VertexShaderInvocations = __gl::VERTEX_SHADER_INVOCATIONS,
+    /// Number of geometry shader invocations.
     GeometryShaderInvocations = __gl::GEOMETRY_SHADER_INVOCATIONS,
-    GeometryShaderPrimitives = __gl::GEOMETRY_SHADER_PRIMTIIVES,
+    ///
+    GeometryShaderPrimitives = __gl::GEOMETRY_SHADER_PRIMITIVES_EMITTED,
+    ///
+    TransformFeedbackPrimitivesWritten = __gl::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN,
+    ///
+    TransformFeedbackOverflow = __gl::TRANSFORM_FEEDBACK_OVERFLOW,
+    ///
+    TransformFeedbackStreamOverflow = __gl::TRANSFORM_FEEDBACK_STREAM_OVERFLOW,
+    /// Number of input primitives for the primitive clipping stage.
+    ClippingInvocations = __gl::CLIPPING_INPUT_PRIMITIVES,
+    /// Number of output primitives for the primitive clipping stage.
+    ClippingPrimitives = __gl::CLIPPING_OUTPUT_PRIMITIVES,
+    /// Number of fragment shader invocations.
+    FragmentShaderInvocations = __gl::FRAGMENT_SHADER_INVOCATIONS,
+    /// Number of patches processed by tessellation control shader.
+    TessellationControlShaderPatches = __gl::TESS_CONTROL_SHADER_PATCHES,
+    /// Number of tessellation evaluation shader invocations.
+    TessellationEvaluationShaderInvocations = __gl::TESS_EVALUATION_SHADER_INVOCATIONS,
+    /// Number of compute shader invocations.
+    ComputeShaderInvocations = __gl::COMPUTE_SHADER_INVOCATIONS,
+}
+
+///
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ConditionalMode {
+    ///
+    NoWait = __gl::QUERY_NO_WAIT,
+    ///
+    NoWaitInverted = __gl::QUERY_NO_WAIT_INVERTED,
+    /// Wait for query results available.
+    Wait = __gl::QUERY_WAIT,
+    /// Wait for query results available (inverted condition).
+    WaitInverted = __gl::QUERY_WAIT_INVERTED,
+    ///
+    WaitByRegion = __gl::QUERY_BY_REGION_WAIT,
+    ///
+    WaitByRegionInverted = __gl::QUERY_BY_REGION_WAIT_INVERTED,
 }
 
 pub struct Query {
@@ -21,10 +74,9 @@ impl Device {
     pub fn create_query(&self, ty: QueryType) -> Query {
         let mut query = 0;
         unsafe {
-            self.0.CreateQueries(1, &mut query as *mut _);
+            self.0.CreateQueries(ty as _, 1, &mut query as *mut _);
         }
-
-        Query(query)
+        Query { raw: query, ty }
     }
 
     pub fn begin_query(&self, query: &Query) {
@@ -39,7 +91,21 @@ impl Device {
 
     pub fn end_query(&self) {}
 
-    pub fn write_timestamp(&self, query: &Query) {}
+    pub fn write_timestamp(&self, query: &Query) {
+        unsafe {
+            self.0.QueryCounter(query.raw, __gl::TIMESTAMP);
+        }
+    }
 
-    pub fn begin_conditional_rendering(&self) {}
+    pub fn begin_conditional_rendering(&self, query: &Query, mode: ConditionalMode) {
+        unsafe {
+            self.0.BeginConditionalRender(query.raw, mode as _);
+        }
+    }
+
+    pub fn end_conditional_rendering(&self) {
+        unsafe {
+            self.0.EndConditionalRender();
+        }
+    }
 }

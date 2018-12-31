@@ -16,7 +16,6 @@ pub struct Buffer(pub(crate) GLuint, GLbitfield);
 
 impl Object for Buffer {
     const TYPE: ObjectType = ObjectType::Buffer;
-
     fn handle(&self) -> GLuint {
         self.0
     }

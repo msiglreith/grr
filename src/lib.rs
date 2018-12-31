@@ -76,6 +76,7 @@ mod format;
 mod framebuffer;
 mod image;
 mod pipeline;
+mod query;
 mod sampler;
 mod sync;
 mod vertex;
@@ -95,6 +96,7 @@ pub use pipeline::{
 pub use sampler::{Filter, Sampler, SamplerAddress, SamplerDesc};
 pub use sync::{Barrier, RegionBarrier};
 pub use vertex::{InputRate, VertexArray, VertexAttributeDesc, VertexBufferView, VertexFormat};
+pub use query::{Query, QueryType};
 
 ///
 pub struct Region {
