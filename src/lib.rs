@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 //! Bare metal OpenGL 4.5+ wrapper
 //!
 //! ## Overview
@@ -93,10 +97,10 @@ pub use pipeline::{
     BlendChannel, BlendFactor, BlendOp, ColorBlend, ColorBlendAttachment, DepthStencil,
     GraphicsPipelineDesc, InputAssembly, Pipeline, Shader, ShaderStage, StencilFace, StencilOp,
 };
+pub use query::{Query, QueryType};
 pub use sampler::{Filter, Sampler, SamplerAddress, SamplerDesc};
 pub use sync::{Barrier, RegionBarrier};
 pub use vertex::{InputRate, VertexArray, VertexAttributeDesc, VertexBufferView, VertexFormat};
-pub use query::{Query, QueryType};
 
 ///
 pub struct Region {
