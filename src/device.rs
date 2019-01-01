@@ -120,6 +120,21 @@ impl Device {
                 .get_u32(__gl::MAX_COMPUTE_SHARED_MEMORY_SIZE, None),
             max_clip_distances: self.get_u32(__gl::MAX_CLIP_DISTANCES, None),
             max_cull_distances: self.get_u32(__gl::MAX_CULL_DISTANCES, None),
+            max_viewports: self.get_u32(__gl::MAX_VIEWPORTS, None),
+            max_framebuffer_width: self.get_u32(__gl::MAX_FRAMEBUFFER_WIDTH, None),
+            max_framebuffer_height: self.get_u32(__gl::MAX_FRAMEBUFFER_HEIGHT, None),
+            max_framebuffer_layers: self.get_u32(__gl::MAX_FRAMEBUFFER_LAYERS, None),
+            max_color_attachments: self.get_u32(__gl::MAX_COLOR_ATTACHMENTS, None),
+            max_viewport_dimensions: [
+                self.get_u32(__gl::MAX_VIEWPORT_DIMS, Some(0)),
+                self.get_u32(__gl::MAX_VIEWPORT_DIMS, Some(1)),
+            ],
+            max_vertex_input_attributes: self.get_u32(__gl::MAX_VERTEX_ATTRIBS, None),
+            max_vertex_input_bindings: self.get_u32(__gl::MAX_VERTEX_ATTRIB_BINDINGS, None),
+            max_vertex_input_attribute_offset: self
+                .get_u32(__gl::MAX_VERTEX_ATTRIB_RELATIVE_OFFSET, None),
+            max_vertex_input_binding_stride: self.get_u32(__gl::MAX_VERTEX_ATTRIB_STRIDE, None),
+            max_vertex_output_components: self.get_u32(__gl::MAX_VERTEX_OUTPUT_COMPONENTS, None),
         }
     }
 
@@ -161,6 +176,28 @@ pub struct DeviceLimits {
     ///
     /// Minimum value: 8
     pub max_cull_distances: u32,
+
+    pub max_viewports: u32,
+
+    pub max_viewport_dimensions: [u32; 2],
+
+    pub max_framebuffer_width: u32,
+
+    pub max_framebuffer_height: u32,
+
+    pub max_framebuffer_layers: u32,
+
+    pub max_color_attachments: u32,
+
+    pub max_vertex_input_attributes: u32,
+
+    pub max_vertex_input_bindings: u32,
+
+    pub max_vertex_input_attribute_offset: u32,
+
+    pub max_vertex_input_binding_stride: u32,
+
+    pub max_vertex_output_components: u32,
 }
 
 #[derive(Clone, Debug)]
