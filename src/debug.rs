@@ -42,6 +42,7 @@ bitflags!(
         const WARNING = __gl::DEBUG_SEVERITY_MEDIUM;
         const ERROR = __gl::DEBUG_SEVERITY_HIGH;
         const PERFORMANCE_WARNING = __gl::DEBUG_SEVERITY_LOW;
+        const FULL = Self::NOTIFICATION.bits | Self::WARNING.bits | Self::ERROR.bits | Self::PERFORMANCE_WARNING.bits;
     }
 );
 

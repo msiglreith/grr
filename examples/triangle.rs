@@ -53,7 +53,7 @@ fn main() -> grr::Result<()> {
             callback: |_, _, _, _, msg| {
                 println!("{:?}", msg);
             },
-            flags: grr::DebugReport::empty(),
+            flags: grr::DebugReport::FULL,
         },
     );
 
@@ -83,20 +83,8 @@ fn main() -> grr::Result<()> {
         },
     ])?;
 
-    let triangle_data = {
-        let len = (std::mem::size_of::<f32>() * VERTICES.len()) as u64;
-
-        let buffer = grr.create_buffer(
-            len,
-            grr::MemoryFlags::CPU_MAP_WRITE | grr::MemoryFlags::COHERENT,
-        )?;
-
-        let data = grr.map_buffer::<f32>(&buffer, 0..len, grr::MappingFlags::empty());
-        data.clone_from_slice(&VERTICES);
-        grr.unmap_buffer(&buffer);
-
-        buffer
-    };
+    let triangle_data =
+        grr.create_buffer_from_host(grr::as_u8_slice(&VERTICES), grr::MemoryFlags::empty())?;
 
     let mut running = true;
     while running {

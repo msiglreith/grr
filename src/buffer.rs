@@ -31,14 +31,12 @@ pub struct BufferRange<'a> {
 }
 
 impl Device {
-    /// Create a new empty buffer.
-    ///
-    /// # Parameters
-    ///
-    /// - `size`: Length in bytes of the associated storage memory.
-    /// - `memory`: Properties of the internal memory slice. Indicating the usage
-    ///             and locality of the allocation.
-    pub fn create_buffer(&self, size: u64, memory: MemoryFlags) -> Result<Buffer> {
+    fn create_buffer_impl(
+        &self,
+        size: isize,
+        data_ptr: *const (),
+        memory: MemoryFlags,
+    ) -> Result<Buffer> {
         let flags = {
             let mut flags = 0;
             if !memory.contains(MemoryFlags::DEVICE_LOCAL) {
@@ -64,11 +62,26 @@ impl Device {
             self.0.CreateBuffers(1, &mut buffer);
             self.get_error()?;
             self.0
-                .NamedBufferStorage(buffer, size as _, ptr::null(), flags);
+                .NamedBufferStorage(buffer, size, data_ptr as *const _, flags);
             self.get_error()?;
         }
 
         Ok(Buffer(buffer, flags))
+    }
+
+    /// Create a new empty buffer.
+    ///
+    /// # Parameters
+    ///
+    /// - `size`: Length in bytes of the associated storage memory.
+    /// - `memory`: Properties of the internal memory slice. Indicating the usage
+    ///             and locality of the allocation.
+    pub fn create_buffer(&self, size: u64, memory: MemoryFlags) -> Result<Buffer> {
+        self.create_buffer_impl(size as _, ptr::null(), memory)
+    }
+
+    pub fn create_buffer_from_host(&self, data: &[u8], memory: MemoryFlags) -> Result<Buffer> {
+        self.create_buffer_impl(data.len() as _, data.as_ptr() as *const _, memory)
     }
 
     /// Persistently map memory to host accessible virtual memory.

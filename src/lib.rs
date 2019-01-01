@@ -141,3 +141,8 @@ pub enum Compare {
     Always = __gl::ALWAYS,
     Never = __gl::NEVER,
 }
+
+pub fn as_u8_slice<T>(data: &[T]) -> &[u8] {
+    let len = std::mem::size_of::<T>() * data.len();
+    unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, len) }
+}

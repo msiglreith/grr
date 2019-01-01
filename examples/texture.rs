@@ -59,7 +59,12 @@ fn main() -> grr::Result<()> {
 
     let grr = grr::Device::new(
         |symbol| window.get_proc_address(symbol) as *const _,
-        grr::Debug::Disable,
+        grr::Debug::Enable {
+            callback: |_, _, _, _, msg| {
+                println!("{:?}", msg);
+            },
+            flags: grr::DebugReport::FULL,
+        },
     );
 
     let vs = grr.create_shader(grr::ShaderStage::Vertex, VERTEX_SRC.as_bytes())?;
@@ -88,35 +93,10 @@ fn main() -> grr::Result<()> {
         },
     ])?;
 
-    let vertex_buffer = {
-        let len = (std::mem::size_of::<f32>() * VERTICES.len()) as u64;
-
-        let buffer = grr.create_buffer(
-            len,
-            grr::MemoryFlags::CPU_MAP_WRITE | grr::MemoryFlags::COHERENT,
-        )?;
-
-        let data = grr.map_buffer::<f32>(&buffer, 0..len, grr::MappingFlags::empty());
-        data.clone_from_slice(&VERTICES);
-        grr.unmap_buffer(&buffer);
-
-        buffer
-    };
-
-    let index_buffer = {
-        let len = (std::mem::size_of::<u16>() * INDICES.len()) as u64;
-
-        let buffer = grr.create_buffer(
-            len,
-            grr::MemoryFlags::CPU_MAP_WRITE | grr::MemoryFlags::COHERENT,
-        )?;
-
-        let data = grr.map_buffer::<u16>(&buffer, 0..len, grr::MappingFlags::empty());
-        data.clone_from_slice(&INDICES);
-        grr.unmap_buffer(&buffer);
-
-        buffer
-    };
+    let vertex_buffer =
+        grr.create_buffer_from_host(grr::as_u8_slice(&VERTICES), grr::MemoryFlags::empty())?;
+    let index_buffer =
+        grr.create_buffer_from_host(grr::as_u8_slice(&INDICES), grr::MemoryFlags::empty())?;
 
     let img = image::open(&Path::new("info/grr_logo.png"))
         .unwrap()
