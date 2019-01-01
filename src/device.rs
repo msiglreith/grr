@@ -8,7 +8,7 @@ use __gl::types::{GLchar, GLenum, GLsizei, GLuint};
 use std::os::raw::c_void;
 use std::{ffi, mem};
 
-use debug::{DebugCallback, DebugReport};
+use debug::{self, DebugCallback, DebugReport};
 
 /// Logical device, representation one or multiple physical devices (hardware or software).
 ///
@@ -71,46 +71,14 @@ impl Device {
                     std::ptr::null(),
                     __gl::FALSE,
                 );
-                if flags.contains(DebugReport::NOTIFICATION) {
-                    ctxt.DebugMessageControl(
-                        __gl::DONT_CARE,
-                        __gl::DONT_CARE,
-                        DebugReport::NOTIFICATION.bits(),
-                        0,
-                        std::ptr::null(),
-                        __gl::FALSE,
-                    );
-                }
-                if flags.contains(DebugReport::WARNING) {
-                    ctxt.DebugMessageControl(
-                        __gl::DONT_CARE,
-                        __gl::DONT_CARE,
-                        DebugReport::WARNING.bits(),
-                        0,
-                        std::ptr::null(),
-                        __gl::FALSE,
-                    );
-                }
-                if flags.contains(DebugReport::ERROR) {
-                    ctxt.DebugMessageControl(
-                        __gl::DONT_CARE,
-                        __gl::DONT_CARE,
-                        DebugReport::ERROR.bits(),
-                        0,
-                        std::ptr::null(),
-                        __gl::FALSE,
-                    );
-                }
-                if flags.contains(DebugReport::PERFORMANCE_WARNING) {
-                    ctxt.DebugMessageControl(
-                        __gl::DONT_CARE,
-                        __gl::DONT_CARE,
-                        DebugReport::PERFORMANCE_WARNING.bits(),
-                        0,
-                        std::ptr::null(),
-                        __gl::FALSE,
-                    );
-                }
+                debug::set_debug_message_control(
+                    &ctxt,
+                    true,
+                    debug::Filter::All,
+                    debug::Filter::All,
+                    flags,
+                    None,
+                );
                 Some(Box::from_raw(cb_raw))
             },
             Debug::Disable => unsafe {
