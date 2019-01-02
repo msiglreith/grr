@@ -61,6 +61,12 @@ window.swap_buffers().unwrap();
 cargo run --example triangle
 ```
 
+#### Device Information
+
+```
+cargo run --example device
+```
+
 #### Texture (Logo)
 
 ```

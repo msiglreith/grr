@@ -93,7 +93,15 @@ impl Device {
         }
     }
 
-    pub fn end_query(&self) {}
+    pub fn end_query(&self, query: &Query) {
+        let index = match query.ty {
+            _ => 0,
+        };
+
+        unsafe {
+            self.0.EndQueryIndexed(query.ty as _, index);
+        }
+    }
 
     pub fn write_timestamp(&self, query: &Query) {
         unsafe {

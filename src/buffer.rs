@@ -80,6 +80,13 @@ impl Device {
         self.create_buffer_impl(size as _, ptr::null(), memory)
     }
 
+    /// Create a new buffer from host memory data.
+    ///
+    /// # Parameters
+    ///
+    /// - `data`: Host data, which will copied into the buffer on creation.
+    /// - `memory`: Properties of the internal memory slice. Indicating the usage
+    ///             and locality of the allocation.
     pub fn create_buffer_from_host(&self, data: &[u8], memory: MemoryFlags) -> Result<Buffer> {
         self.create_buffer_impl(data.len() as _, data.as_ptr() as *const _, memory)
     }
@@ -232,7 +239,9 @@ impl Device {
         }
     }
 
+    /// Bind buffer ranges as shader storage buffers.
     ///
+    /// Shaders can access the buffer memory as readwrite.
     pub fn bind_shader_storage_buffers(&self, first: u32, ranges: &[BufferRange]) {
         let buffers = ranges.iter().map(|view| view.buffer.0).collect::<Vec<_>>();
         let offsets = ranges

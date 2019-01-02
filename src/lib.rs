@@ -142,6 +142,10 @@ pub enum Compare {
     Never = __gl::NEVER,
 }
 
+/// View a slice as raw byte slice.
+///
+/// Reinterprets the passed data as raw memory.
+/// Be aware of possible packing and aligning rules by Rust compared to OpenGL.
 pub fn as_u8_slice<T>(data: &[T]) -> &[u8] {
     let len = std::mem::size_of::<T>() * data.len();
     unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, len) }

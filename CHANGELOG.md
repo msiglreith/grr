@@ -1,4 +1,17 @@
 
+
+# 0.4 (Oncilla)
+
+### Added
+- Add more delete functions
+- Framebuffer invalidation
+- Improve error handling
+- Debug utilities (messages, markers and labels)
+- Buffer copies
+- Indirect execution commands
+- Multisampling support
+- Device limits
+
 # 0.3 (Bay Cat)
 
 ### Added

@@ -20,12 +20,18 @@ bitflags = "1"
 [dev-dependencies]
 assimp = "0.3"
 assimp-sys = "0.3"
-glutin = "0.12"
+glutin = "0.19"
 image = "0.20"
 nalgebra-glm = "0.2"
+rand = "0.6"
+ndarray = "0.12"
 
 [build-dependencies]
 gl_generator = "0.10"
+
+[[example]]
+name = "device"
+path = "examples/device.rs"
 
 [[example]]
 name = "triangle"

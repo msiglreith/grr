@@ -58,7 +58,6 @@ impl Device {
                     }
                 }
 
-                // TODO: flags
                 let cb = Box::new(callback);
                 let cb_raw = Box::into_raw(cb);
                 ctxt.Enable(__gl::DEBUG_OUTPUT);
@@ -200,5 +199,8 @@ pub struct DeviceLimits {
     pub max_vertex_output_components: u32,
 }
 
+/// Additional features supported by the device.
+///
+/// These may correspond to OpenGL extensions or feature of higher OpenGL versions.
 #[derive(Clone, Debug)]
 pub struct DeviceFeatures {}

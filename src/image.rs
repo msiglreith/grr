@@ -17,7 +17,7 @@ use {Extent, Offset};
 
 /// Image resource handle.
 ///
-/// Images ares multisdimensional, formatted data arrays.
+/// Images ares multidimensional, formatted data arrays.
 /// Images are, together with buffers, resources and are typed representations
 /// of a memory slice.
 ///
@@ -25,7 +25,7 @@ use {Extent, Offset};
 /// the actual **storage** of the data, meaning the memory with the
 /// associated layout metadata.
 ///
-/// The API only uses images directlt when the function call directly
+/// The API only uses images directly when the function call
 /// affects the underlying memory (e.g copy operations).
 pub struct Image {
     raw: GLuint,
@@ -41,8 +41,7 @@ impl Object for Image {
 
 /// Image dimensionality type.
 ///
-/// Layer, as in arrays or cube maps. don't affect
-/// the dimensionality type.
+/// Layer, as in arrays or cube maps, don't affect the dimensionality type.
 pub enum ImageType {
     // One dimensional image.
     D1 {
@@ -101,9 +100,11 @@ pub enum ImageViewType {
     CubeArray,
 }
 
-///
+/// Subresource of an image.
 pub struct SubresourceRange {
+    /// Range of mip levels.
     pub levels: Range<u32>,
+    /// Range of array layers.
     pub layers: Range<u32>,
 }
 
