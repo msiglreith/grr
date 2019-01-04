@@ -108,6 +108,22 @@ pub struct SubresourceRange {
     pub layers: Range<u32>,
 }
 
+pub struct SubresourceLevel {
+    /// Mip level.
+    pub level: u32,
+    /// Range of array layers.
+    pub layers: Range<u32>,
+}
+
+///
+pub struct SubresourceLayout {
+    pub base_format: BaseFormat,
+    pub format_layout: FormatLayout,
+    pub row_pitch: u32,
+    pub image_height: u32,
+    pub alignment: u32,
+}
+
 impl Device {
     ///
     pub fn create_image(&self, ty: ImageType, format: Format, levels: u32) -> Result<Image> {
@@ -208,25 +224,23 @@ impl Device {
     pub fn copy_host_to_image<T>(
         &self,
         image: &Image,
-        level: u32,
-        layers: Range<u32>,
+        subresource: SubresourceLevel,
         offset: Offset,
         extent: Extent,
         data: &[T],
-        base_format: BaseFormat,
-        format_layout: FormatLayout,
+        layout: SubresourceLayout,
     ) {
         match image.target {
-            __gl::TEXTURE_2D if layers == (0..1) => unsafe {
+            __gl::TEXTURE_2D if subresource.layers == (0..1) => unsafe {
                 self.0.TextureSubImage2D(
                     image.raw,
-                    level as _,
+                    subresource.level as _,
                     offset.x,
                     offset.y,
                     extent.width as _,
                     extent.height as _,
-                    base_format as _,
-                    format_layout as _,
+                    layout.base_format as _,
+                    layout.format_layout as _,
                     data.as_ptr() as *const _,
                 )
             },

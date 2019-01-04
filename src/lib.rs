@@ -92,7 +92,7 @@ pub use device::{Debug, Device};
 pub use error::{Error, Result};
 pub use format::{BaseFormat, Format, FormatLayout};
 pub use framebuffer::{Attachment, AttachmentView, ClearAttachment, Framebuffer, Renderbuffer};
-pub use image::{Image, ImageType, ImageView, ImageViewType, SubresourceRange};
+pub use image::{Image, ImageType, ImageView, ImageViewType, SubresourceLayout, SubresourceRange, SubresourceLevel};
 pub use pipeline::{
     BlendChannel, BlendFactor, BlendOp, ColorBlend, ColorBlendAttachment, DepthStencil,
     GraphicsPipelineDesc, InputAssembly, Pipeline, Shader, ShaderStage, StencilFace, StencilOp,

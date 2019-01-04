@@ -1,6 +1,7 @@
 extern crate glutin;
 extern crate grr;
 
+use glutin::dpi::LogicalSize;
 use glutin::GlContext;
 
 const VERTEX_SRC: &str = r#"
@@ -34,14 +35,20 @@ fn main() -> grr::Result<()> {
     let mut events_loop = glutin::EventsLoop::new();
     let window = glutin::WindowBuilder::new()
         .with_title("Hello, world!")
-        .with_dimensions(1024, 768);
+        .with_dimensions(LogicalSize {
+            width: 1024.0,
+            height: 768.0,
+        });
     let context = glutin::ContextBuilder::new()
         .with_vsync(true)
         .with_srgb(true)
         .with_gl_debug_flag(true);
 
     let window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
-    let (w, h) = window.get_inner_size().unwrap();
+    let LogicalSize {
+        width: w,
+        height: h,
+    } = window.get_inner_size().unwrap();
 
     unsafe {
         window.make_current().unwrap();
@@ -90,8 +97,11 @@ fn main() -> grr::Result<()> {
     while running {
         events_loop.poll_events(|event| match event {
             glutin::Event::WindowEvent { event, .. } => match event {
-                glutin::WindowEvent::Closed => running = false,
-                glutin::WindowEvent::Resized(w, h) => window.resize(w, h),
+                glutin::WindowEvent::CloseRequested => running = false,
+                glutin::WindowEvent::Resized(size) => {
+                    let dpi_factor = window.get_hidpi_factor();
+                    window.resize(size.to_physical(dpi_factor));
+                }
                 _ => (),
             },
             _ => (),

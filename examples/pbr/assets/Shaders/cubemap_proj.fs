@@ -9,7 +9,7 @@ layout (binding = 0) uniform sampler2D u_envmap;
 out vec4 f_color;
 
 vec2 sample_spherical_map(vec3 dir) {
-    vec2 uv = vec2(atan(dir.z, dir.x) / (2 * PI), asin(dir.y) / PI);
+    vec2 uv = vec2(atan(dir.z, -dir.x) / (2 * PI), asin(dir.y) / PI);
     uv += 0.5;
     return uv;
 }

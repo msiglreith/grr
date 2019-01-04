@@ -14,6 +14,6 @@ layout (location = 2) uniform mat4 u_model;
 void main() {
     a_pos = v_pos;
     a_uv = v_uv;
-    a_normal = v_normal;
+    a_normal = (transpose(inverse(u_model)) * vec4(v_normal, 0.0)).xyz;
     gl_Position = u_perspective * u_view * u_model * vec4(v_pos, 1.0);
 }

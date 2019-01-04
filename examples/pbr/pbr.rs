@@ -8,6 +8,7 @@ extern crate nalgebra_glm as glm;
 mod camera;
 
 use assimp::import::Importer;
+use glutin::dpi::LogicalSize;
 use glutin::GlContext;
 use image::Pixel;
 use std::path::Path;
@@ -56,14 +57,20 @@ fn main() -> grr::Result<()> {
     let mut events_loop = glutin::EventsLoop::new();
     let window = glutin::WindowBuilder::new()
         .with_title("grr - PBR sample")
-        .with_dimensions(1440, 700);
+        .with_dimensions(LogicalSize {
+            width: 1440.0,
+            height: 700.0,
+        });
     let context = glutin::ContextBuilder::new()
         .with_vsync(true)
         .with_srgb(true)
         .with_gl_debug_flag(true);
 
     let window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
-    let (w, h) = window.get_inner_size().unwrap();
+    let LogicalSize {
+        width: w,
+        height: h,
+    } = window.get_inner_size().unwrap();
 
     unsafe {
         window.make_current().unwrap();
@@ -150,7 +157,8 @@ fn main() -> grr::Result<()> {
             base_vertex += num_local_vertices;
 
             geometry
-        }).collect::<Vec<_>>();
+        })
+        .collect::<Vec<_>>();
 
     grr.unmap_buffer(&mesh_data);
     grr.unmap_buffer(&index_data);
@@ -175,8 +183,10 @@ fn main() -> grr::Result<()> {
         )?;
         grr.copy_host_to_image(
             &texture,
-            0,
-            0..1,
+            grr::SubresourceLevel {
+                level: 0,
+                layers: 0..1,
+            },
             grr::Offset { x: 0, y: 0, z: 0 },
             grr::Extent {
                 width: img_width,
@@ -184,8 +194,13 @@ fn main() -> grr::Result<()> {
                 depth: 1,
             },
             &img_data,
-            grr::BaseFormat::RGBA,
-            grr::FormatLayout::U8,
+            grr::SubresourceLayout {
+                base_format: grr::BaseFormat::RGBA,
+                format_layout: grr::FormatLayout::U8,
+                row_pitch: img_width,
+                image_height: img_height,
+                alignment: 4,
+            },
         );
         grr.generate_mipmaps(&texture);
 
@@ -287,7 +302,8 @@ fn main() -> grr::Result<()> {
     println!("Loading HDR image from disk");
     let hdr_image = image::hdr::HDRDecoder::new(io::BufReader::new(
         fs::File::open(format!("{}/Lobby-Center_2k.hdr", base_path)).unwrap(),
-    )).unwrap();
+    ))
+    .unwrap();
     let hdr_image_width = hdr_image.metadata().width;
     let hdr_image_height = hdr_image.metadata().height;
     let hdr_image_data = hdr_image.read_image_hdr().unwrap();
@@ -296,7 +312,8 @@ fn main() -> grr::Result<()> {
         .flat_map(|c| {
             let chn = c.channels();
             vec![chn[0], chn[1], chn[2]]
-        }).collect::<Vec<_>>();
+        })
+        .collect::<Vec<_>>();
 
     println!(
         "w: {}, h: {}, data_len: {}",
@@ -330,8 +347,10 @@ fn main() -> grr::Result<()> {
     println!("Uploading HDR image into GPU memory");
     grr.copy_host_to_image(
         &hdr_texture,
-        0,
-        0..1,
+        grr::SubresourceLevel {
+            level: 0,
+            layers: 0..1,
+        },
         grr::Offset { x: 0, y: 0, z: 0 },
         grr::Extent {
             width: hdr_image_width,
@@ -339,8 +358,13 @@ fn main() -> grr::Result<()> {
             depth: 1,
         },
         &hdr_image_raw,
-        grr::BaseFormat::RGB,
-        grr::FormatLayout::F32,
+        grr::SubresourceLayout {
+            base_format: grr::BaseFormat::RGB,
+            format_layout: grr::FormatLayout::F32,
+            row_pitch: hdr_image_width,
+            image_height: hdr_image_height,
+            alignment: 4,
+        },
     );
 
     grr.generate_mipmaps(&hdr_texture);
@@ -432,6 +456,39 @@ fn main() -> grr::Result<()> {
             &env_eye,
             &glm::vec3(0.0, 0.0, 1.0),
             &glm::vec3(0.0, 1.0, 0.0),
+        ),
+    ];
+
+    let env_views_inv = [
+        glm::look_at(
+            &env_eye,
+            &glm::vec3(1.0, 0.0, 0.0),
+            &glm::vec3(0.0, -1.0, 0.0),
+        ),
+        glm::look_at(
+            &env_eye,
+            &glm::vec3(-1.0, 0.0, 0.0),
+            &glm::vec3(0.0, -1.0, 0.0),
+        ),
+        glm::look_at(
+            &env_eye,
+            &glm::vec3(0.0, 1.0, 0.0),
+            &glm::vec3(0.0, 0.0, 1.0),
+        ),
+        glm::look_at(
+            &env_eye,
+            &glm::vec3(0.0, -1.0, 0.0),
+            &glm::vec3(0.0, 0.0, -1.0),
+        ),
+        glm::look_at(
+            &env_eye,
+            &glm::vec3(0.0, 0.0, 1.0),
+            &glm::vec3(0.0, -1.0, 0.0),
+        ),
+        glm::look_at(
+            &env_eye,
+            &glm::vec3(0.0, 0.0, -1.0),
+            &glm::vec3(0.0, -1.0, 0.0),
         ),
     ];
 
@@ -690,7 +747,7 @@ fn main() -> grr::Result<()> {
             None,
         );
 
-        let face_view = &env_views[i as usize];
+        let face_view = &env_views_inv[i as usize];
         grr.bind_uniform_constants(
             &env_irradiance_pipeline,
             0,
@@ -800,7 +857,8 @@ fn main() -> grr::Result<()> {
         grr.bind_uniform_constants(&env_prefilter_pipeline, 2, &[grr::Constant::F32(roughness)]);
 
         for face in 0..6 {
-            let face_view = &env_views[face as usize];
+            let face_view = &env_views_inv[face as usize];
+
             grr.bind_uniform_constants(
                 &env_prefilter_pipeline,
                 1,
@@ -857,8 +915,11 @@ fn main() -> grr::Result<()> {
     while running {
         events_loop.poll_events(|event| match event {
             glutin::Event::WindowEvent { event, .. } => match event {
-                glutin::WindowEvent::Closed => running = false,
-                glutin::WindowEvent::Resized(w, h) => window.resize(w, h),
+                glutin::WindowEvent::CloseRequested => running = false,
+                glutin::WindowEvent::Resized(size) => {
+                    let dpi_factor = window.get_hidpi_factor();
+                    window.resize(size.to_physical(dpi_factor));
+                }
                 glutin::WindowEvent::KeyboardInput { input, .. } => {
                     camera.handle_event(input);
                 }

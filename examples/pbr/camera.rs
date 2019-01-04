@@ -52,6 +52,7 @@ impl InputState {
     }
 }
 
+#[derive(Debug)]
 pub struct Camera {
     position: glm::Vec3,
     rotation: glm::Vec3,

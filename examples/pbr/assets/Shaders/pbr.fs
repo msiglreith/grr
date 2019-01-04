@@ -27,7 +27,7 @@ const float PI = 3.14159265359;
 // technique somewhere later in the normal mapping tutorial.
 vec3 getNormalFromMap()
 {
-    vec3 tangentNormal = texture(u_normals, a_uv).xyz * 2.0 - 1.0;
+    vec3 tangentNormal = texture(u_normals, a_uv).xyz;
 
     vec3 Q1  = dFdx(a_pos);
     vec3 Q2  = dFdy(a_pos);
@@ -36,7 +36,7 @@ vec3 getNormalFromMap()
 
     vec3 N = normalize(a_normal);
     vec3 T = normalize(Q1*st2.t - Q2*st1.t);
-    vec3 B = -normalize(cross(N, T));
+    vec3 B = normalize(-Q1 * st2.s + Q2 * st1.s );
     mat3 TBN = mat3(T, B, N);
 
     return normalize(TBN * tangentNormal);

@@ -2,6 +2,7 @@ extern crate glutin;
 extern crate grr;
 extern crate image;
 
+use glutin::dpi::LogicalSize;
 use glutin::GlContext;
 
 use std::path::Path;
@@ -44,14 +45,20 @@ fn main() -> grr::Result<()> {
     let mut events_loop = glutin::EventsLoop::new();
     let window = glutin::WindowBuilder::new()
         .with_title("Hello, world!")
-        .with_dimensions(1024, 768);
+        .with_dimensions(LogicalSize {
+            width: 1024.0,
+            height: 768.0,
+        });
     let context = glutin::ContextBuilder::new()
         .with_vsync(true)
         .with_srgb(true)
         .with_depth_buffer(32);
 
     let window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
-    let (w, h) = window.get_inner_size().unwrap();
+    let LogicalSize {
+        width: w,
+        height: h,
+    } = window.get_inner_size().unwrap();
 
     unsafe {
         window.make_current().unwrap();
@@ -119,8 +126,10 @@ fn main() -> grr::Result<()> {
 
     grr.copy_host_to_image(
         &texture,
-        0,
-        0..1,
+        grr::SubresourceLevel {
+            level: 0,
+            layers: 0..1,
+        },
         grr::Offset { x: 0, y: 0, z: 0 },
         grr::Extent {
             width: img_width,
@@ -128,8 +137,13 @@ fn main() -> grr::Result<()> {
             depth: 1,
         },
         &img_data,
-        grr::BaseFormat::RGBA,
-        grr::FormatLayout::U8,
+        grr::SubresourceLayout {
+            base_format: grr::BaseFormat::RGBA,
+            format_layout: grr::FormatLayout::U8,
+            row_pitch: img_width,
+            image_height: img_height,
+            alignment: 4,
+        },
     );
 
     let texture_view = grr.create_image_view(
@@ -177,8 +191,11 @@ fn main() -> grr::Result<()> {
     while running {
         events_loop.poll_events(|event| match event {
             glutin::Event::WindowEvent { event, .. } => match event {
-                glutin::WindowEvent::Closed => running = false,
-                glutin::WindowEvent::Resized(w, h) => window.resize(w, h),
+                glutin::WindowEvent::CloseRequested => running = false,
+                glutin::WindowEvent::Resized(size) => {
+                    let dpi_factor = window.get_hidpi_factor();
+                    window.resize(size.to_physical(dpi_factor));
+                }
                 _ => (),
             },
             _ => (),
