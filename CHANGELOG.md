@@ -1,4 +1,7 @@
+# 0.5 (Glyph Cat)
 
+### Changed
+- Adjust Host->Image copy API to specify passed host data
 
 # 0.4 (Oncilla)
 
