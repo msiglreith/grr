@@ -230,6 +230,10 @@ impl Device {
         data: &[T],
         layout: SubresourceLayout,
     ) {
+        unsafe {
+            self.0
+                .PixelStorei(__gl::UNPACK_ALIGNMENT, layout.alignment as _)
+        };
         match image.target {
             __gl::TEXTURE_2D if subresource.layers == (0..1) => unsafe {
                 self.0.TextureSubImage2D(
