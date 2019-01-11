@@ -85,19 +85,25 @@ mod sampler;
 mod sync;
 mod vertex;
 
-pub use buffer::{Buffer, MappingFlags, MemoryFlags};
-pub use command::{Constant, IndexTy, Primitive, Viewport};
+pub use buffer::{Buffer, BufferRange, MappingFlags, MemoryFlags};
+pub use command::{
+    Constant, DrawIndexedIndirectCmd, DrawIndirectCmd, IndexTy, Primitive, Viewport,
+};
 pub use debug::{DebugReport, DebugSource, DebugType};
-pub use device::{Debug, Device};
+pub use device::{Debug, Device, DeviceFeatures, DeviceLimits};
 pub use error::{Error, Result};
 pub use format::{BaseFormat, Format, FormatLayout};
 pub use framebuffer::{Attachment, AttachmentView, ClearAttachment, Framebuffer, Renderbuffer};
-pub use image::{Image, ImageType, ImageView, ImageViewType, SubresourceLayout, SubresourceRange, SubresourceLevel};
+pub use image::{
+    Image, ImageType, ImageView, ImageViewType, SubresourceLayout, SubresourceLevel,
+    SubresourceRange,
+};
 pub use pipeline::{
     BlendChannel, BlendFactor, BlendOp, ColorBlend, ColorBlendAttachment, DepthStencil,
-    GraphicsPipelineDesc, InputAssembly, Pipeline, Shader, ShaderStage, StencilFace, StencilOp,
+    GraphicsPipelineDesc, InputAssembly, Multisample, Pipeline, Rasterization, Shader, ShaderStage,
+    StencilFace, StencilOp,
 };
-pub use query::{Query, QueryType};
+pub use query::{ConditionalMode, Query, QueryType};
 pub use sampler::{Filter, Sampler, SamplerAddress, SamplerDesc};
 pub use sync::{Barrier, RegionBarrier};
 pub use vertex::{InputRate, VertexArray, VertexAttributeDesc, VertexBufferView, VertexFormat};
