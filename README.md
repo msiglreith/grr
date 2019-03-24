@@ -11,7 +11,7 @@
 
 ```toml
 [dependencies]
-grr = "0.4"
+grr = "0.6"
 ```
 
 `grr` aims at providing a thin layer above OpenGL 4.5+, exposing a modern API orientated on Vulkan.

@@ -16,6 +16,7 @@ use {Pipeline, Region};
 /// Specifies how the input assembler (fixed-function) of the graphics pipeline will
 /// assemble primitives based on the incoming vertex data.
 #[repr(u32)]
+#[derive(Copy, Clone, Debug)]
 pub enum Primitive {
     /// Independent vertex points.
     ///
@@ -52,6 +53,7 @@ pub enum Primitive {
 ///
 /// Specifies the size of indices during indexed draw calls.
 #[repr(u32)]
+#[derive(Copy, Clone, Debug)]
 pub enum IndexTy {
     /// 8-bit unsigned integer.
     U8 = __gl::UNSIGNED_BYTE,
@@ -59,6 +61,16 @@ pub enum IndexTy {
     U16 = __gl::UNSIGNED_SHORT,
     // 32-bit unsigned integer.
     U32 = __gl::UNSIGNED_INT,
+}
+
+impl IndexTy {
+    fn size(&self) -> u32 {
+        match *self {
+            IndexTy::U8 => 1,
+            IndexTy::U16 => 2,
+            IndexTy::U32 => 4,
+        }
+    }
 }
 
 /// Viewport transformation.
@@ -286,7 +298,7 @@ impl Device {
                 primitive as _,
                 (indices.end - indices.start) as _,
                 index_ty as _,
-                indices.start as _,
+                (index_ty.size() * indices.start) as _,
                 (instance.end - instance.start) as _,
                 base_vertex,
                 instance.start as _,

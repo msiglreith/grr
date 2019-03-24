@@ -1,3 +1,11 @@
+# 0.6 (Puma)
+
+### Fixed
+- Indexed draw: index pointer was independent of the index ty
+
+### Changed
+- Add some missing `pub`s for structs
+
 # 0.5 (Glyph Cat)
 
 ### Changed
