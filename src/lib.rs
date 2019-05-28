@@ -89,7 +89,7 @@ pub use buffer::{Buffer, BufferRange, MappingFlags, MemoryFlags};
 pub use command::{
     Constant, DrawIndexedIndirectCmd, DrawIndirectCmd, IndexTy, Primitive, Viewport,
 };
-pub use debug::{DebugReport, DebugSource, DebugType};
+pub use debug::{DebugReport, DebugSource, DebugType, Object};
 pub use device::{Debug, Device, DeviceFeatures, DeviceLimits};
 pub use error::{Error, Result};
 pub use format::{BaseFormat, Format, FormatLayout};
