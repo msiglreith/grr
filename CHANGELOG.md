@@ -1,3 +1,9 @@
+# Unreleased
+
+### Added
+
+- Implement `std::error::Error` for `grr::Error`
+
 # 0.6 (Puma)
 
 ### Fixed

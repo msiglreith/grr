@@ -39,7 +39,7 @@ pub enum AttachmentView<'a> {
 
 /// Framebuffer handle.
 #[repr(transparent)]
-pub struct Framebuffer(GLuint);
+pub struct Framebuffer(pub(crate) GLuint);
 
 impl Framebuffer {
     /// Default framebuffer handle.

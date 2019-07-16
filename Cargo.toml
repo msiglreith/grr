@@ -20,9 +20,9 @@ bitflags = "1"
 [dev-dependencies]
 assimp = "0.3"
 assimp-sys = "0.3"
-glutin = "0.19"
-image = "0.20"
-nalgebra-glm = "0.2"
+glutin = "0.21"
+image = "0.21"
+nalgebra-glm = "0.4"
 rand = "0.6"
 ndarray = "0.12"
 
@@ -44,3 +44,7 @@ path = "examples/texture.rs"
 [[example]]
 name = "pbr"
 path = "examples/pbr/pbr.rs"
+
+[[example]]
+name = "multi_context"
+path = "examples/multi_context.rs"

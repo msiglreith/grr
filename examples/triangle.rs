@@ -1,8 +1,7 @@
 extern crate glutin;
-extern crate grr;
 
 use glutin::dpi::LogicalSize;
-use glutin::GlContext;
+use std::error::Error;
 
 const VERTEX_SRC: &str = r#"
     #version 450 core
@@ -31,34 +30,32 @@ const VERTICES: [f32; 15] = [
     -0.5, -0.5, 1.0, 0.0, 0.0, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 0.5, 0.0, 0.0, 1.0,
 ];
 
-fn main() -> grr::Result<()> {
+fn main() -> Result<(), Box<Error>> {
     let mut events_loop = glutin::EventsLoop::new();
-    let window = glutin::WindowBuilder::new()
+    let wb = glutin::WindowBuilder::new()
         .with_title("Hello, world!")
         .with_dimensions(LogicalSize {
             width: 1024.0,
             height: 768.0,
         });
-    let context = glutin::ContextBuilder::new()
+    let window = glutin::ContextBuilder::new()
         .with_vsync(true)
         .with_srgb(true)
-        .with_gl_debug_flag(true);
+        .with_gl_debug_flag(true)
+        .build_windowed(wb, &events_loop)?;
 
-    let window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
+    let window = unsafe { window.make_current().unwrap() };
+
     let LogicalSize {
         width: w,
         height: h,
-    } = window.get_inner_size().unwrap();
-
-    unsafe {
-        window.make_current().unwrap();
-    }
+    } = window.window().get_inner_size().unwrap();
 
     let grr = grr::Device::new(
         |symbol| window.get_proc_address(symbol) as *const _,
         grr::Debug::Enable {
-            callback: |_, _, _, _, msg| {
-                println!("{:?}", msg);
+            callback: |report, _, _, _, msg| {
+                println!("{:?}: {:?}", report, msg);
             },
             flags: grr::DebugReport::FULL,
         },
@@ -99,7 +96,7 @@ fn main() -> grr::Result<()> {
             glutin::Event::WindowEvent { event, .. } => match event {
                 glutin::WindowEvent::CloseRequested => running = false,
                 glutin::WindowEvent::Resized(size) => {
-                    let dpi_factor = window.get_hidpi_factor();
+                    let dpi_factor = window.window().get_hidpi_factor();
                     window.resize(size.to_physical(dpi_factor));
                 }
                 _ => (),
@@ -147,7 +144,7 @@ fn main() -> grr::Result<()> {
         );
         grr.draw(grr::Primitive::Triangles, 0..3, 0..1);
 
-        window.swap_buffers().unwrap();
+        window.swap_buffers()?;
     }
 
     grr.delete_shaders(&[vs, fs]);

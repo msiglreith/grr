@@ -7,7 +7,7 @@
 use __gl;
 
 use device::Device;
-use std;
+use std::{error, fmt, result};
 
 /// Error return codes
 ///
@@ -23,7 +23,7 @@ pub enum Error {
 }
 
 /// A specialized Result type for `grr` operations.
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = result::Result<T, Error>;
 
 impl Device {
     pub(crate) fn get_error(&self) -> Result<()> {
@@ -31,6 +31,16 @@ impl Device {
         match err {
             __gl::OUT_OF_MEMORY => Err(Error::OutOfMemory),
             _ => Ok(()),
+        }
+    }
+}
+
+impl error::Error for Error {}
+
+impl fmt::Display for Error {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> result::Result<(), fmt::Error> {
+        match *self {
+            Error::OutOfMemory => write!(fmt, "OutOfMemory"),
         }
     }
 }

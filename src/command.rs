@@ -9,7 +9,7 @@ use std::mem;
 use std::ops::Range;
 
 use device::Device;
-use {Pipeline, Region};
+use {Framebuffer, Pipeline, Region};
 
 /// Primitve topology.
 ///
@@ -384,6 +384,25 @@ impl Device {
     pub fn dispatch_indirect(&self, offset: u64) {
         unsafe {
             self.0.DispatchComputeIndirect(offset as _);
+        }
+    }
+
+    pub fn blit(&self, src: &Framebuffer, dst: &Framebuffer) {
+        unsafe {
+            self.0.BlitNamedFramebuffer(
+                src.0,
+                dst.0,
+                0,
+                0,
+                1024,
+                768,
+                0,
+                0,
+                1024,
+                768,
+                __gl::COLOR_BUFFER_BIT,
+                __gl::LINEAR,
+            );
         }
     }
 }
