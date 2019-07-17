@@ -101,7 +101,7 @@ pub use image::{
 pub use pipeline::{
     BlendChannel, BlendFactor, BlendOp, ColorBlend, ColorBlendAttachment, DepthStencil,
     GraphicsPipelineDesc, InputAssembly, Multisample, Pipeline, Rasterization, Shader, ShaderStage,
-    StencilFace, StencilOp,
+    StencilFace, StencilOp, VertexPipelineDesc, MeshPipelineDesc
 };
 pub use query::{ConditionalMode, Query, QueryType};
 pub use sampler::{Filter, Sampler, SamplerAddress, SamplerDesc};

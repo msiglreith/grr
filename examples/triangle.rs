@@ -64,7 +64,7 @@ fn main() -> Result<(), Box<Error>> {
     let vs = grr.create_shader(grr::ShaderStage::Vertex, VERTEX_SRC.as_bytes())?;
     let fs = grr.create_shader(grr::ShaderStage::Fragment, FRAGMENT_SRC.as_bytes())?;
 
-    let pipeline = grr.create_graphics_pipeline(grr::GraphicsPipelineDesc {
+    let pipeline = grr.create_graphics_pipeline(grr::VertexPipelineDesc {
         vertex_shader: &vs,
         tessellation_control_shader: None,
         tessellation_evaluation_shader: None,

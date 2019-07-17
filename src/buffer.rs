@@ -269,10 +269,33 @@ impl Device {
         }
     }
 
+    /// Unbind indirect buffer for draw commands.
+    pub fn unbind_draw_indirect_buffer(&self) {
+        unsafe {
+            self.0.BindBuffer(__gl::DRAW_INDIRECT_BUFFER, 0);
+        }
+    }
+
     /// Bind indirect buffer for dispatch commands.
     pub fn bind_dispatch_indirect_buffer(&self, buffer: &Buffer) {
         unsafe {
-            self.0.BindBuffer(__gl::DRAW_INDIRECT_BUFFER, buffer.0);
+            self.0.BindBuffer(__gl::DISPATCH_INDIRECT_BUFFER, buffer.0);
+        }
+    }
+
+    /// Unbind indirect buffer for draw commands.
+    pub fn unbind_dispatch_indirect_buffer(&self) {
+        unsafe {
+            self.0.BindBuffer(__gl::DISPATCH_INDIRECT_BUFFER, 0);
+        }
+    }
+
+    /// Bind parameter buffer for indirect commands.
+    ///
+    /// Required GL 4.6
+    pub fn bind_parameter_buffer(&self, buffer: &Buffer) {
+        unsafe {
+            self.0.BindBuffer(__gl::PARAMETER_BUFFER, buffer.0);
         }
     }
 }

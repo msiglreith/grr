@@ -10,7 +10,7 @@ fn main() {
     let dst = Path::new(&out_dir);
     let mut file = File::create(&dst.join("gl_bindings.rs")).unwrap();
 
-    Registry::new(Api::Gl, (4, 6), Profile::Core, Fallbacks::All, &[])
+    Registry::new(Api::Gl, (4, 6), Profile::Core, Fallbacks::All, &["GL_NV_mesh_shader"])
         .write_bindings(StructGenerator, &mut file)
         .unwrap();
 }

@@ -68,6 +68,10 @@ pub enum ShaderStage {
     Fragment,
     /// Compute stage.
     Compute,
+    /// Mesh stage (NVIDIA).
+    MeshNv,
+    /// Task stage (NVIDIA).
+    TaskNv,
 }
 
 /// Graphics Pipeline Descriptor.
@@ -106,11 +110,57 @@ pub enum ShaderStage {
 /// ## Examples
 ///
 pub struct GraphicsPipelineDesc<'a> {
+    pub vertex_shader: Option<&'a Shader>,
+    pub tessellation_control_shader: Option<&'a Shader>,
+    pub tessellation_evaluation_shader: Option<&'a Shader>,
+    pub geometry_shader: Option<&'a Shader>,
+    pub fragment_shader: Option<&'a Shader>,
+    pub mesh_shader: Option<&'a Shader>,
+    pub task_shader: Option<&'a Shader>,
+}
+
+///
+pub struct VertexPipelineDesc<'a> {
     pub vertex_shader: &'a Shader,
     pub tessellation_control_shader: Option<&'a Shader>,
     pub tessellation_evaluation_shader: Option<&'a Shader>,
     pub geometry_shader: Option<&'a Shader>,
     pub fragment_shader: Option<&'a Shader>,
+}
+
+impl<'a> From<VertexPipelineDesc<'a>> for GraphicsPipelineDesc<'a> {
+    fn from(desc: VertexPipelineDesc<'a>) -> Self {
+        GraphicsPipelineDesc {
+            vertex_shader: Some(desc.vertex_shader),
+            tessellation_control_shader: desc.tessellation_control_shader,
+            tessellation_evaluation_shader: desc.tessellation_evaluation_shader,
+            geometry_shader: desc.geometry_shader,
+            fragment_shader: desc.fragment_shader,
+            mesh_shader: None,
+            task_shader: None,
+        }
+    }
+}
+
+///
+pub struct MeshPipelineDesc<'a> {
+    pub mesh_shader: &'a Shader,
+    pub task_shader: Option<&'a Shader>,
+    pub fragment_shader: Option<&'a Shader>,
+}
+
+impl<'a> From<MeshPipelineDesc<'a>> for GraphicsPipelineDesc<'a> {
+    fn from(desc: MeshPipelineDesc<'a>) -> Self {
+        GraphicsPipelineDesc {
+            vertex_shader: None,
+            tessellation_control_shader: None,
+            tessellation_evaluation_shader: None,
+            geometry_shader: None,
+            fragment_shader: desc.fragment_shader,
+            mesh_shader: Some(desc.mesh_shader),
+            task_shader: desc.task_shader,
+        }
+    }
 }
 
 /// Input Assembly Descriptor.
@@ -332,6 +382,8 @@ impl Device {
             ShaderStage::Geometry => __gl::GEOMETRY_SHADER,
             ShaderStage::Fragment => __gl::FRAGMENT_SHADER,
             ShaderStage::Compute => __gl::COMPUTE_SHADER,
+            ShaderStage::MeshNv => __gl::MESH_SHADER_NV,
+            ShaderStage::TaskNv => __gl::TASK_SHADER_NV,
         };
 
         let shader = unsafe {
@@ -418,13 +470,19 @@ impl Device {
     ///   `ShaderStage::Geometry` if specified.
     /// - The fragment shader in `desc` must be valid and created with
     ///   `ShaderStage::Fragment` if specified.
-    pub fn create_graphics_pipeline(&self, desc: GraphicsPipelineDesc) -> Result<Pipeline> {
+    pub fn create_graphics_pipeline<'a, D>(&self, desc: D) -> Result<Pipeline>
+    where
+        D: Into<GraphicsPipelineDesc<'a>>
+    {
+        let desc = desc.into();
         let pipeline = unsafe { self.0.CreateProgram() };
         self.get_error()?;
 
         unsafe {
             // Attach
-            self.0.AttachShader(pipeline, desc.vertex_shader.0);
+            if let Some(vs) = desc.vertex_shader {
+                self.0.AttachShader(pipeline, vs.0);
+            }
             if let Some(tsc) = desc.tessellation_control_shader {
                 self.0.AttachShader(pipeline, tsc.0);
             }
@@ -437,11 +495,19 @@ impl Device {
             if let Some(fragment) = desc.fragment_shader {
                 self.0.AttachShader(pipeline, fragment.0);
             }
+            if let Some(ms) = desc.mesh_shader {
+                self.0.AttachShader(pipeline, ms.0);
+            }
+            if let Some(ts) = desc.task_shader {
+                self.0.AttachShader(pipeline, ts.0);
+            }
 
             self.0.LinkProgram(pipeline);
 
             // Detach
-            self.0.DetachShader(pipeline, desc.vertex_shader.0);
+            if let Some(vs) = desc.vertex_shader {
+                self.0.DetachShader(pipeline, vs.0);
+            }
             if let Some(tsc) = desc.tessellation_control_shader {
                 self.0.DetachShader(pipeline, tsc.0);
             }
@@ -453,6 +519,12 @@ impl Device {
             }
             if let Some(fragment) = desc.fragment_shader {
                 self.0.DetachShader(pipeline, fragment.0);
+            }
+            if let Some(ms) = desc.mesh_shader {
+                self.0.DetachShader(pipeline, ms.0);
+            }
+            if let Some(ts) = desc.task_shader {
+                self.0.DetachShader(pipeline, ts.0);
             }
         }
 
