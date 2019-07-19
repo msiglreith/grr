@@ -9,7 +9,7 @@ use std::mem;
 use std::ops::Range;
 
 use device::Device;
-use {Framebuffer, Pipeline, Region};
+use {Extent, Framebuffer, Offset, Pipeline, Region};
 
 /// Primitve topology.
 ///
@@ -388,22 +388,25 @@ impl Device {
     }
 
     ///
-    pub fn blit(&self, src: &Framebuffer, dst: &Framebuffer) {
-        // TODO
-        println!("warning: not usable so far");
-
+    pub fn blit(
+        &self,
+        src: &Framebuffer,
+        src_region: Region,
+        dst: &Framebuffer,
+        dst_region: Region,
+    ) {
         unsafe {
             self.0.BlitNamedFramebuffer(
                 src.0,
                 dst.0,
-                0,
-                0,
-                1024,
-                768,
-                0,
-                0,
-                1024,
-                768,
+                src_region.x,
+                src_region.x,
+                src_region.w,
+                src_region.h,
+                dst_region.x,
+                dst_region.x,
+                dst_region.w,
+                dst_region.h,
                 __gl::COLOR_BUFFER_BIT,
                 __gl::LINEAR,
             );
@@ -420,14 +423,26 @@ impl Device {
     ///
     pub fn draw_mesh_tasks_indirect_nv(&self, offset: u64, draw_count: u32, stride: u32) {
         unsafe {
-            self.0.MultiDrawMeshTasksIndirectNV(offset as _, draw_count as _, stride as _);
+            self.0
+                .MultiDrawMeshTasksIndirectNV(offset as _, draw_count as _, stride as _);
         }
     }
 
     ///
-    pub fn draw_mesh_tasks_indirect_count_nv(&self, offset: u64, count_buffer_offset: u64, max_draw_count: u32, stride: u32) {
+    pub fn draw_mesh_tasks_indirect_count_nv(
+        &self,
+        offset: u64,
+        count_buffer_offset: u64,
+        max_draw_count: u32,
+        stride: u32,
+    ) {
         unsafe {
-            self.0.MultiDrawMeshTasksIndirectCountNV(offset as _, count_buffer_offset as _, max_draw_count as _, stride as _);
+            self.0.MultiDrawMeshTasksIndirectCountNV(
+                offset as _,
+                count_buffer_offset as _,
+                max_draw_count as _,
+                stride as _,
+            );
         }
     }
 }

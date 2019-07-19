@@ -10,6 +10,7 @@ use __gl::types::{GLenum, GLuint};
 use debug::{Object, ObjectType};
 use device::Device;
 use error::Result;
+use Format;
 use ImageView;
 use Region;
 
@@ -24,11 +25,23 @@ pub enum ClearAttachment {
 }
 
 /// Attachment reference.
+#[derive(Copy, Clone, Debug)]
 pub enum Attachment {
     Color(usize),
     Depth,
     Stencil,
     DepthStencil,
+}
+
+impl Attachment {
+    fn target(&self) -> GLenum {
+        match *self {
+            Attachment::Color(slot) => __gl::COLOR_ATTACHMENT0 + slot as u32,
+            Attachment::Depth => __gl::DEPTH_ATTACHMENT,
+            Attachment::Stencil => __gl::STENCIL_ATTACHMENT,
+            Attachment::DepthStencil => __gl::DEPTH_STENCIL_ATTACHMENT,
+        }
+    }
 }
 
 ///
@@ -95,12 +108,35 @@ impl Device {
     }
 
     /// Create a new framebuffer.
-    pub fn create_renderbuffer(&self) -> Result<Renderbuffer> {
+    pub fn create_renderbuffer(
+        &self,
+        format: Format,
+        width: u32,
+        height: u32,
+        samples: u32,
+    ) -> Result<Renderbuffer> {
         let mut renderbuffer = 0;
         unsafe {
             self.0.CreateRenderbuffers(1, &mut renderbuffer);
         }
         self.get_error()?;
+
+        if samples > 1 {
+            unsafe {
+                self.0.NamedRenderbufferStorageMultisample(
+                    renderbuffer,
+                    samples as _,
+                    format as _,
+                    width as _,
+                    height as _,
+                );
+            }
+        } else {
+            unsafe {
+                self.0
+                    .NamedRenderbufferStorage(renderbuffer, format as _, width as _, height as _);
+            }
+        }
 
         Ok(Renderbuffer(renderbuffer))
     }
@@ -161,12 +197,7 @@ impl Device {
     ) {
         let attachments = attachments
             .iter()
-            .map(|att| match att {
-                Attachment::Color(slot) => __gl::COLOR_ATTACHMENT0 + *slot as u32,
-                Attachment::Depth => __gl::DEPTH_ATTACHMENT,
-                Attachment::Stencil => __gl::STENCIL_ATTACHMENT,
-                Attachment::DepthStencil => __gl::DEPTH_STENCIL_ATTACHMENT,
-            })
+            .map(|att| att.target())
             .collect::<Vec<_>>();
 
         unsafe {
@@ -196,30 +227,29 @@ impl Device {
     pub fn bind_attachments(
         &self,
         framebuffer: &Framebuffer,
-        color_attachments: &[AttachmentView],
-        depth_stencil_attachment: Option<AttachmentView>,
+        attachments: &[(Attachment, AttachmentView)],
     ) {
         assert_ne!(
             framebuffer.0, 0,
             "The default framebuffer can't be changed."
         );
 
-        let bind_attachment_view = |attachment: GLenum, view: &AttachmentView| unsafe {
+        for (attachment, view) in attachments {
+            let target = attachment.target();
             match *view {
-                AttachmentView::Image(image) => {
+                AttachmentView::Image(image) => unsafe {
                     self.0
-                        .NamedFramebufferTexture(framebuffer.0, attachment, image.0, 0);
-                }
-                AttachmentView::Renderbuffer(_) => unimplemented!(),
+                        .NamedFramebufferTexture(framebuffer.0, target, image.0, 0);
+                },
+                AttachmentView::Renderbuffer(renderbuffer) => unsafe {
+                    self.0.NamedFramebufferRenderbuffer(
+                        framebuffer.0,
+                        target,
+                        __gl::RENDERBUFFER,
+                        renderbuffer.0,
+                    );
+                },
             }
-        };
-
-        for (i, attachment) in color_attachments.iter().enumerate() {
-            bind_attachment_view((__gl::COLOR_ATTACHMENT0 as usize + i) as _, attachment);
-        }
-
-        for attachment in depth_stencil_attachment {
-            bind_attachment_view(__gl::DEPTH_STENCIL_ATTACHMENT, &attachment);
         }
     }
 

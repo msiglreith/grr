@@ -45,9 +45,7 @@ impl<W> ErasedWindowContext<W> {
         Self(Some(unsafe { ctxt.treat_as_current() }))
     }
 
-    pub unsafe fn make_current(
-        &mut self
-    ) -> Result<(), glutin::ContextError> {
+    pub unsafe fn make_current(&mut self) -> Result<(), glutin::ContextError> {
         let ctxt = self.0.take().unwrap();
         let result = unsafe { ctxt.make_current() };
         match result {
@@ -74,9 +72,7 @@ impl ErasedContext {
         Self(Some(unsafe { ctxt.treat_as_current() }))
     }
 
-    pub unsafe fn make_current(
-        &mut self
-    ) -> Result<(), glutin::ContextError> {
+    pub unsafe fn make_current(&mut self) -> Result<(), glutin::ContextError> {
         let ctxt = self.0.take().unwrap();
         let result = ctxt.make_current();
         match result {
@@ -99,12 +95,14 @@ impl ErasedContext {
 fn main() -> grr::Result<()> {
     let mut events_loop = glutin::EventsLoop::new();
 
-    let context = glutin::ContextBuilder::new().with_srgb(true).
-        with_gl_debug_flag(true).build_headless(&events_loop, (1, 1).into()).unwrap();
+    let context = glutin::ContextBuilder::new()
+        .with_srgb(true)
+        .with_gl_debug_flag(true)
+        .build_headless(&events_loop, (1, 1).into())
+        .unwrap();
 
     let wb = glutin::WindowBuilder::new()
         .with_title("Hello, world!")
-
         .with_dimensions(LogicalSize {
             width: 1024.0,
             height: 768.0,
@@ -119,7 +117,9 @@ fn main() -> grr::Result<()> {
 
     let (present_ctxt, window) = unsafe { window.split() };
     let mut present_ctxt = ErasedWindowContext::new(present_ctxt);
-    unsafe { present_ctxt.make_current().unwrap(); }
+    unsafe {
+        present_ctxt.make_current().unwrap();
+    }
 
     let swapchain = grr::Device::new(
         |symbol| present_ctxt.get_proc_address(symbol) as *const _,
@@ -129,7 +129,9 @@ fn main() -> grr::Result<()> {
     let present_fbo = swapchain.create_framebuffer()?;
 
     let mut context = ErasedContext::new(context);
-    unsafe { context.make_current().unwrap(); }
+    unsafe {
+        context.make_current().unwrap();
+    }
 
     let grr = grr::Device::new(
         |symbol| context.get_proc_address(symbol) as *const _,
@@ -204,7 +206,9 @@ fn main() -> grr::Result<()> {
                 glutin::WindowEvent::CloseRequested => running = false,
                 glutin::WindowEvent::Resized(size) => {
                     let dpi_factor = window.get_hidpi_factor();
-                    unsafe { present_ctxt.make_current().unwrap(); }
+                    unsafe {
+                        present_ctxt.make_current().unwrap();
+                    }
                     present_ctxt.resize(size.to_physical(dpi_factor));
                 }
                 _ => (),
@@ -212,7 +216,9 @@ fn main() -> grr::Result<()> {
             _ => (),
         });
 
-        unsafe { context.make_current().unwrap(); }
+        unsafe {
+            context.make_current().unwrap();
+        }
         grr.bind_pipeline(&pipeline);
         grr.bind_vertex_array(&vertex_array);
         grr.bind_vertex_buffers(
@@ -261,7 +267,9 @@ fn main() -> grr::Result<()> {
         );
         grr.draw(grr::Primitive::Triangles, 0..3, 0..1);
 
-        unsafe { present_ctxt.make_current().unwrap(); }
+        unsafe {
+            present_ctxt.make_current().unwrap();
+        }
 
         swapchain.set_color_attachments(&present_fbo, &[0]);
         swapchain.bind_attachments(

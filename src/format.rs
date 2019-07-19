@@ -13,6 +13,7 @@ pub enum Format {
     R8G8B8A8_UNORM = __gl::SRGB8_ALPHA8,
     R16G16_SFLOAT = __gl::RG16F,
     R16G16B16_SFLOAT = __gl::RGB16F,
+    D32_SFLOAT = __gl::DEPTH_COMPONENT32F,
     // TODO
 }
 
@@ -24,6 +25,9 @@ pub enum BaseFormat {
     RG = __gl::RG,
     RGB = __gl::RGB,
     RGBA = __gl::RGBA,
+    Depth = __gl::DEPTH_COMPONENT,
+    DepthStencil = __gl::DEPTH_STENCIL,
+    Stencil = __gl::STENCIL_INDEX,
 }
 
 #[allow(non_camel_case_types)]

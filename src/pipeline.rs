@@ -472,7 +472,7 @@ impl Device {
     ///   `ShaderStage::Fragment` if specified.
     pub fn create_graphics_pipeline<'a, D>(&self, desc: D) -> Result<Pipeline>
     where
-        D: Into<GraphicsPipelineDesc<'a>>
+        D: Into<GraphicsPipelineDesc<'a>>,
     {
         let desc = desc.into();
         let pipeline = unsafe { self.0.CreateProgram() };
