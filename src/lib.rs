@@ -109,6 +109,7 @@ pub use sync::{Barrier, RegionBarrier};
 pub use vertex::{InputRate, VertexArray, VertexAttributeDesc, VertexBufferView, VertexFormat};
 
 ///
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Region {
     pub x: i32,
     pub y: i32,
@@ -119,6 +120,7 @@ pub struct Region {
 }
 
 ///
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Offset {
     pub x: i32,
     pub y: i32,
@@ -126,6 +128,7 @@ pub struct Offset {
 }
 
 ///
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Extent {
     pub width: u32,
     pub height: u32,

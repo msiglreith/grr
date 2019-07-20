@@ -9,7 +9,7 @@ use std::mem;
 use std::ops::Range;
 
 use device::Device;
-use {Extent, Framebuffer, Offset, Pipeline, Region};
+use {Framebuffer, Pipeline, Region};
 
 /// Primitve topology.
 ///

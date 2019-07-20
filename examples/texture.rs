@@ -3,7 +3,6 @@ extern crate grr;
 extern crate image;
 
 use glutin::dpi::LogicalSize;
-use glutin::GlContext;
 
 use std::path::Path;
 
@@ -43,26 +42,24 @@ const INDICES: [u16; 6] = [0, 1, 2, 2, 3, 0];
 
 fn main() -> grr::Result<()> {
     let mut events_loop = glutin::EventsLoop::new();
-    let window = glutin::WindowBuilder::new()
+    let wb = glutin::WindowBuilder::new()
         .with_title("Hello, world!")
         .with_dimensions(LogicalSize {
             width: 1024.0,
             height: 768.0,
         });
-    let context = glutin::ContextBuilder::new()
+    let window = glutin::ContextBuilder::new()
         .with_vsync(true)
         .with_srgb(true)
-        .with_depth_buffer(32);
+        .with_gl_debug_flag(true)
+        .build_windowed(wb, &events_loop).unwrap();
 
-    let window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
+    let window = unsafe { window.make_current().unwrap() };
+
     let LogicalSize {
-        width: w,
-        height: h,
-    } = window.get_inner_size().unwrap();
-
-    unsafe {
-        window.make_current().unwrap();
-    }
+        width: mut w,
+        height: mut h,
+    } = window.window().get_inner_size().unwrap();
 
     let grr = grr::Device::new(
         |symbol| window.get_proc_address(symbol) as *const _,
@@ -77,7 +74,7 @@ fn main() -> grr::Result<()> {
     let vs = grr.create_shader(grr::ShaderStage::Vertex, VERTEX_SRC.as_bytes())?;
     let fs = grr.create_shader(grr::ShaderStage::Fragment, FRAGMENT_SRC.as_bytes())?;
 
-    let pipeline = grr.create_graphics_pipeline(grr::GraphicsPipelineDesc {
+    let pipeline = grr.create_graphics_pipeline(grr::VertexPipelineDesc {
         vertex_shader: &vs,
         tessellation_control_shader: None,
         tessellation_evaluation_shader: None,
@@ -193,7 +190,9 @@ fn main() -> grr::Result<()> {
             glutin::Event::WindowEvent { event, .. } => match event {
                 glutin::WindowEvent::CloseRequested => running = false,
                 glutin::WindowEvent::Resized(size) => {
-                    let dpi_factor = window.get_hidpi_factor();
+                    w = size.width;
+                    h = size.height;
+                    let dpi_factor = window.window().get_hidpi_factor();
                     window.resize(size.to_physical(dpi_factor));
                 }
                 _ => (),

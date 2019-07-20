@@ -1,20 +1,15 @@
 extern crate glutin;
 extern crate grr;
 
-use glutin::GlContext;
-
-fn main() -> grr::Result<()> {
+fn main() -> Result<(), Box<std::error::Error>> {
     let events_loop = glutin::EventsLoop::new();
-    let context = glutin::Context::new(
-        &events_loop,
-        glutin::ContextBuilder::new().with_gl_debug_flag(true),
-        false,
-    )
-    .unwrap();
-
-    unsafe {
-        context.make_current().unwrap();
-    }
+    let context = unsafe {
+        glutin::ContextBuilder::new()
+            .with_gl_debug_flag(true)
+            .build_headless(&events_loop, (1.0, 1.0).into())?
+            .make_current()
+            .unwrap()
+    };
 
     let grr = grr::Device::new(
         |symbol| context.get_proc_address(symbol) as *const _,

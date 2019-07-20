@@ -47,14 +47,14 @@ impl<W> ErasedWindowContext<W> {
 
     pub unsafe fn make_current(&mut self) -> Result<(), glutin::ContextError> {
         let ctxt = self.0.take().unwrap();
-        let result = unsafe { ctxt.make_current() };
+        let result = ctxt.make_current();
         match result {
             Ok(ctxt) => {
                 self.0 = Some(ctxt);
                 Ok(())
             }
             Err((ctxt, err)) => {
-                self.0 = Some(unsafe { ctxt.treat_as_current() });
+                self.0 = Some(ctxt.treat_as_current());
                 Err(err)
             }
         }
@@ -151,7 +151,7 @@ fn main() -> grr::Result<()> {
     let vs = grr.create_shader(grr::ShaderStage::Vertex, VERTEX_SRC.as_bytes())?;
     let fs = grr.create_shader(grr::ShaderStage::Fragment, FRAGMENT_SRC.as_bytes())?;
 
-    let pipeline = grr.create_graphics_pipeline(grr::GraphicsPipelineDesc {
+    let pipeline = grr.create_graphics_pipeline(grr::VertexPipelineDesc {
         vertex_shader: &vs,
         tessellation_control_shader: None,
         tessellation_evaluation_shader: None,
@@ -257,8 +257,7 @@ fn main() -> grr::Result<()> {
         grr.set_color_attachments(&ctxt_fbo, &[0]);
         grr.bind_attachments(
             &ctxt_fbo,
-            &[grr::AttachmentView::Image(&present_image_view)],
-            None,
+            &[(grr::Attachment::Color(0), grr::AttachmentView::Image(&present_image_view))],
         );
 
         grr.clear_attachment(
@@ -274,10 +273,16 @@ fn main() -> grr::Result<()> {
         swapchain.set_color_attachments(&present_fbo, &[0]);
         swapchain.bind_attachments(
             &present_fbo,
-            &[grr::AttachmentView::Image(&present_image_view)],
-            None,
+            &[(grr::Attachment::Color(0), grr::AttachmentView::Image(&present_image_view))],
         );
-        swapchain.blit(&present_fbo, grr::Framebuffer::DEFAULT);
+
+        let screen = grr::Region {
+                x: 0,
+                y: 0,
+                w: w as _,
+                h: h as _,
+            };
+        swapchain.blit(&present_fbo, screen, grr::Framebuffer::DEFAULT, screen);
         present_ctxt.swap_buffers().unwrap();
     }
 
