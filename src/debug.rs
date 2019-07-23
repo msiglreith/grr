@@ -83,7 +83,6 @@ pub enum ObjectType {
     Buffer = __gl::BUFFER,
     Shader = __gl::SHADER,
     Image = __gl::TEXTURE,
-    ImageView = __gl::TEXTURE,
     VertexArray = __gl::VERTEX_ARRAY,
     Pipeline = __gl::PROGRAM,
     Framebuffer = __gl::FRAMEBUFFER,

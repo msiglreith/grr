@@ -92,7 +92,7 @@ pub enum ImageType {
 pub struct ImageView(pub(crate) GLuint);
 
 impl Object for ImageView {
-    const TYPE: ObjectType = ObjectType::ImageView;
+    const TYPE: ObjectType = ObjectType::Image; // internally it's an image
     fn handle(&self) -> GLuint {
         self.0
     }
