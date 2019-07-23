@@ -16,6 +16,7 @@ use std::ops::Range;
 
 /// Sampler handle.
 #[repr(transparent)]
+#[derive(Clone, Copy)]
 pub struct Sampler(GLuint);
 
 impl Object for Sampler {
@@ -116,7 +117,7 @@ impl Device {
     }
 
     /// Bind samplers to specific texture units.
-    pub fn bind_samplers(&self, first: u32, samplers: &[&Sampler]) {
+    pub fn bind_samplers(&self, first: u32, samplers: &[Sampler]) {
         let samplers = samplers.iter().map(|s| s.0).collect::<Vec<_>>();
         unsafe {
             self.0

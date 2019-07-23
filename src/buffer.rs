@@ -12,6 +12,7 @@ use error::Result;
 use format::{BaseFormat, Format, FormatLayout};
 
 ///
+#[derive(Clone, Copy)]
 pub struct Buffer(pub(crate) GLuint, GLbitfield);
 
 impl Object for Buffer {

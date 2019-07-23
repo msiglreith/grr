@@ -83,6 +83,7 @@ pub enum ObjectType {
     Buffer = __gl::BUFFER,
     Shader = __gl::SHADER,
     Image = __gl::TEXTURE,
+    ImageView = __gl::TEXTURE,
     VertexArray = __gl::VERTEX_ARRAY,
     Pipeline = __gl::PROGRAM,
     Framebuffer = __gl::FRAMEBUFFER,
@@ -90,7 +91,7 @@ pub enum ObjectType {
     Sampler = __gl::SAMPLER,
 }
 
-pub trait Object {
+pub trait Object: Copy {
     const TYPE: ObjectType;
 
     fn handle(&self) -> GLuint;
@@ -155,7 +156,7 @@ pub(crate) fn set_debug_message_control(
 
 impl Device {
     /// Associate a name with an object.
-    pub fn object_name<T: Object>(&self, object: &T, name: &str) {
+    pub fn object_name<T: Object>(&self, object: T, name: &str) {
         let label = name.as_bytes();
         unsafe {
             self.0.ObjectLabel(

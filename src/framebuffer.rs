@@ -52,6 +52,7 @@ pub enum AttachmentView<'a> {
 
 /// Framebuffer handle.
 #[repr(transparent)]
+#[derive(Clone, Copy)]
 pub struct Framebuffer(pub(crate) GLuint);
 
 impl Framebuffer {
@@ -59,7 +60,7 @@ impl Framebuffer {
     ///
     /// Thie is the base framebuffer associated with the context.
     /// It also represents the internal swapchain for presentation.
-    pub const DEFAULT: &'static Self = &Framebuffer(0);
+    pub const DEFAULT: Self = Framebuffer(0);
 }
 
 impl Object for Framebuffer {
@@ -71,6 +72,7 @@ impl Object for Framebuffer {
 
 /// Renderbuffer handle.
 #[repr(transparent)]
+#[derive(Clone, Copy)]
 pub struct Renderbuffer(GLuint);
 
 impl Object for Renderbuffer {
@@ -157,7 +159,7 @@ impl Device {
     }
 
     /// Clear framebuffer attachment.
-    pub fn clear_attachment(&self, fb: &Framebuffer, cv: ClearAttachment) {
+    pub fn clear_attachment(&self, fb: Framebuffer, cv: ClearAttachment) {
         unsafe {
             match cv {
                 ClearAttachment::ColorInt(id, color) => {
@@ -191,7 +193,7 @@ impl Device {
     ///
     pub fn invalidate_attachments(
         &self,
-        framebuffer: &Framebuffer,
+        framebuffer: Framebuffer,
         attachments: &[Attachment],
         region: Region,
     ) {
@@ -214,7 +216,7 @@ impl Device {
     }
 
     /// Bind a framebuffer for draw commands.
-    pub fn bind_framebuffer(&self, framebuffer: &Framebuffer) {
+    pub fn bind_framebuffer(&self, framebuffer: Framebuffer) {
         unsafe {
             self.0
                 .BindFramebuffer(__gl::DRAW_FRAMEBUFFER, framebuffer.0);
@@ -226,7 +228,7 @@ impl Device {
     /// All previously bound attachments become invalid.
     pub fn bind_attachments(
         &self,
-        framebuffer: &Framebuffer,
+        framebuffer: Framebuffer,
         attachments: &[(Attachment, AttachmentView)],
     ) {
         assert_ne!(
@@ -258,7 +260,7 @@ impl Device {
     /// Defines the color render targets for the next draw calls.
     /// This builds the link between fragment outputs in the fragment shader
     /// and attachments bound on the framebuffer.
-    pub fn set_color_attachments(&self, framebuffer: &Framebuffer, attachments: &[u32]) {
+    pub fn set_color_attachments(&self, framebuffer: Framebuffer, attachments: &[u32]) {
         assert_ne!(
             framebuffer.0, 0,
             "The default framebuffer can't be changed."

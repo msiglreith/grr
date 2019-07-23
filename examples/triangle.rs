@@ -65,11 +65,11 @@ fn main() -> Result<(), Box<Error>> {
     let fs = grr.create_shader(grr::ShaderStage::Fragment, FRAGMENT_SRC.as_bytes())?;
 
     let pipeline = grr.create_graphics_pipeline(grr::VertexPipelineDesc {
-        vertex_shader: &vs,
+        vertex_shader: vs,
         tessellation_control_shader: None,
         tessellation_evaluation_shader: None,
         geometry_shader: None,
-        fragment_shader: Some(&fs),
+        fragment_shader: Some(fs),
     })?;
 
     let vertex_array = grr.create_vertex_array(&[
@@ -104,13 +104,13 @@ fn main() -> Result<(), Box<Error>> {
             _ => (),
         });
 
-        grr.bind_pipeline(&pipeline);
-        grr.bind_vertex_array(&vertex_array);
+        grr.bind_pipeline(pipeline);
+        grr.bind_vertex_array(vertex_array);
         grr.bind_vertex_buffers(
-            &vertex_array,
+            vertex_array,
             0,
             &[grr::VertexBufferView {
-                buffer: &triangle_data,
+                buffer: triangle_data,
                 offset: 0,
                 stride: (std::mem::size_of::<f32>() * 5) as _,
                 input_rate: grr::InputRate::Vertex,

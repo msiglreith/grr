@@ -27,6 +27,7 @@ use {Extent, Offset};
 ///
 /// The API only uses images directly when the function call
 /// affects the underlying memory (e.g copy operations).
+#[derive(Clone, Copy)]
 pub struct Image {
     raw: GLuint,
     target: GLenum,
@@ -87,7 +88,15 @@ pub enum ImageType {
 /// only access image data via views. Views alias the memory of the associated
 /// image.
 #[repr(transparent)]
+#[derive(Copy, Clone)]
 pub struct ImageView(pub(crate) GLuint);
+
+impl Object for ImageView {
+    const TYPE: ObjectType = ObjectType::ImageView;
+    fn handle(&self) -> GLuint {
+        self.0
+    }
+}
 
 ///
 pub enum ImageViewType {
@@ -223,7 +232,7 @@ impl Device {
     /// Copy image data from host memory to device memory.
     pub fn copy_host_to_image<T>(
         &self,
-        image: &Image,
+        image: Image,
         subresource: SubresourceLevel,
         offset: Offset,
         extent: Extent,
@@ -255,7 +264,7 @@ impl Device {
     /// Create an image view from an image.
     pub fn create_image_view(
         &self,
-        image: &Image,
+        image: Image,
         ty: ImageViewType,
         format: Format,
         range: SubresourceRange,
@@ -314,7 +323,7 @@ impl Device {
     }
 
     /// Bind image views to texture units.
-    pub fn bind_image_views(&self, first: u32, views: &[&ImageView]) {
+    pub fn bind_image_views(&self, first: u32, views: &[ImageView]) {
         let views = views.iter().map(|view| view.0).collect::<Vec<_>>();
         unsafe {
             self.0.BindTextures(first, views.len() as _, views.as_ptr());
@@ -328,7 +337,7 @@ impl Device {
     /// creation.
     ///
     /// The downscaling filter is implementation dependent!
-    pub fn generate_mipmaps(&self, image: &Image) {
+    pub fn generate_mipmaps(&self, image: Image) {
         unsafe {
             self.0.GenerateTextureMipmap(image.raw);
         }

@@ -163,7 +163,7 @@ pub struct DispatchIndirectCmd {
 
 impl Device {
     /// Set uniform constants for a pipeline.
-    pub fn bind_uniform_constants(&self, pipeline: &Pipeline, first: u32, constants: &[Constant]) {
+    pub fn bind_uniform_constants(&self, pipeline: Pipeline, first: u32, constants: &[Constant]) {
         for (i, constant) in constants.iter().enumerate() {
             let location = first as i32 + i as i32;
             match constant {
@@ -388,13 +388,7 @@ impl Device {
     }
 
     ///
-    pub fn blit(
-        &self,
-        src: &Framebuffer,
-        src_region: Region,
-        dst: &Framebuffer,
-        dst_region: Region,
-    ) {
+    pub fn blit(&self, src: Framebuffer, src_region: Region, dst: Framebuffer, dst_region: Region) {
         unsafe {
             self.0.BlitNamedFramebuffer(
                 src.0,

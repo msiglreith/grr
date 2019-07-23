@@ -12,6 +12,7 @@ use error::Result;
 
 /// Vertex array handle.
 #[repr(transparent)]
+#[derive(Clone, Copy)]
 pub struct VertexArray(pub(crate) GLuint);
 
 impl Object for VertexArray {
@@ -22,8 +23,8 @@ impl Object for VertexArray {
 }
 
 /// Buffer representation for vertex attributes
-pub struct VertexBufferView<'a> {
-    pub buffer: &'a Buffer,
+pub struct VertexBufferView {
+    pub buffer: Buffer,
     pub offset: u64,
     pub stride: u32,
     pub input_rate: InputRate,
@@ -318,14 +319,14 @@ impl Device {
     }
 
     /// Bind a vertex array for usage.
-    pub fn bind_vertex_array(&self, vao: &VertexArray) {
+    pub fn bind_vertex_array(&self, vao: VertexArray) {
         unsafe {
             self.0.BindVertexArray(vao.0);
         }
     }
 
     /// Bind vertex buffers to a vertex array.
-    pub fn bind_vertex_buffers(&self, vao: &VertexArray, first: u32, views: &[VertexBufferView]) {
+    pub fn bind_vertex_buffers(&self, vao: VertexArray, first: u32, views: &[VertexBufferView]) {
         let buffers = views.iter().map(|view| view.buffer.0).collect::<Vec<_>>();
 
         let offsets = views
@@ -363,7 +364,7 @@ impl Device {
     }
 
     /// Bind a index buffer to a vertex array.
-    pub fn bind_index_buffer(&self, vao: &VertexArray, buffer: &Buffer) {
+    pub fn bind_index_buffer(&self, vao: VertexArray, buffer: Buffer) {
         unsafe { self.0.VertexArrayElementBuffer(vao.0, buffer.0) }
     }
 }

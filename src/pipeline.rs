@@ -28,6 +28,7 @@ use Compare;
 /// via an built-in compiler. Beside the shader representation in text form (GLSL) with GL 4.6 comes also support
 /// for the binary SPIR-V format.
 #[repr(transparent)]
+#[derive(Clone, Copy)]
 pub struct Shader(GLuint);
 
 impl Object for Shader {
@@ -41,6 +42,7 @@ impl Object for Shader {
 ///
 /// Specifies how draw or dispatch commands are executed.
 #[repr(transparent)]
+#[derive(Clone, Copy)]
 pub struct Pipeline(pub(crate) GLuint);
 
 impl Object for Pipeline {
@@ -109,27 +111,29 @@ pub enum ShaderStage {
 ///
 /// ## Examples
 ///
-pub struct GraphicsPipelineDesc<'a> {
-    pub vertex_shader: Option<&'a Shader>,
-    pub tessellation_control_shader: Option<&'a Shader>,
-    pub tessellation_evaluation_shader: Option<&'a Shader>,
-    pub geometry_shader: Option<&'a Shader>,
-    pub fragment_shader: Option<&'a Shader>,
-    pub mesh_shader: Option<&'a Shader>,
-    pub task_shader: Option<&'a Shader>,
+#[derive(Copy, Clone)]
+pub struct GraphicsPipelineDesc {
+    pub vertex_shader: Option<Shader>,
+    pub tessellation_control_shader: Option<Shader>,
+    pub tessellation_evaluation_shader: Option<Shader>,
+    pub geometry_shader: Option<Shader>,
+    pub fragment_shader: Option<Shader>,
+    pub mesh_shader: Option<Shader>,
+    pub task_shader: Option<Shader>,
 }
 
 ///
-pub struct VertexPipelineDesc<'a> {
-    pub vertex_shader: &'a Shader,
-    pub tessellation_control_shader: Option<&'a Shader>,
-    pub tessellation_evaluation_shader: Option<&'a Shader>,
-    pub geometry_shader: Option<&'a Shader>,
-    pub fragment_shader: Option<&'a Shader>,
+#[derive(Copy, Clone)]
+pub struct VertexPipelineDesc {
+    pub vertex_shader: Shader,
+    pub tessellation_control_shader: Option<Shader>,
+    pub tessellation_evaluation_shader: Option<Shader>,
+    pub geometry_shader: Option<Shader>,
+    pub fragment_shader: Option<Shader>,
 }
 
-impl<'a> From<VertexPipelineDesc<'a>> for GraphicsPipelineDesc<'a> {
-    fn from(desc: VertexPipelineDesc<'a>) -> Self {
+impl From<VertexPipelineDesc> for GraphicsPipelineDesc {
+    fn from(desc: VertexPipelineDesc) -> Self {
         GraphicsPipelineDesc {
             vertex_shader: Some(desc.vertex_shader),
             tessellation_control_shader: desc.tessellation_control_shader,
@@ -143,14 +147,15 @@ impl<'a> From<VertexPipelineDesc<'a>> for GraphicsPipelineDesc<'a> {
 }
 
 ///
-pub struct MeshPipelineDesc<'a> {
-    pub mesh_shader: &'a Shader,
-    pub task_shader: Option<&'a Shader>,
-    pub fragment_shader: Option<&'a Shader>,
+#[derive(Copy, Clone)]
+pub struct MeshPipelineDesc {
+    pub mesh_shader: Shader,
+    pub task_shader: Option<Shader>,
+    pub fragment_shader: Option<Shader>,
 }
 
-impl<'a> From<MeshPipelineDesc<'a>> for GraphicsPipelineDesc<'a> {
-    fn from(desc: MeshPipelineDesc<'a>) -> Self {
+impl From<MeshPipelineDesc> for GraphicsPipelineDesc {
+    fn from(desc: MeshPipelineDesc) -> Self {
         GraphicsPipelineDesc {
             vertex_shader: None,
             tessellation_control_shader: None,
@@ -166,7 +171,7 @@ impl<'a> From<MeshPipelineDesc<'a>> for GraphicsPipelineDesc<'a> {
 /// Input Assembly Descriptor.
 ///
 /// Configures the input assembler for primitive shading.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct InputAssembly {
     /// Specifies if a special vertex index indicates a restart of the primitive assembly.
     pub primitive_restart: Option<u32>,
@@ -175,7 +180,7 @@ pub struct InputAssembly {
 /// Rasteriyer Descriptor.
 ///
 /// Controls the rasterization process for converting primitives into fragments.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct Rasterization {
     /// Clamp depth values of fragments to the z-planes instead of clipping.
     pub depth_clamp: bool,
@@ -226,7 +231,7 @@ pub enum FrontFace {
 }
 
 ///
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ColorBlend {
     pub attachments: Vec<ColorBlendAttachment>,
 }
@@ -316,6 +321,7 @@ impl StencilFace {
 }
 
 ///
+#[derive(Debug, Copy, Clone)]
 pub struct DepthStencil {
     pub depth_test: bool,
     pub depth_write: bool,
@@ -326,6 +332,7 @@ pub struct DepthStencil {
 }
 
 ///
+#[derive(Debug, Copy, Clone)]
 pub struct Multisample {
     pub sample_shading: bool,
     pub min_sample_shading: f32,
@@ -470,9 +477,9 @@ impl Device {
     ///   `ShaderStage::Geometry` if specified.
     /// - The fragment shader in `desc` must be valid and created with
     ///   `ShaderStage::Fragment` if specified.
-    pub fn create_graphics_pipeline<'a, D>(&self, desc: D) -> Result<Pipeline>
+    pub fn create_graphics_pipeline<D>(&self, desc: D) -> Result<Pipeline>
     where
-        D: Into<GraphicsPipelineDesc<'a>>,
+        D: Into<GraphicsPipelineDesc>,
     {
         let desc = desc.into();
         let pipeline = unsafe { self.0.CreateProgram() };
@@ -550,7 +557,7 @@ impl Device {
     /// # Valid usage
     ///
     /// - The compute shader in must be valid and created with `ShaderStage::Compute`.
-    pub fn create_compute_pipeline(&self, compute_shader: &Shader) -> Result<Pipeline> {
+    pub fn create_compute_pipeline(&self, compute_shader: Shader) -> Result<Pipeline> {
         let pipeline = unsafe { self.0.CreateProgram() };
         self.get_error()?;
 
@@ -790,7 +797,7 @@ impl Device {
     }
 
     /// Bind a pipeline for usage.
-    pub fn bind_pipeline(&self, pipeline: &Pipeline) {
+    pub fn bind_pipeline(&self, pipeline: Pipeline) {
         unsafe {
             self.0.UseProgram(pipeline.0);
         }

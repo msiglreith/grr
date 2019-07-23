@@ -75,11 +75,11 @@ fn main() -> grr::Result<()> {
     let fs = grr.create_shader(grr::ShaderStage::Fragment, FRAGMENT_SRC.as_bytes())?;
 
     let pipeline = grr.create_graphics_pipeline(grr::VertexPipelineDesc {
-        vertex_shader: &vs,
+        vertex_shader: vs,
         tessellation_control_shader: None,
         tessellation_evaluation_shader: None,
         geometry_shader: None,
-        fragment_shader: Some(&fs),
+        fragment_shader: Some(fs),
     })?;
 
     let vertex_array = grr.create_vertex_array(&[
@@ -119,10 +119,10 @@ fn main() -> grr::Result<()> {
         grr::Format::R8G8B8A8_SRGB,
         1,
     )?;
-    grr.object_name(&texture, "grr logo");
+    grr.object_name(texture, "grr logo");
 
     grr.copy_host_to_image(
-        &texture,
+        texture,
         grr::SubresourceLevel {
             level: 0,
             layers: 0..1,
@@ -144,7 +144,7 @@ fn main() -> grr::Result<()> {
     );
 
     let texture_view = grr.create_image_view(
-        &texture,
+        texture,
         grr::ImageViewType::D2,
         grr::Format::R8G8B8A8_SRGB,
         grr::SubresourceRange {
@@ -200,19 +200,19 @@ fn main() -> grr::Result<()> {
             _ => (),
         });
 
-        grr.bind_pipeline(&pipeline);
-        grr.bind_vertex_array(&vertex_array);
+        grr.bind_pipeline(pipeline);
+        grr.bind_vertex_array(vertex_array);
         grr.bind_color_blend_state(&color_blend);
 
-        grr.bind_image_views(3, &[&texture_view]);
-        grr.bind_samplers(3, &[&sampler]);
+        grr.bind_image_views(3, &[texture_view]);
+        grr.bind_samplers(3, &[sampler]);
 
-        grr.bind_index_buffer(&vertex_array, &index_buffer);
+        grr.bind_index_buffer(vertex_array, index_buffer);
         grr.bind_vertex_buffers(
-            &vertex_array,
+            vertex_array,
             0,
             &[grr::VertexBufferView {
-                buffer: &vertex_buffer,
+                buffer: vertex_buffer,
                 offset: 0,
                 stride: (std::mem::size_of::<f32>() * 4) as _,
                 input_rate: grr::InputRate::Vertex,
