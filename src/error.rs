@@ -4,9 +4,9 @@
 
 //! Error Handling
 
-use __gl;
+use crate::__gl;
 
-use device::Device;
+use crate::device::Device;
 use std::{error, fmt, result};
 
 /// Error return codes
@@ -26,8 +26,8 @@ pub enum Error {
 pub type Result<T> = result::Result<T, Error>;
 
 impl Device {
-    pub(crate) fn get_error(&self) -> Result<()> {
-        let err = unsafe { self.0.GetError() };
+    pub(crate) unsafe fn get_error(&self) -> Result<()> {
+        let err = self.0.GetError();
         match err {
             __gl::OUT_OF_MEMORY => Err(Error::OutOfMemory),
             _ => Ok(()),

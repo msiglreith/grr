@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use __gl;
-use __gl::types::GLuint;
+use crate::__gl;
+use crate::__gl::types::GLuint;
 
-use device::Device;
+use crate::device::Device;
 
 ///
 #[repr(u32)]
@@ -75,49 +75,37 @@ pub struct Query {
 }
 
 impl Device {
-    pub fn create_query(&self, ty: QueryType) -> Query {
+    pub unsafe fn create_query(&self, ty: QueryType) -> Query {
         let mut query = 0;
-        unsafe {
-            self.0.CreateQueries(ty as _, 1, &mut query as *mut _);
-        }
+        self.0.CreateQueries(ty as _, 1, &mut query as *mut _);
         Query { raw: query, ty }
     }
 
-    pub fn begin_query(&self, query: &Query) {
+    pub unsafe fn begin_query(&self, query: &Query) {
         let index = match query.ty {
             _ => 0,
         };
 
-        unsafe {
-            self.0.BeginQueryIndexed(query.ty as _, index, query.raw);
-        }
+        self.0.BeginQueryIndexed(query.ty as _, index, query.raw);
     }
 
-    pub fn end_query(&self, query: &Query) {
+    pub unsafe fn end_query(&self, query: &Query) {
         let index = match query.ty {
             _ => 0,
         };
 
-        unsafe {
-            self.0.EndQueryIndexed(query.ty as _, index);
-        }
+        self.0.EndQueryIndexed(query.ty as _, index);
     }
 
-    pub fn write_timestamp(&self, query: &Query) {
-        unsafe {
-            self.0.QueryCounter(query.raw, __gl::TIMESTAMP);
-        }
+    pub unsafe fn write_timestamp(&self, query: &Query) {
+        self.0.QueryCounter(query.raw, __gl::TIMESTAMP);
     }
 
-    pub fn begin_conditional_rendering(&self, query: &Query, mode: ConditionalMode) {
-        unsafe {
-            self.0.BeginConditionalRender(query.raw, mode as _);
-        }
+    pub unsafe fn begin_conditional_rendering(&self, query: &Query, mode: ConditionalMode) {
+        self.0.BeginConditionalRender(query.raw, mode as _);
     }
 
-    pub fn end_conditional_rendering(&self) {
-        unsafe {
-            self.0.EndConditionalRender();
-        }
+    pub unsafe fn end_conditional_rendering(&self) {
+        self.0.EndConditionalRender();
     }
 }

@@ -1,15 +1,15 @@
 //! Buffer
 
-use __gl;
-use __gl::types::{GLbitfield, GLuint};
+use crate::__gl;
+use crate::__gl::types::{GLbitfield, GLuint};
 
 use std::ops::Range;
 use std::{mem, ptr, slice};
 
-use debug::{Object, ObjectType};
-use device::Device;
-use error::Result;
-use format::{BaseFormat, Format, FormatLayout};
+use crate::debug::{Object, ObjectType};
+use crate::device::Device;
+use crate::error::Result;
+use crate::format::{BaseFormat, Format, FormatLayout};
 
 ///
 #[derive(Clone, Copy)]
@@ -32,7 +32,7 @@ pub struct BufferRange<'a> {
 }
 
 impl Device {
-    fn create_buffer_impl(
+    unsafe fn create_buffer_impl(
         &self,
         size: isize,
         data_ptr: *const (),
@@ -59,7 +59,7 @@ impl Device {
         };
 
         let mut buffer = 0;
-        unsafe {
+        {
             self.0.CreateBuffers(1, &mut buffer);
             self.get_error()?;
             self.0
@@ -77,7 +77,7 @@ impl Device {
     /// - `size`: Length in bytes of the associated storage memory.
     /// - `memory`: Properties of the internal memory slice. Indicating the usage
     ///             and locality of the allocation.
-    pub fn create_buffer(&self, size: u64, memory: MemoryFlags) -> Result<Buffer> {
+    pub unsafe fn create_buffer(&self, size: u64, memory: MemoryFlags) -> Result<Buffer> {
         self.create_buffer_impl(size as _, ptr::null(), memory)
     }
 
@@ -88,7 +88,11 @@ impl Device {
     /// - `data`: Host data, which will copied into the buffer on creation.
     /// - `memory`: Properties of the internal memory slice. Indicating the usage
     ///             and locality of the allocation.
-    pub fn create_buffer_from_host(&self, data: &[u8], memory: MemoryFlags) -> Result<Buffer> {
+    pub unsafe fn create_buffer_from_host(
+        &self,
+        data: &[u8],
+        memory: MemoryFlags,
+    ) -> Result<Buffer> {
         self.create_buffer_impl(data.len() as _, data.as_ptr() as *const _, memory)
     }
 
@@ -109,7 +113,7 @@ impl Device {
     /// # Return
     ///
     /// Returns a typed slice of the mapped memory range.
-    pub fn map_buffer<T>(
+    pub unsafe fn map_buffer<T>(
         &self,
         buffer: &Buffer,
         range: Range<u64>,
@@ -132,13 +136,13 @@ impl Device {
 
         let stride = mem::size_of::<T>();
 
-        let ptr = unsafe {
+        let ptr = {
             self.0
                 .MapNamedBufferRange(buffer.0, range.start as _, len as _, flags)
                 as *mut _
         };
 
-        unsafe { slice::from_raw_parts_mut(ptr, len as usize / stride) }
+        slice::from_raw_parts_mut(ptr, len as usize / stride)
     }
 
     /// Unmap a buffer from virtual host memory.
@@ -150,33 +154,30 @@ impl Device {
     /// # Return
     ///
     /// Returns if the unmapping operation was successfull.
-    pub fn unmap_buffer(&self, buffer: &Buffer) -> bool {
-        unsafe { self.0.UnmapNamedBuffer(buffer.0) != 0 }
+    pub unsafe fn unmap_buffer(&self, buffer: &Buffer) -> bool {
+        self.0.UnmapNamedBuffer(buffer.0) != 0
     }
 
     /// Delete a buffer.
-    pub fn delete_buffer(&self, buffer: Buffer) {
+    pub unsafe fn delete_buffer(&self, buffer: Buffer) {
         self.delete_buffers(&[buffer]);
     }
 
     /// Delete multiple buffers.
-    pub fn delete_buffers(&self, buffers: &[Buffer]) {
+    pub unsafe fn delete_buffers(&self, buffers: &[Buffer]) {
         let buffers = buffers.iter().map(|buffer| buffer.0).collect::<Vec<_>>();
-        unsafe {
-            self.0.DeleteBuffers(buffers.len() as _, buffers.as_ptr());
-        }
+
+        self.0.DeleteBuffers(buffers.len() as _, buffers.as_ptr());
     }
 
     /// Copy memory from the host into the buffer memory.
-    pub fn copy_host_to_buffer(&self, buffer: &Buffer, offset: isize, data: &[u8]) {
-        unsafe {
-            self.0
-                .NamedBufferSubData(buffer.0, offset, data.len() as _, data.as_ptr() as *const _);
-        }
+    pub unsafe fn copy_host_to_buffer(&self, buffer: &Buffer, offset: isize, data: &[u8]) {
+        self.0
+            .NamedBufferSubData(buffer.0, offset, data.len() as _, data.as_ptr() as *const _);
     }
 
     /// Copy data from one buffer into another buffer.
-    pub fn copy_buffer(
+    pub unsafe fn copy_buffer(
         &self,
         src_buffer: &Buffer,
         src_offset: isize,
@@ -184,19 +185,17 @@ impl Device {
         dst_offset: isize,
         size: u64,
     ) {
-        unsafe {
-            self.0.CopyNamedBufferSubData(
-                src_buffer.0,
-                dst_buffer.0,
-                src_offset,
-                dst_offset,
-                size as _,
-            );
-        }
+        self.0.CopyNamedBufferSubData(
+            src_buffer.0,
+            dst_buffer.0,
+            src_offset,
+            dst_offset,
+            size as _,
+        );
     }
 
     /// Fill buffer with data.
-    pub fn fill_buffer(
+    pub unsafe fn fill_buffer(
         &self,
         buffer: BufferRange,
         buffer_format: Format,
@@ -204,23 +203,21 @@ impl Device {
         format_layout: FormatLayout,
         value: &[u8],
     ) {
-        unsafe {
-            self.0.ClearNamedBufferSubData(
-                buffer.buffer.0,
-                buffer_format as _,
-                buffer.offset as _,
-                buffer.size as _,
-                format_layout as _,
-                base_format as _,
-                value.as_ptr() as *const _,
-            );
-        }
+        self.0.ClearNamedBufferSubData(
+            buffer.buffer.0,
+            buffer_format as _,
+            buffer.offset as _,
+            buffer.size as _,
+            format_layout as _,
+            base_format as _,
+            value.as_ptr() as *const _,
+        );
     }
 
     /// Bind buffer ranges as uniform buffers.
     ///
     /// Shader can access the buffer memory as readonly.
-    pub fn bind_uniform_buffers(&self, first: u32, ranges: &[BufferRange]) {
+    pub unsafe fn bind_uniform_buffers(&self, first: u32, ranges: &[BufferRange]) {
         let buffers = ranges.iter().map(|view| view.buffer.0).collect::<Vec<_>>();
         let offsets = ranges
             .iter()
@@ -228,22 +225,20 @@ impl Device {
             .collect::<Vec<_>>();
         let sizes = ranges.iter().map(|view| view.size as _).collect::<Vec<_>>();
 
-        unsafe {
-            self.0.BindBuffersRange(
-                __gl::UNIFORM_BUFFER,
-                first,
-                ranges.len() as _,
-                buffers.as_ptr(),
-                offsets.as_ptr(),
-                sizes.as_ptr(),
-            );
-        }
+        self.0.BindBuffersRange(
+            __gl::UNIFORM_BUFFER,
+            first,
+            ranges.len() as _,
+            buffers.as_ptr(),
+            offsets.as_ptr(),
+            sizes.as_ptr(),
+        );
     }
 
     /// Bind buffer ranges as shader storage buffers.
     ///
     /// Shaders can access the buffer memory as readwrite.
-    pub fn bind_shader_storage_buffers(&self, first: u32, ranges: &[BufferRange]) {
+    pub unsafe fn bind_shader_storage_buffers(&self, first: u32, ranges: &[BufferRange]) {
         let buffers = ranges.iter().map(|view| view.buffer.0).collect::<Vec<_>>();
         let offsets = ranges
             .iter()
@@ -251,53 +246,41 @@ impl Device {
             .collect::<Vec<_>>();
         let sizes = ranges.iter().map(|view| view.size as _).collect::<Vec<_>>();
 
-        unsafe {
-            self.0.BindBuffersRange(
-                __gl::SHADER_STORAGE_BUFFER,
-                first,
-                ranges.len() as _,
-                buffers.as_ptr(),
-                offsets.as_ptr(),
-                sizes.as_ptr(),
-            );
-        }
+        self.0.BindBuffersRange(
+            __gl::SHADER_STORAGE_BUFFER,
+            first,
+            ranges.len() as _,
+            buffers.as_ptr(),
+            offsets.as_ptr(),
+            sizes.as_ptr(),
+        );
     }
 
     /// Bind indirect buffer for draw commands.
-    pub fn bind_draw_indirect_buffer(&self, buffer: &Buffer) {
-        unsafe {
-            self.0.BindBuffer(__gl::DRAW_INDIRECT_BUFFER, buffer.0);
-        }
+    pub unsafe fn bind_draw_indirect_buffer(&self, buffer: &Buffer) {
+        self.0.BindBuffer(__gl::DRAW_INDIRECT_BUFFER, buffer.0);
     }
 
     /// Unbind indirect buffer for draw commands.
-    pub fn unbind_draw_indirect_buffer(&self) {
-        unsafe {
-            self.0.BindBuffer(__gl::DRAW_INDIRECT_BUFFER, 0);
-        }
+    pub unsafe fn unbind_draw_indirect_buffer(&self) {
+        self.0.BindBuffer(__gl::DRAW_INDIRECT_BUFFER, 0);
     }
 
     /// Bind indirect buffer for dispatch commands.
-    pub fn bind_dispatch_indirect_buffer(&self, buffer: &Buffer) {
-        unsafe {
-            self.0.BindBuffer(__gl::DISPATCH_INDIRECT_BUFFER, buffer.0);
-        }
+    pub unsafe fn bind_dispatch_indirect_buffer(&self, buffer: &Buffer) {
+        self.0.BindBuffer(__gl::DISPATCH_INDIRECT_BUFFER, buffer.0);
     }
 
     /// Unbind indirect buffer for draw commands.
-    pub fn unbind_dispatch_indirect_buffer(&self) {
-        unsafe {
-            self.0.BindBuffer(__gl::DISPATCH_INDIRECT_BUFFER, 0);
-        }
+    pub unsafe fn unbind_dispatch_indirect_buffer(&self) {
+        self.0.BindBuffer(__gl::DISPATCH_INDIRECT_BUFFER, 0);
     }
 
     /// Bind parameter buffer for indirect commands.
     ///
     /// Required GL 4.6
-    pub fn bind_parameter_buffer(&self, buffer: &Buffer) {
-        unsafe {
-            self.0.BindBuffer(__gl::PARAMETER_BUFFER, buffer.0);
-        }
+    pub unsafe fn bind_parameter_buffer(&self, buffer: &Buffer) {
+        self.0.BindBuffer(__gl::PARAMETER_BUFFER, buffer.0);
     }
 }
 

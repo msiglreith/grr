@@ -4,13 +4,13 @@
 
 //! Sampler.
 
-use __gl;
-use __gl::types::{GLenum, GLuint};
+use crate::__gl;
+use crate::__gl::types::{GLenum, GLuint};
 
-use debug::{Object, ObjectType};
-use device::Device;
-use error::Result;
-use Compare;
+use crate::debug::{Object, ObjectType};
+use crate::device::Device;
+use crate::error::Result;
+use crate::Compare;
 
 use std::ops::Range;
 
@@ -28,29 +28,23 @@ impl Object for Sampler {
 
 impl Device {
     /// Create a sampler object.
-    pub fn create_sampler(&self, desc: SamplerDesc) -> Result<Sampler> {
+    pub unsafe fn create_sampler(&self, desc: SamplerDesc) -> Result<Sampler> {
         let mut sampler = 0;
-        unsafe {
-            self.0.CreateSamplers(1, &mut sampler);
-        }
+        self.0.CreateSamplers(1, &mut sampler);
         self.get_error()?;
 
         // Texture min filter
         let min_filter = map_min_filter(desc.min_filter, desc.mip_map);
-        unsafe {
-            self.0
-                .SamplerParameteri(sampler, __gl::TEXTURE_MIN_FILTER, min_filter as _);
-        }
+        self.0
+            .SamplerParameteri(sampler, __gl::TEXTURE_MIN_FILTER, min_filter as _);
 
         // Texture mag filter
         let mag_filter = match desc.mag_filter {
             Filter::Nearest => __gl::NEAREST,
             Filter::Linear => __gl::LINEAR,
         };
-        unsafe {
-            self.0
-                .SamplerParameteri(sampler, __gl::TEXTURE_MAG_FILTER, mag_filter as _);
-        }
+        self.0
+            .SamplerParameteri(sampler, __gl::TEXTURE_MAG_FILTER, mag_filter as _);
 
         // Texture address wrap modes
         let (wrap_s, wrap_t, wrap_r) = (
@@ -58,86 +52,63 @@ impl Device {
             map_sampler_address(desc.address.1),
             map_sampler_address(desc.address.2),
         );
-        unsafe {
-            self.0
-                .SamplerParameteri(sampler, __gl::TEXTURE_WRAP_S, wrap_s as _);
-        }
-        unsafe {
-            self.0
-                .SamplerParameteri(sampler, __gl::TEXTURE_WRAP_T, wrap_t as _);
-        }
-        unsafe {
-            self.0
-                .SamplerParameteri(sampler, __gl::TEXTURE_WRAP_R, wrap_r as _);
-        }
+        self.0
+            .SamplerParameteri(sampler, __gl::TEXTURE_WRAP_S, wrap_s as _);
+        self.0
+            .SamplerParameteri(sampler, __gl::TEXTURE_WRAP_T, wrap_t as _);
+        self.0
+            .SamplerParameteri(sampler, __gl::TEXTURE_WRAP_R, wrap_r as _);
 
         // LOD bias
-        unsafe {
-            self.0
-                .SamplerParameterf(sampler, __gl::TEXTURE_LOD_BIAS, desc.lod_bias);
-        }
-
+        self.0
+            .SamplerParameterf(sampler, __gl::TEXTURE_LOD_BIAS, desc.lod_bias);
         // LOD range
-        unsafe {
-            self.0
-                .SamplerParameterf(sampler, __gl::TEXTURE_MIN_LOD, desc.lod.start);
-        }
-        unsafe {
-            self.0
-                .SamplerParameterf(sampler, __gl::TEXTURE_MAX_LOD, desc.lod.end);
-        }
+        self.0
+            .SamplerParameterf(sampler, __gl::TEXTURE_MIN_LOD, desc.lod.start);
+        self.0
+            .SamplerParameterf(sampler, __gl::TEXTURE_MAX_LOD, desc.lod.end);
 
         // Texture comparison mode
         let (compare_mode, compare_op): (GLenum, Option<GLenum>) = match desc.compare {
             Some(op) => (__gl::COMPARE_REF_TO_TEXTURE, Some(op as _)),
             None => (__gl::NONE, None),
         };
-        unsafe {
-            self.0
-                .SamplerParameteri(sampler, __gl::TEXTURE_COMPARE_MODE, compare_mode as _);
-        }
+        self.0
+            .SamplerParameteri(sampler, __gl::TEXTURE_COMPARE_MODE, compare_mode as _);
 
         if let Some(op) = compare_op {
-            unsafe {
-                self.0
-                    .SamplerParameteri(sampler, __gl::TEXTURE_COMPARE_FUNC, op as _);
-            }
+            self.0
+                .SamplerParameteri(sampler, __gl::TEXTURE_COMPARE_FUNC, op as _);
         }
 
         // Border color
-        unsafe {
-            self.0.SamplerParameterfv(
-                sampler,
-                __gl::TEXTURE_BORDER_COLOR,
-                desc.border_color.as_ptr(),
-            );
-        }
+        self.0.SamplerParameterfv(
+            sampler,
+            __gl::TEXTURE_BORDER_COLOR,
+            desc.border_color.as_ptr(),
+        );
 
         Ok(Sampler(sampler))
     }
 
     /// Bind samplers to specific texture units.
-    pub fn bind_samplers(&self, first: u32, samplers: &[Sampler]) {
+    pub unsafe fn bind_samplers(&self, first: u32, samplers: &[Sampler]) {
         let samplers = samplers.iter().map(|s| s.0).collect::<Vec<_>>();
-        unsafe {
-            self.0
-                .BindSamplers(first, samplers.len() as _, samplers.as_ptr());
-        }
+        self.0
+            .BindSamplers(first, samplers.len() as _, samplers.as_ptr());
     }
 
     // Delete a sampler.
-    pub fn delete_sampler(&self, sampler: Sampler) {
+    pub unsafe fn delete_sampler(&self, sampler: Sampler) {
         self.delete_samplers(&[sampler])
     }
 
     /// Delete multiple samplers.
-    pub fn delete_samplers(&self, samplers: &[Sampler]) {
-        unsafe {
-            self.0.DeleteSamplers(
-                samplers.len() as _,
-                samplers.as_ptr() as *const _, // newtype
-            );
-        }
+    pub unsafe fn delete_samplers(&self, samplers: &[Sampler]) {
+        self.0.DeleteSamplers(
+            samplers.len() as _,
+            samplers.as_ptr() as *const _, // newtype
+        );
     }
 }
 

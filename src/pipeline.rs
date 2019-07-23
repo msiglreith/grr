@@ -4,13 +4,13 @@
 
 //! Graphics and Compute pipeline
 
-use __gl;
-use __gl::types::GLuint;
+use crate::__gl;
+use crate::__gl::types::GLuint;
 
-use debug::{Object, ObjectType};
-use device::Device;
-use error::Result;
-use Compare;
+use crate::debug::{Object, ObjectType};
+use crate::device::Device;
+use crate::error::Result;
+use crate::Compare;
 
 /// Shader.
 ///
@@ -342,9 +342,9 @@ pub struct Multisample {
 }
 
 impl Device {
-    fn check_pipeline_log(&self, pipeline: GLuint) {
+    unsafe fn check_pipeline_log(&self, pipeline: GLuint) {
         let log = {
-            let mut len = unsafe {
+            let mut len = {
                 let mut len = 0;
                 self.0
                     .GetProgramiv(pipeline, __gl::INFO_LOG_LENGTH, &mut len);
@@ -354,14 +354,8 @@ impl Device {
             if len > 0 {
                 let mut log = String::with_capacity(len as usize);
                 log.extend(std::iter::repeat('\0').take(len as usize));
-                unsafe {
-                    self.0.GetProgramInfoLog(
-                        pipeline,
-                        len,
-                        &mut len,
-                        (&log[..]).as_ptr() as *mut _,
-                    );
-                }
+                self.0
+                    .GetProgramInfoLog(pipeline, len, &mut len, (&log[..]).as_ptr() as *mut _);
                 log.truncate(len as usize);
                 log
             } else {
@@ -381,7 +375,7 @@ impl Device {
     /// - `source` must be a NULL-terminated C-String.
     /// - The GLSL shader version must be `450 core` or higher.
     /// - The `stage` parameter must be a valid stage of the passed shader source.
-    pub fn create_shader(&self, stage: ShaderStage, source: &[u8]) -> Result<Shader> {
+    pub unsafe fn create_shader(&self, stage: ShaderStage, source: &[u8]) -> Result<Shader> {
         let stage = match stage {
             ShaderStage::Vertex => __gl::VERTEX_SHADER,
             ShaderStage::TessellationControl => __gl::TESS_CONTROL_SHADER,
@@ -393,7 +387,7 @@ impl Device {
             ShaderStage::TaskNv => __gl::TASK_SHADER_NV,
         };
 
-        let shader = unsafe {
+        let shader = {
             let shader = self.0.CreateShader(stage);
             self.get_error()?;
             self.0.ShaderSource(
@@ -407,7 +401,7 @@ impl Device {
             shader
         };
 
-        let status = unsafe {
+        let status = {
             let mut status = 0;
             self.0
                 .GetShaderiv(shader, __gl::COMPILE_STATUS, &mut status);
@@ -419,7 +413,7 @@ impl Device {
         }
 
         let log = {
-            let mut len = unsafe {
+            let mut len = {
                 let mut len = 0;
                 self.0.GetShaderiv(shader, __gl::INFO_LOG_LENGTH, &mut len);
                 len
@@ -428,10 +422,8 @@ impl Device {
             if len > 0 {
                 let mut log = String::with_capacity(len as usize);
                 log.extend(std::iter::repeat('\0').take(len as usize));
-                unsafe {
-                    self.0
-                        .GetShaderInfoLog(shader, len, &mut len, (&log[..]).as_ptr() as *mut _);
-                }
+                self.0
+                    .GetShaderInfoLog(shader, len, &mut len, (&log[..]).as_ptr() as *mut _);
                 log.truncate(len as usize);
                 log
             } else {
@@ -447,18 +439,14 @@ impl Device {
     }
 
     /// Delete a shader.
-    pub fn delete_shader(&self, shader: Shader) {
-        unsafe {
-            self.0.DeleteShader(shader.0);
-        }
+    pub unsafe fn delete_shader(&self, shader: Shader) {
+        self.0.DeleteShader(shader.0);
     }
 
     /// Delete multiple shaders.
-    pub fn delete_shaders(&self, shaders: &[Shader]) {
+    pub unsafe fn delete_shaders(&self, shaders: &[Shader]) {
         for shader in shaders.into_iter() {
-            unsafe {
-                self.0.DeleteShader(shader.0);
-            }
+            self.0.DeleteShader(shader.0);
         }
     }
 
@@ -477,65 +465,63 @@ impl Device {
     ///   `ShaderStage::Geometry` if specified.
     /// - The fragment shader in `desc` must be valid and created with
     ///   `ShaderStage::Fragment` if specified.
-    pub fn create_graphics_pipeline<D>(&self, desc: D) -> Result<Pipeline>
+    pub unsafe fn create_graphics_pipeline<D>(&self, desc: D) -> Result<Pipeline>
     where
         D: Into<GraphicsPipelineDesc>,
     {
         let desc = desc.into();
-        let pipeline = unsafe { self.0.CreateProgram() };
+        let pipeline = self.0.CreateProgram();
         self.get_error()?;
 
-        unsafe {
-            // Attach
-            if let Some(vs) = desc.vertex_shader {
-                self.0.AttachShader(pipeline, vs.0);
-            }
-            if let Some(tsc) = desc.tessellation_control_shader {
-                self.0.AttachShader(pipeline, tsc.0);
-            }
-            if let Some(tse) = desc.tessellation_evaluation_shader {
-                self.0.AttachShader(pipeline, tse.0);
-            }
-            if let Some(geometry) = desc.geometry_shader {
-                self.0.AttachShader(pipeline, geometry.0);
-            }
-            if let Some(fragment) = desc.fragment_shader {
-                self.0.AttachShader(pipeline, fragment.0);
-            }
-            if let Some(ms) = desc.mesh_shader {
-                self.0.AttachShader(pipeline, ms.0);
-            }
-            if let Some(ts) = desc.task_shader {
-                self.0.AttachShader(pipeline, ts.0);
-            }
-
-            self.0.LinkProgram(pipeline);
-
-            // Detach
-            if let Some(vs) = desc.vertex_shader {
-                self.0.DetachShader(pipeline, vs.0);
-            }
-            if let Some(tsc) = desc.tessellation_control_shader {
-                self.0.DetachShader(pipeline, tsc.0);
-            }
-            if let Some(tse) = desc.tessellation_evaluation_shader {
-                self.0.DetachShader(pipeline, tse.0);
-            }
-            if let Some(geometry) = desc.geometry_shader {
-                self.0.DetachShader(pipeline, geometry.0);
-            }
-            if let Some(fragment) = desc.fragment_shader {
-                self.0.DetachShader(pipeline, fragment.0);
-            }
-            if let Some(ms) = desc.mesh_shader {
-                self.0.DetachShader(pipeline, ms.0);
-            }
-            if let Some(ts) = desc.task_shader {
-                self.0.DetachShader(pipeline, ts.0);
-            }
+        // Attach
+        if let Some(vs) = desc.vertex_shader {
+            self.0.AttachShader(pipeline, vs.0);
+        }
+        if let Some(tsc) = desc.tessellation_control_shader {
+            self.0.AttachShader(pipeline, tsc.0);
+        }
+        if let Some(tse) = desc.tessellation_evaluation_shader {
+            self.0.AttachShader(pipeline, tse.0);
+        }
+        if let Some(geometry) = desc.geometry_shader {
+            self.0.AttachShader(pipeline, geometry.0);
+        }
+        if let Some(fragment) = desc.fragment_shader {
+            self.0.AttachShader(pipeline, fragment.0);
+        }
+        if let Some(ms) = desc.mesh_shader {
+            self.0.AttachShader(pipeline, ms.0);
+        }
+        if let Some(ts) = desc.task_shader {
+            self.0.AttachShader(pipeline, ts.0);
         }
 
-        let status = unsafe {
+        self.0.LinkProgram(pipeline);
+
+        // Detach
+        if let Some(vs) = desc.vertex_shader {
+            self.0.DetachShader(pipeline, vs.0);
+        }
+        if let Some(tsc) = desc.tessellation_control_shader {
+            self.0.DetachShader(pipeline, tsc.0);
+        }
+        if let Some(tse) = desc.tessellation_evaluation_shader {
+            self.0.DetachShader(pipeline, tse.0);
+        }
+        if let Some(geometry) = desc.geometry_shader {
+            self.0.DetachShader(pipeline, geometry.0);
+        }
+        if let Some(fragment) = desc.fragment_shader {
+            self.0.DetachShader(pipeline, fragment.0);
+        }
+        if let Some(ms) = desc.mesh_shader {
+            self.0.DetachShader(pipeline, ms.0);
+        }
+        if let Some(ts) = desc.task_shader {
+            self.0.DetachShader(pipeline, ts.0);
+        }
+
+        let status = {
             let mut status = 0;
             self.0
                 .GetProgramiv(pipeline, __gl::LINK_STATUS, &mut status);
@@ -557,17 +543,15 @@ impl Device {
     /// # Valid usage
     ///
     /// - The compute shader in must be valid and created with `ShaderStage::Compute`.
-    pub fn create_compute_pipeline(&self, compute_shader: Shader) -> Result<Pipeline> {
-        let pipeline = unsafe { self.0.CreateProgram() };
+    pub unsafe fn create_compute_pipeline(&self, compute_shader: Shader) -> Result<Pipeline> {
+        let pipeline = self.0.CreateProgram();
         self.get_error()?;
 
-        unsafe {
-            self.0.AttachShader(pipeline, compute_shader.0);
-            self.0.LinkProgram(pipeline);
-            self.0.DetachShader(pipeline, compute_shader.0);
-        }
+        self.0.AttachShader(pipeline, compute_shader.0);
+        self.0.LinkProgram(pipeline);
+        self.0.DetachShader(pipeline, compute_shader.0);
 
-        let status = unsafe {
+        let status = {
             let mut status = 0;
             self.0
                 .GetProgramiv(pipeline, __gl::LINK_STATUS, &mut status);
@@ -583,58 +567,50 @@ impl Device {
     }
 
     /// Delete a pipeline.
-    pub fn delete_pipeline(&self, pipeline: Pipeline) {
-        unsafe {
+    pub unsafe fn delete_pipeline(&self, pipeline: Pipeline) {
+        self.0.DeleteProgram(pipeline.0);
+    }
+
+    /// Delete multiple pipelines.
+    pub unsafe fn delete_pipelines(&self, pipelines: &[Pipeline]) {
+        for pipeline in pipelines {
             self.0.DeleteProgram(pipeline.0);
         }
     }
 
-    /// Delete multiple pipelines.
-    pub fn delete_pipelines(&self, pipelines: &[Pipeline]) {
-        for pipeline in pipelines {
-            unsafe {
-                self.0.DeleteProgram(pipeline.0);
+    /// Bind input assembly pipeline state.
+    pub unsafe fn bind_input_assembly_state(&self, state: &InputAssembly) {
+        match state.primitive_restart {
+            Some(index) => {
+                self.0.Enable(__gl::PRIMITIVE_RESTART);
+                self.0.PrimitiveRestartIndex(index);
+            }
+            None => {
+                self.0.Disable(__gl::PRIMITIVE_RESTART);
             }
         }
     }
 
-    /// Bind input assembly pipeline state.
-    pub fn bind_input_assembly_state(&self, state: &InputAssembly) {
-        match state.primitive_restart {
-            Some(index) => unsafe {
-                self.0.Enable(__gl::PRIMITIVE_RESTART);
-                self.0.PrimitiveRestartIndex(index);
-            },
-            None => unsafe {
-                self.0.Disable(__gl::PRIMITIVE_RESTART);
-            },
-        }
-    }
-
     /// Bind color blending pipeline state.
-    pub fn bind_color_blend_state(&self, state: &ColorBlend) {
+    pub unsafe fn bind_color_blend_state(&self, state: &ColorBlend) {
         for (i, attachment) in state.attachments.iter().enumerate() {
             let slot = i as u32;
             if attachment.blend_enable {
-                unsafe {
-                    self.0.Enablei(__gl::BLEND, slot);
-                    self.0.BlendEquationSeparatei(
-                        slot,
-                        attachment.color.blend_op as _,
-                        attachment.alpha.blend_op as _,
-                    );
-                    self.0.BlendFuncSeparatei(
-                        slot,
-                        attachment.color.src_factor as _,
-                        attachment.color.dst_factor as _,
-                        attachment.alpha.src_factor as _,
-                        attachment.alpha.dst_factor as _,
-                    );
-                }
+                self.0.Enablei(__gl::BLEND, slot);
+                self.0.BlendEquationSeparatei(
+                    slot,
+                    attachment.color.blend_op as _,
+                    attachment.alpha.blend_op as _,
+                );
+                self.0.BlendFuncSeparatei(
+                    slot,
+                    attachment.color.src_factor as _,
+                    attachment.color.dst_factor as _,
+                    attachment.alpha.src_factor as _,
+                    attachment.alpha.dst_factor as _,
+                );
             } else {
-                unsafe {
-                    self.0.Disablei(__gl::BLEND, slot);
-                }
+                self.0.Disablei(__gl::BLEND, slot);
             }
         }
     }
@@ -655,78 +631,62 @@ impl Device {
     ///     stencil_back: grr::StencilFace::KEEP,
     /// });
     /// ```
-    pub fn bind_depth_stencil_state(&self, state: &DepthStencil) {
+    pub unsafe fn bind_depth_stencil_state(&self, state: &DepthStencil) {
         if state.depth_test {
-            unsafe {
-                self.0.Enable(__gl::DEPTH_TEST);
-                self.0.DepthMask(if state.depth_write {
-                    __gl::TRUE
-                } else {
-                    __gl::FALSE
-                });
-                self.0.DepthFunc(state.depth_compare_op as _);
-            }
+            self.0.Enable(__gl::DEPTH_TEST);
+            self.0.DepthMask(if state.depth_write {
+                __gl::TRUE
+            } else {
+                __gl::FALSE
+            });
+            self.0.DepthFunc(state.depth_compare_op as _);
         } else {
-            unsafe {
-                self.0.Disable(__gl::DEPTH_TEST);
-            }
+            self.0.Disable(__gl::DEPTH_TEST);
         }
 
         if state.stencil_test {
-            unsafe {
-                self.0.Enable(__gl::STENCIL_TEST);
-                self.0.StencilFuncSeparate(
-                    __gl::FRONT,
-                    state.stencil_front.compare_op as _,
-                    state.stencil_front.reference as _,
-                    state.stencil_front.compare_mask,
-                );
-                self.0.StencilOpSeparate(
-                    __gl::FRONT,
-                    state.stencil_front.fail as _,
-                    state.stencil_front.depth_fail as _,
-                    state.stencil_front.pass as _,
-                );
-                self.0.StencilFuncSeparate(
-                    __gl::BACK,
-                    state.stencil_back.compare_op as _,
-                    state.stencil_back.reference as _,
-                    state.stencil_back.compare_mask,
-                );
-                self.0.StencilOpSeparate(
-                    __gl::BACK,
-                    state.stencil_back.fail as _,
-                    state.stencil_back.depth_fail as _,
-                    state.stencil_back.pass as _,
-                );
-            }
+            self.0.Enable(__gl::STENCIL_TEST);
+            self.0.StencilFuncSeparate(
+                __gl::FRONT,
+                state.stencil_front.compare_op as _,
+                state.stencil_front.reference as _,
+                state.stencil_front.compare_mask,
+            );
+            self.0.StencilOpSeparate(
+                __gl::FRONT,
+                state.stencil_front.fail as _,
+                state.stencil_front.depth_fail as _,
+                state.stencil_front.pass as _,
+            );
+            self.0.StencilFuncSeparate(
+                __gl::BACK,
+                state.stencil_back.compare_op as _,
+                state.stencil_back.reference as _,
+                state.stencil_back.compare_mask,
+            );
+            self.0.StencilOpSeparate(
+                __gl::BACK,
+                state.stencil_back.fail as _,
+                state.stencil_back.depth_fail as _,
+                state.stencil_back.pass as _,
+            );
         } else {
-            unsafe {
-                self.0.Disable(__gl::STENCIL_TEST);
-            }
+            self.0.Disable(__gl::STENCIL_TEST);
         }
     }
 
     /// Bind rasterization pipeline state.
-    pub fn bind_rasterization_state(&self, state: &Rasterization) {
+    pub unsafe fn bind_rasterization_state(&self, state: &Rasterization) {
         if state.depth_clamp {
-            unsafe {
-                self.0.Enable(__gl::DEPTH_CLAMP);
-            }
+            self.0.Enable(__gl::DEPTH_CLAMP);
         } else {
-            unsafe {
-                self.0.Disable(__gl::DEPTH_CLAMP);
-            }
+            self.0.Disable(__gl::DEPTH_CLAMP);
         }
 
         if state.rasterizer_discard {
-            unsafe {
-                self.0.Enable(__gl::RASTERIZER_DISCARD);
-            }
+            self.0.Enable(__gl::RASTERIZER_DISCARD);
         } else {
-            unsafe {
-                self.0.Disable(__gl::RASTERIZER_DISCARD);
-            }
+            self.0.Disable(__gl::RASTERIZER_DISCARD);
         }
 
         let bias_primitive = match state.polygon_mode {
@@ -736,35 +696,29 @@ impl Device {
         };
 
         if state.depth_bias {
-            unsafe {
-                self.0.Enable(bias_primitive);
-            }
+            self.0.Enable(bias_primitive);
         } else {
-            unsafe {
-                self.0.Disable(bias_primitive);
-            }
+            self.0.Disable(bias_primitive);
         }
 
-        unsafe {
-            self.0
-                .PolygonMode(__gl::FRONT_AND_BACK, state.polygon_mode as _);
-            self.0.FrontFace(state.front_face as _);
-        }
+        self.0
+            .PolygonMode(__gl::FRONT_AND_BACK, state.polygon_mode as _);
+        self.0.FrontFace(state.front_face as _);
 
         match state.cull_mode {
-            Some(cull) => unsafe {
+            Some(cull) => {
                 self.0.Enable(__gl::CULL_FACE);
                 self.0.CullFace(cull as _);
-            },
-            None => unsafe {
+            }
+            None => {
                 self.0.Disable(__gl::CULL_FACE);
-            },
+            }
         }
     }
 
-    pub fn bind_multisample_state(&self, state: Option<&Multisample>) {
+    pub unsafe fn bind_multisample_state(&self, state: Option<&Multisample>) {
         match state {
-            Some(state) => unsafe {
+            Some(state) => {
                 self.0.Enable(__gl::MULTISAMPLE);
 
                 if state.sample_shading {
@@ -789,17 +743,15 @@ impl Device {
                 } else {
                     self.0.Disable(__gl::SAMPLE_ALPHA_TO_ONE);
                 }
-            },
-            None => unsafe {
+            }
+            None => {
                 self.0.Disable(__gl::MULTISAMPLE);
-            },
+            }
         }
     }
 
     /// Bind a pipeline for usage.
-    pub fn bind_pipeline(&self, pipeline: Pipeline) {
-        unsafe {
-            self.0.UseProgram(pipeline.0);
-        }
+    pub unsafe fn bind_pipeline(&self, pipeline: Pipeline) {
+        self.0.UseProgram(pipeline.0);
     }
 }

@@ -4,15 +4,13 @@
 
 //! Framebuffers
 
-use __gl;
-use __gl::types::{GLenum, GLuint};
+use crate::__gl;
+use crate::__gl::types::{GLenum, GLuint};
 
-use debug::{Object, ObjectType};
-use device::Device;
-use error::Result;
-use Format;
-use ImageView;
-use Region;
+use crate::debug::{Object, ObjectType};
+use crate::device::Device;
+use crate::error::Result;
+use crate::{Format, ImageView, Region};
 
 /// Attachment clearing description.
 pub enum ClearAttachment {
@@ -45,9 +43,9 @@ impl Attachment {
 }
 
 ///
-pub enum AttachmentView<'a> {
-    Image(&'a ImageView),
-    Renderbuffer(&'a Renderbuffer),
+pub enum AttachmentView {
+    Image(ImageView),
+    Renderbuffer(Renderbuffer),
 }
 
 /// Framebuffer handle.
@@ -84,33 +82,29 @@ impl Object for Renderbuffer {
 
 impl Device {
     /// Create a new framebuffer.
-    pub fn create_framebuffer(&self) -> Result<Framebuffer> {
+    pub unsafe fn create_framebuffer(&self) -> Result<Framebuffer> {
         let mut framebuffer = 0;
-        unsafe {
-            self.0.CreateFramebuffers(1, &mut framebuffer);
-        }
+        self.0.CreateFramebuffers(1, &mut framebuffer);
         self.get_error()?;
 
         Ok(Framebuffer(framebuffer))
     }
 
     /// Delete a framebuffer.
-    pub fn delete_framebuffer(&self, framebuffer: Framebuffer) {
+    pub unsafe fn delete_framebuffer(&self, framebuffer: Framebuffer) {
         self.delete_framebuffers(&[framebuffer])
     }
 
     /// Delete multiple framebuffers.
-    pub fn delete_framebuffers(&self, framebuffers: &[Framebuffer]) {
-        unsafe {
-            self.0.DeleteFramebuffers(
-                framebuffers.len() as _,
-                framebuffers.as_ptr() as *const _, // newtype
-            );
-        }
+    pub unsafe fn delete_framebuffers(&self, framebuffers: &[Framebuffer]) {
+        self.0.DeleteFramebuffers(
+            framebuffers.len() as _,
+            framebuffers.as_ptr() as *const _, // newtype
+        );
     }
 
     /// Create a new framebuffer.
-    pub fn create_renderbuffer(
+    pub unsafe fn create_renderbuffer(
         &self,
         format: Format,
         width: u32,
@@ -118,80 +112,70 @@ impl Device {
         samples: u32,
     ) -> Result<Renderbuffer> {
         let mut renderbuffer = 0;
-        unsafe {
-            self.0.CreateRenderbuffers(1, &mut renderbuffer);
-        }
+        self.0.CreateRenderbuffers(1, &mut renderbuffer);
         self.get_error()?;
 
         if samples > 1 {
-            unsafe {
-                self.0.NamedRenderbufferStorageMultisample(
-                    renderbuffer,
-                    samples as _,
-                    format as _,
-                    width as _,
-                    height as _,
-                );
-            }
+            self.0.NamedRenderbufferStorageMultisample(
+                renderbuffer,
+                samples as _,
+                format as _,
+                width as _,
+                height as _,
+            );
         } else {
-            unsafe {
-                self.0
-                    .NamedRenderbufferStorage(renderbuffer, format as _, width as _, height as _);
-            }
+            self.0
+                .NamedRenderbufferStorage(renderbuffer, format as _, width as _, height as _);
         }
 
         Ok(Renderbuffer(renderbuffer))
     }
 
     /// Delete a renderbuffer.
-    pub fn delete_renderbuffer(&self, renderbuffer: Renderbuffer) {
+    pub unsafe fn delete_renderbuffer(&self, renderbuffer: Renderbuffer) {
         self.delete_renderbuffers(&[renderbuffer])
     }
 
     /// Delete multiple renderbuffers.
-    pub fn delete_renderbuffers(&self, renderbuffers: &[Renderbuffer]) {
-        unsafe {
-            self.0.DeleteRenderbuffers(
-                renderbuffers.len() as _,
-                renderbuffers.as_ptr() as *const _, // newtype
-            );
-        }
+    pub unsafe fn delete_renderbuffers(&self, renderbuffers: &[Renderbuffer]) {
+        self.0.DeleteRenderbuffers(
+            renderbuffers.len() as _,
+            renderbuffers.as_ptr() as *const _, // newtype
+        );
     }
 
     /// Clear framebuffer attachment.
-    pub fn clear_attachment(&self, fb: Framebuffer, cv: ClearAttachment) {
-        unsafe {
-            match cv {
-                ClearAttachment::ColorInt(id, color) => {
-                    self.0
-                        .ClearNamedFramebufferiv(fb.0, __gl::COLOR, id as _, color.as_ptr());
-                }
-                ClearAttachment::ColorUint(id, color) => {
-                    self.0
-                        .ClearNamedFramebufferuiv(fb.0, __gl::COLOR, id as _, color.as_ptr());
-                }
-                ClearAttachment::ColorFloat(id, color) => {
-                    self.0
-                        .ClearNamedFramebufferfv(fb.0, __gl::COLOR, id as _, color.as_ptr());
-                }
-                ClearAttachment::Depth(depth) => {
-                    self.0
-                        .ClearNamedFramebufferfv(fb.0, __gl::DEPTH, 0, &depth as *const _);
-                }
-                ClearAttachment::Stencil(stencil) => {
-                    self.0
-                        .ClearNamedFramebufferiv(fb.0, __gl::STENCIL, 0, &stencil as *const _);
-                }
-                ClearAttachment::DepthStencil(depth, stencil) => {
-                    self.0
-                        .ClearNamedFramebufferfi(fb.0, __gl::DEPTH_STENCIL, 0, depth, stencil);
-                }
+    pub unsafe fn clear_attachment(&self, fb: Framebuffer, cv: ClearAttachment) {
+        match cv {
+            ClearAttachment::ColorInt(id, color) => {
+                self.0
+                    .ClearNamedFramebufferiv(fb.0, __gl::COLOR, id as _, color.as_ptr());
+            }
+            ClearAttachment::ColorUint(id, color) => {
+                self.0
+                    .ClearNamedFramebufferuiv(fb.0, __gl::COLOR, id as _, color.as_ptr());
+            }
+            ClearAttachment::ColorFloat(id, color) => {
+                self.0
+                    .ClearNamedFramebufferfv(fb.0, __gl::COLOR, id as _, color.as_ptr());
+            }
+            ClearAttachment::Depth(depth) => {
+                self.0
+                    .ClearNamedFramebufferfv(fb.0, __gl::DEPTH, 0, &depth as *const _);
+            }
+            ClearAttachment::Stencil(stencil) => {
+                self.0
+                    .ClearNamedFramebufferiv(fb.0, __gl::STENCIL, 0, &stencil as *const _);
+            }
+            ClearAttachment::DepthStencil(depth, stencil) => {
+                self.0
+                    .ClearNamedFramebufferfi(fb.0, __gl::DEPTH_STENCIL, 0, depth, stencil);
             }
         }
     }
 
     ///
-    pub fn invalidate_attachments(
+    pub unsafe fn invalidate_attachments(
         &self,
         framebuffer: Framebuffer,
         attachments: &[Attachment],
@@ -202,31 +186,27 @@ impl Device {
             .map(|att| att.target())
             .collect::<Vec<_>>();
 
-        unsafe {
-            self.0.InvalidateNamedFramebufferSubData(
-                framebuffer.0,
-                attachments.len() as _,
-                attachments.as_ptr(),
-                region.x,
-                region.y,
-                region.w,
-                region.h,
-            )
-        }
+        self.0.InvalidateNamedFramebufferSubData(
+            framebuffer.0,
+            attachments.len() as _,
+            attachments.as_ptr(),
+            region.x,
+            region.y,
+            region.w,
+            region.h,
+        )
     }
 
     /// Bind a framebuffer for draw commands.
-    pub fn bind_framebuffer(&self, framebuffer: Framebuffer) {
-        unsafe {
-            self.0
-                .BindFramebuffer(__gl::DRAW_FRAMEBUFFER, framebuffer.0);
-        }
+    pub unsafe fn bind_framebuffer(&self, framebuffer: Framebuffer) {
+        self.0
+            .BindFramebuffer(__gl::DRAW_FRAMEBUFFER, framebuffer.0);
     }
 
     /// Bind attachments to the framebuffer.
     ///
     /// All previously bound attachments become invalid.
-    pub fn bind_attachments(
+    pub unsafe fn bind_attachments(
         &self,
         framebuffer: Framebuffer,
         attachments: &[(Attachment, AttachmentView)],
@@ -239,18 +219,18 @@ impl Device {
         for (attachment, view) in attachments {
             let target = attachment.target();
             match *view {
-                AttachmentView::Image(image) => unsafe {
+                AttachmentView::Image(image) => {
                     self.0
                         .NamedFramebufferTexture(framebuffer.0, target, image.0, 0);
-                },
-                AttachmentView::Renderbuffer(renderbuffer) => unsafe {
+                }
+                AttachmentView::Renderbuffer(renderbuffer) => {
                     self.0.NamedFramebufferRenderbuffer(
                         framebuffer.0,
                         target,
                         __gl::RENDERBUFFER,
                         renderbuffer.0,
                     );
-                },
+                }
             }
         }
     }
@@ -260,7 +240,7 @@ impl Device {
     /// Defines the color render targets for the next draw calls.
     /// This builds the link between fragment outputs in the fragment shader
     /// and attachments bound on the framebuffer.
-    pub fn set_color_attachments(&self, framebuffer: Framebuffer, attachments: &[u32]) {
+    pub unsafe fn set_color_attachments(&self, framebuffer: Framebuffer, attachments: &[u32]) {
         assert_ne!(
             framebuffer.0, 0,
             "The default framebuffer can't be changed."
@@ -270,12 +250,10 @@ impl Device {
             .iter()
             .map(|i| i + __gl::COLOR_ATTACHMENT0)
             .collect::<Vec<_>>();
-        unsafe {
-            self.0.NamedFramebufferDrawBuffers(
-                framebuffer.0,
-                attachments.len() as _,
-                attachments.as_ptr(),
-            );
-        }
+        self.0.NamedFramebufferDrawBuffers(
+            framebuffer.0,
+            attachments.len() as _,
+            attachments.as_ptr(),
+        );
     }
 }

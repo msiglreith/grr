@@ -4,16 +4,16 @@
 
 //!  Image storage and views.
 
-use __gl;
-use __gl::types::{GLenum, GLuint};
+use crate::__gl;
+use crate::__gl::types::{GLenum, GLuint};
 
 use std::ops::Range;
 
-use debug::{Object, ObjectType};
-use device::Device;
-use error::Result;
-use format::{BaseFormat, Format, FormatLayout};
-use {Extent, Offset};
+use crate::debug::{Object, ObjectType};
+use crate::device::Device;
+use crate::error::Result;
+use crate::format::{BaseFormat, Format, FormatLayout};
+use crate::{Extent, Offset};
 
 /// Image resource handle.
 ///
@@ -135,7 +135,7 @@ pub struct SubresourceLayout {
 
 impl Device {
     ///
-    pub fn create_image(&self, ty: ImageType, format: Format, levels: u32) -> Result<Image> {
+    pub unsafe fn create_image(&self, ty: ImageType, format: Format, levels: u32) -> Result<Image> {
         let target = match ty {
             ImageType::D1 { layers: 1, .. } => __gl::TEXTURE_1D,
             ImageType::D1 { .. } => __gl::TEXTURE_1D_ARRAY,
@@ -159,16 +159,14 @@ impl Device {
         };
 
         let mut image = 0;
-        unsafe {
-            self.0.CreateTextures(target, 1, &mut image);
-        }
+        self.0.CreateTextures(target, 1, &mut image);
         self.get_error()?;
 
         match ty {
-            ImageType::D1 { width, layers: 1 } => unsafe {
+            ImageType::D1 { width, layers: 1 } => {
                 self.0
                     .TextureStorage1D(image, levels as _, format as _, width as _);
-            },
+            }
             ImageType::D1 {
                 width,
                 layers: height,
@@ -184,10 +182,10 @@ impl Device {
                 height,
                 layers: 6,
                 samples: 1,
-            } => unsafe {
+            } => {
                 self.0
                     .TextureStorage2D(image, levels as _, format as _, width as _, height as _);
-            },
+            }
             ImageType::D2 {
                 width,
                 height,
@@ -198,7 +196,7 @@ impl Device {
                 width,
                 height,
                 depth,
-            } => unsafe {
+            } => {
                 self.0.TextureStorage3D(
                     image,
                     levels as _,
@@ -207,7 +205,7 @@ impl Device {
                     height as _,
                     depth as _,
                 );
-            },
+            }
             _ => unimplemented!(),
         }
         self.get_error()?;
@@ -216,21 +214,20 @@ impl Device {
     }
 
     /// Delete an images.
-    pub fn delete_image(&self, image: Image) {
+    pub unsafe fn delete_image(&self, image: Image) {
         self.delete_images(&[image]);
     }
 
     /// Delete multiple images.
-    pub fn delete_images(&self, images: &[Image]) {
+    pub unsafe fn delete_images(&self, images: &[Image]) {
         let images = images.iter().map(|i| i.raw).collect::<Vec<_>>();
-        unsafe {
-            self.0
-                .DeleteTextures(images.len() as _, images.as_ptr() as *const _);
-        }
+
+        self.0
+            .DeleteTextures(images.len() as _, images.as_ptr() as *const _);
     }
 
     /// Copy image data from host memory to device memory.
-    pub fn copy_host_to_image<T>(
+    pub unsafe fn copy_host_to_image<T>(
         &self,
         image: Image,
         subresource: SubresourceLevel,
@@ -239,30 +236,26 @@ impl Device {
         data: &[T],
         layout: SubresourceLayout,
     ) {
-        unsafe {
-            self.0
-                .PixelStorei(__gl::UNPACK_ALIGNMENT, layout.alignment as _)
-        };
+        self.0
+            .PixelStorei(__gl::UNPACK_ALIGNMENT, layout.alignment as _);
         match image.target {
-            __gl::TEXTURE_2D if subresource.layers == (0..1) => unsafe {
-                self.0.TextureSubImage2D(
-                    image.raw,
-                    subresource.level as _,
-                    offset.x,
-                    offset.y,
-                    extent.width as _,
-                    extent.height as _,
-                    layout.base_format as _,
-                    layout.format_layout as _,
-                    data.as_ptr() as *const _,
-                )
-            },
+            __gl::TEXTURE_2D if subresource.layers == (0..1) => self.0.TextureSubImage2D(
+                image.raw,
+                subresource.level as _,
+                offset.x,
+                offset.y,
+                extent.width as _,
+                extent.height as _,
+                layout.base_format as _,
+                layout.format_layout as _,
+                data.as_ptr() as *const _,
+            ),
             _ => unimplemented!(), // panic!("Invalid target image: {}", image.target),
         }
     }
 
     /// Create an image view from an image.
-    pub fn create_image_view(
+    pub unsafe fn create_image_view(
         &self,
         image: Image,
         ty: ImageViewType,
@@ -285,49 +278,41 @@ impl Device {
             ImageViewType::CubeArray => __gl::TEXTURE_CUBE_MAP_ARRAY,
         };
         let mut view = 0;
-        unsafe {
-            self.0.GenTextures(1, &mut view);
-        }
+        self.0.GenTextures(1, &mut view);
         self.get_error()?;
 
-        unsafe {
-            self.0.TextureView(
-                view,
-                target,
-                image.raw,
-                format as _,
-                range.levels.start,
-                range.levels.end - range.levels.start,
-                range.layers.start,
-                range.layers.end - range.layers.start,
-            );
-        }
+        self.0.TextureView(
+            view,
+            target,
+            image.raw,
+            format as _,
+            range.levels.start,
+            range.levels.end - range.levels.start,
+            range.layers.start,
+            range.layers.end - range.layers.start,
+        );
         self.get_error()?;
 
         Ok(ImageView(view))
     }
 
     /// Delete an image views.
-    pub fn delete_image_view(&self, view: ImageView) {
+    pub unsafe fn delete_image_view(&self, view: ImageView) {
         self.delete_image_views(&[view]);
     }
 
     /// Delete multipe image views.
-    pub fn delete_image_views(&self, views: &[ImageView]) {
-        unsafe {
-            self.0.DeleteTextures(
-                views.len() as _,
-                views.as_ptr() as *const _, // newtype
-            );
-        }
+    pub unsafe fn delete_image_views(&self, views: &[ImageView]) {
+        self.0.DeleteTextures(
+            views.len() as _,
+            views.as_ptr() as *const _, // newtype
+        );
     }
 
     /// Bind image views to texture units.
-    pub fn bind_image_views(&self, first: u32, views: &[ImageView]) {
+    pub unsafe fn bind_image_views(&self, first: u32, views: &[ImageView]) {
         let views = views.iter().map(|view| view.0).collect::<Vec<_>>();
-        unsafe {
-            self.0.BindTextures(first, views.len() as _, views.as_ptr());
-        }
+        self.0.BindTextures(first, views.len() as _, views.as_ptr());
     }
 
     /// Generate mipmaps.
@@ -337,9 +322,7 @@ impl Device {
     /// creation.
     ///
     /// The downscaling filter is implementation dependent!
-    pub fn generate_mipmaps(&self, image: Image) {
-        unsafe {
-            self.0.GenerateTextureMipmap(image.raw);
-        }
+    pub unsafe fn generate_mipmaps(&self, image: Image) {
+        self.0.GenerateTextureMipmap(image.raw);
     }
 }

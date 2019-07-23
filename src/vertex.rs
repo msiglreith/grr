@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use __gl;
-use __gl::types::GLuint;
+use crate::__gl;
+use crate::__gl::types::GLuint;
 
-use buffer::Buffer;
-use debug::{Object, ObjectType};
-use device::Device;
-use error::Result;
+use crate::buffer::Buffer;
+use crate::debug::{Object, ObjectType};
+use crate::device::Device;
+use crate::error::Result;
 
 /// Vertex array handle.
 #[repr(transparent)]
@@ -159,11 +159,12 @@ impl Device {
     ///
     /// The vertex array specified the vertex attributes and their binding to
     /// vertex buffer objects.
-    pub fn create_vertex_array(&self, attributes: &[VertexAttributeDesc]) -> Result<VertexArray> {
+    pub unsafe fn create_vertex_array(
+        &self,
+        attributes: &[VertexAttributeDesc],
+    ) -> Result<VertexArray> {
         let mut vao = 0;
-        unsafe {
-            self.0.CreateVertexArrays(1, &mut vao);
-        }
+        self.0.CreateVertexArrays(1, &mut vao);
         self.get_error()?;
 
         enum VertexBase {
@@ -272,61 +273,60 @@ impl Device {
                 VertexFormat::Xyzw64Float => (VertexBase::Double, 4, __gl::DOUBLE, false),
             };
 
-            unsafe {
-                self.0.EnableVertexArrayAttrib(vao, desc.location);
-                match base {
-                    VertexBase::Int => {
-                        self.0
-                            .VertexArrayAttribIFormat(vao, desc.location, num, ty, desc.offset);
-                    }
-                    VertexBase::Float => {
-                        self.0.VertexArrayAttribFormat(
-                            vao,
-                            desc.location,
-                            num,
-                            ty,
-                            norm as _,
-                            desc.offset,
-                        );
-                    }
-                    VertexBase::Double => {
-                        self.0
-                            .VertexArrayAttribLFormat(vao, desc.location, num, ty, desc.offset);
-                    }
+            self.0.EnableVertexArrayAttrib(vao, desc.location);
+            match base {
+                VertexBase::Int => {
+                    self.0
+                        .VertexArrayAttribIFormat(vao, desc.location, num, ty, desc.offset);
                 }
-
-                self.0
-                    .VertexArrayAttribBinding(vao, desc.location, desc.binding);
+                VertexBase::Float => {
+                    self.0.VertexArrayAttribFormat(
+                        vao,
+                        desc.location,
+                        num,
+                        ty,
+                        norm as _,
+                        desc.offset,
+                    );
+                }
+                VertexBase::Double => {
+                    self.0
+                        .VertexArrayAttribLFormat(vao, desc.location, num, ty, desc.offset);
+                }
             }
+
+            self.0
+                .VertexArrayAttribBinding(vao, desc.location, desc.binding);
         }
 
         Ok(VertexArray(vao))
     }
 
     /// Delete a vertex array.
-    pub fn delete_vertex_array(&self, vao: VertexArray) {
+    pub unsafe fn delete_vertex_array(&self, vao: VertexArray) {
         self.delete_vertex_arrays(&[vao]);
     }
 
     /// Delete multiple vertex arrays.
-    pub fn delete_vertex_arrays(&self, vao: &[VertexArray]) {
-        unsafe {
-            self.0.DeleteVertexArrays(
-                vao.len() as _,
-                vao.as_ptr() as *const _, // newtype
-            );
-        }
+    pub unsafe fn delete_vertex_arrays(&self, vao: &[VertexArray]) {
+        self.0.DeleteVertexArrays(
+            vao.len() as _,
+            vao.as_ptr() as *const _, // newtype
+        );
     }
 
     /// Bind a vertex array for usage.
-    pub fn bind_vertex_array(&self, vao: VertexArray) {
-        unsafe {
-            self.0.BindVertexArray(vao.0);
-        }
+    pub unsafe fn bind_vertex_array(&self, vao: VertexArray) {
+        self.0.BindVertexArray(vao.0);
     }
 
     /// Bind vertex buffers to a vertex array.
-    pub fn bind_vertex_buffers(&self, vao: VertexArray, first: u32, views: &[VertexBufferView]) {
+    pub unsafe fn bind_vertex_buffers(
+        &self,
+        vao: VertexArray,
+        first: u32,
+        views: &[VertexBufferView],
+    ) {
         let buffers = views.iter().map(|view| view.buffer.0).collect::<Vec<_>>();
 
         let offsets = views
@@ -339,16 +339,14 @@ impl Device {
             .map(|view| view.stride as _)
             .collect::<Vec<_>>();
 
-        unsafe {
-            self.0.VertexArrayVertexBuffers(
-                vao.0,
-                first,
-                views.len() as _,
-                buffers.as_ptr(),
-                offsets.as_ptr(),
-                strides.as_ptr(),
-            );
-        }
+        self.0.VertexArrayVertexBuffers(
+            vao.0,
+            first,
+            views.len() as _,
+            buffers.as_ptr(),
+            offsets.as_ptr(),
+            strides.as_ptr(),
+        );
 
         for (binding, view) in views.iter().enumerate() {
             let divisor = match view.input_rate {
@@ -356,15 +354,13 @@ impl Device {
                 InputRate::Instance { divisor } => divisor,
             };
 
-            unsafe {
-                self.0
-                    .VertexArrayBindingDivisor(vao.0, first + binding as u32, divisor as _);
-            }
+            self.0
+                .VertexArrayBindingDivisor(vao.0, first + binding as u32, divisor as _);
         }
     }
 
     /// Bind a index buffer to a vertex array.
-    pub fn bind_index_buffer(&self, vao: VertexArray, buffer: Buffer) {
-        unsafe { self.0.VertexArrayElementBuffer(vao.0, buffer.0) }
+    pub unsafe fn bind_index_buffer(&self, vao: VertexArray, buffer: Buffer) {
+        self.0.VertexArrayElementBuffer(vao.0, buffer.0);
     }
 }

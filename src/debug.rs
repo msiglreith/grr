@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use __gl;
-use __gl::types::{GLenum, GLuint};
-use device::Device;
+use crate::__gl;
+use crate::__gl::types::{GLenum, GLuint};
+use crate::device::Device;
 
 /// Message filter.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -96,7 +96,7 @@ pub trait Object: Copy {
     fn handle(&self) -> GLuint;
 }
 
-pub(crate) fn set_debug_message_control(
+pub(crate) unsafe fn set_debug_message_control(
     ctxt: &__gl::Gl,
     enable: bool,
     src: Filter<DebugSource>,
@@ -116,58 +116,54 @@ pub(crate) fn set_debug_message_control(
     };
     let enable = if enable { __gl::TRUE } else { __gl::FALSE };
 
-    unsafe {
-        if flags.contains(DebugReport::NOTIFICATION) {
-            ctxt.DebugMessageControl(
-                src,
-                ty,
-                DebugReport::NOTIFICATION.bits(),
-                num_ids,
-                id_ptr,
-                enable,
-            );
-        }
-        if flags.contains(DebugReport::WARNING) {
-            ctxt.DebugMessageControl(
-                src,
-                ty,
-                DebugReport::WARNING.bits(),
-                num_ids,
-                id_ptr,
-                enable,
-            );
-        }
-        if flags.contains(DebugReport::ERROR) {
-            ctxt.DebugMessageControl(src, ty, DebugReport::ERROR.bits(), num_ids, id_ptr, enable);
-        }
-        if flags.contains(DebugReport::PERFORMANCE_WARNING) {
-            ctxt.DebugMessageControl(
-                src,
-                ty,
-                DebugReport::PERFORMANCE_WARNING.bits(),
-                num_ids,
-                id_ptr,
-                enable,
-            );
-        }
+    if flags.contains(DebugReport::NOTIFICATION) {
+        ctxt.DebugMessageControl(
+            src,
+            ty,
+            DebugReport::NOTIFICATION.bits(),
+            num_ids,
+            id_ptr,
+            enable,
+        );
+    }
+    if flags.contains(DebugReport::WARNING) {
+        ctxt.DebugMessageControl(
+            src,
+            ty,
+            DebugReport::WARNING.bits(),
+            num_ids,
+            id_ptr,
+            enable,
+        );
+    }
+    if flags.contains(DebugReport::ERROR) {
+        ctxt.DebugMessageControl(src, ty, DebugReport::ERROR.bits(), num_ids, id_ptr, enable);
+    }
+    if flags.contains(DebugReport::PERFORMANCE_WARNING) {
+        ctxt.DebugMessageControl(
+            src,
+            ty,
+            DebugReport::PERFORMANCE_WARNING.bits(),
+            num_ids,
+            id_ptr,
+            enable,
+        );
     }
 }
 
 impl Device {
     /// Associate a name with an object.
-    pub fn object_name<T: Object>(&self, object: T, name: &str) {
+    pub unsafe fn object_name<T: Object>(&self, object: T, name: &str) {
         let label = name.as_bytes();
-        unsafe {
-            self.0.ObjectLabel(
-                T::TYPE as _,
-                object.handle(),
-                label.len() as _,
-                label.as_ptr() as *const _,
-            );
-        }
+        self.0.ObjectLabel(
+            T::TYPE as _,
+            object.handle(),
+            label.len() as _,
+            label.as_ptr() as *const _,
+        );
     }
 
-    pub fn enable_debug_message(
+    pub unsafe fn enable_debug_message(
         &self,
         src: Filter<DebugSource>,
         ty: Filter<DebugType>,
@@ -177,7 +173,7 @@ impl Device {
         set_debug_message_control(&self.0, true, src, ty, flags, ids);
     }
 
-    pub fn disable_debug_message(
+    pub unsafe fn disable_debug_message(
         &self,
         src: Filter<DebugSource>,
         ty: Filter<DebugType>,
@@ -187,16 +183,12 @@ impl Device {
         set_debug_message_control(&self.0, false, src, ty, flags, ids);
     }
 
-    pub fn begin_debug_marker(&self, src: DebugSource, id: u32, msg: &str) {
-        unsafe {
-            self.0
-                .PushDebugGroup(src as _, id, msg.len() as _, msg.as_ptr() as *const _);
-        }
+    pub unsafe fn begin_debug_marker(&self, src: DebugSource, id: u32, msg: &str) {
+        self.0
+            .PushDebugGroup(src as _, id, msg.len() as _, msg.as_ptr() as *const _);
     }
 
-    pub fn end_debug_marker(&self) {
-        unsafe {
-            self.0.PopDebugGroup();
-        }
+    pub unsafe fn end_debug_marker(&self) {
+        self.0.PopDebugGroup();
     }
 }

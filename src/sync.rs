@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use __gl;
+use crate::__gl;
 
-use Device;
+use crate::Device;
 
 bitflags!(
     /// Memory barrier.
@@ -53,11 +53,9 @@ bitflags!(
 
 impl Device {
     ///
-    pub fn memory_barrier(&self, mut flags: Barrier) {
+    pub unsafe fn memory_barrier(&self, mut flags: Barrier) {
         if flags.contains(Barrier::INPUT_ATTACHMENT_READ) {
-            unsafe {
-                self.0.TextureBarrier();
-            }
+            self.0.TextureBarrier();
         }
 
         flags.remove(Barrier::INPUT_ATTACHMENT_READ);
@@ -65,15 +63,11 @@ impl Device {
             return;
         }
 
-        unsafe {
-            self.0.MemoryBarrier(flags.bits());
-        }
+        self.0.MemoryBarrier(flags.bits());
     }
 
     ///
-    pub fn memory_barrier_by_region(&self, flags: RegionBarrier) {
-        unsafe {
-            self.0.MemoryBarrierByRegion(flags.bits());
-        }
+    pub unsafe fn memory_barrier_by_region(&self, flags: RegionBarrier) {
+        self.0.MemoryBarrierByRegion(flags.bits());
     }
 }

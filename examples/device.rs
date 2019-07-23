@@ -1,6 +1,3 @@
-extern crate glutin;
-extern crate grr;
-
 fn main() -> Result<(), Box<std::error::Error>> {
     let events_loop = glutin::EventsLoop::new();
     let context = unsafe {
@@ -11,12 +8,14 @@ fn main() -> Result<(), Box<std::error::Error>> {
             .unwrap()
     };
 
-    let grr = grr::Device::new(
-        |symbol| context.get_proc_address(symbol) as *const _,
-        grr::Debug::Disable,
-    );
+    unsafe {
+        let grr = grr::Device::new(
+            |symbol| context.get_proc_address(symbol) as *const _,
+            grr::Debug::Disable,
+        );
 
-    println!("{:#?}", grr.limits());
+        println!("{:#?}", grr.limits());
+    }
 
     Ok(())
 }

@@ -4,12 +4,12 @@
 
 //! Drawing and Dispatching related commands.
 
-use __gl;
+use crate::__gl;
 use std::mem;
 use std::ops::Range;
 
-use device::Device;
-use {Framebuffer, Pipeline, Region};
+use crate::device::Device;
+use crate::{Framebuffer, Pipeline, Region};
 
 /// Primitve topology.
 ///
@@ -163,21 +163,26 @@ pub struct DispatchIndirectCmd {
 
 impl Device {
     /// Set uniform constants for a pipeline.
-    pub fn bind_uniform_constants(&self, pipeline: Pipeline, first: u32, constants: &[Constant]) {
+    pub unsafe fn bind_uniform_constants(
+        &self,
+        pipeline: Pipeline,
+        first: u32,
+        constants: &[Constant],
+    ) {
         for (i, constant) in constants.iter().enumerate() {
             let location = first as i32 + i as i32;
             match constant {
-                Constant::U32(val) => unsafe {
+                Constant::U32(val) => {
                     self.0.ProgramUniform1ui(pipeline.0, location, *val as _);
-                },
-                Constant::F32(val) => unsafe {
+                }
+                Constant::F32(val) => {
                     self.0.ProgramUniform1f(pipeline.0, location, *val as _);
-                },
-                Constant::Vec3(v) => unsafe {
+                }
+                Constant::Vec3(v) => {
                     self.0
                         .ProgramUniform3f(pipeline.0, location, v[0], v[1], v[2]);
-                },
-                Constant::Mat3x3(mat) => unsafe {
+                }
+                Constant::Mat3x3(mat) => {
                     self.0.ProgramUniformMatrix3fv(
                         pipeline.0,
                         location,
@@ -185,8 +190,8 @@ impl Device {
                         __gl::FALSE,
                         mat.as_ptr() as *const _,
                     );
-                },
-                Constant::Mat4x4(mat) => unsafe {
+                }
+                Constant::Mat4x4(mat) => {
                     self.0.ProgramUniformMatrix4fv(
                         pipeline.0,
                         location,
@@ -194,7 +199,7 @@ impl Device {
                         __gl::FALSE,
                         mat.as_ptr() as *const _,
                     );
-                },
+                }
             }
         }
     }
@@ -206,26 +211,22 @@ impl Device {
     ///
     /// See [Viewport](../command/struct.Viewport.html) for more information
     /// about the viewport transformation.
-    pub fn set_viewport(&self, first: u32, viewports: &[Viewport]) {
+    pub unsafe fn set_viewport(&self, first: u32, viewports: &[Viewport]) {
         let rects = viewports
             .iter()
             .flat_map(|viewport| vec![viewport.x, viewport.y, viewport.w, viewport.h])
             .collect::<Vec<_>>();
 
-        unsafe {
-            self.0
-                .ViewportArrayv(first, viewports.len() as _, rects.as_ptr());
-        }
+        self.0
+            .ViewportArrayv(first, viewports.len() as _, rects.as_ptr());
 
         let depth_ranges = viewports
             .iter()
             .flat_map(|viewport| vec![viewport.n, viewport.f])
             .collect::<Vec<_>>();
 
-        unsafe {
-            self.0
-                .DepthRangeArrayv(first, viewports.len() as _, depth_ranges.as_ptr());
-        }
+        self.0
+            .DepthRangeArrayv(first, viewports.len() as _, depth_ranges.as_ptr());
     }
 
     /// Set scissor rectangles for viewports.
@@ -233,16 +234,14 @@ impl Device {
     /// # Valid usage
     ///
     /// - Every active viewport needs an associated scissor.
-    pub fn set_scissor(&self, first: u32, scissors: &[Region]) {
+    pub unsafe fn set_scissor(&self, first: u32, scissors: &[Region]) {
         let scissors_raw = scissors
             .iter()
             .flat_map(|scissor| vec![scissor.x, scissor.y, scissor.w, scissor.h])
             .collect::<Vec<_>>();
 
-        unsafe {
-            self.0
-                .ScissorArrayv(first, scissors.len() as _, scissors_raw.as_ptr());
-        }
+        self.0
+            .ScissorArrayv(first, scissors.len() as _, scissors_raw.as_ptr());
     }
 
     /// Submit a (non-indexed) draw call.
@@ -259,16 +258,14 @@ impl Device {
     /// - `vertices.end` must be larger than `vertices.start`.
     /// - `vertices.end - vertices.start` must be allow assembling complete primitives.
     /// - `instances.end` must be larger than `instances.start`.
-    pub fn draw(&self, primitive: Primitive, vertices: Range<u32>, instance: Range<u32>) {
-        unsafe {
-            self.0.DrawArraysInstancedBaseInstance(
-                primitive as _,
-                vertices.start as _,
-                (vertices.end - vertices.start) as _,
-                (instance.end - instance.start) as _,
-                instance.start as _,
-            )
-        }
+    pub unsafe fn draw(&self, primitive: Primitive, vertices: Range<u32>, instance: Range<u32>) {
+        self.0.DrawArraysInstancedBaseInstance(
+            primitive as _,
+            vertices.start as _,
+            (vertices.end - vertices.start) as _,
+            (instance.end - instance.start) as _,
+            instance.start as _,
+        );
     }
 
     /// Submit an indexed draw call.
@@ -285,7 +282,7 @@ impl Device {
     /// - `indices.end` must be larger than `indices.start`.
     /// - `indices.end - indices.start` must allow to assemble complete primitives.
     /// - `instances.end` must be larger than `instances.start`.
-    pub fn draw_indexed(
+    pub unsafe fn draw_indexed(
         &self,
         primitive: Primitive,
         index_ty: IndexTy,
@@ -293,17 +290,15 @@ impl Device {
         instance: Range<u32>,
         base_vertex: i32,
     ) {
-        unsafe {
-            self.0.DrawElementsInstancedBaseVertexBaseInstance(
-                primitive as _,
-                (indices.end - indices.start) as _,
-                index_ty as _,
-                (index_ty.size() * indices.start) as _,
-                (instance.end - instance.start) as _,
-                base_vertex,
-                instance.start as _,
-            )
-        }
+        self.0.DrawElementsInstancedBaseVertexBaseInstance(
+            primitive as _,
+            (indices.end - indices.start) as _,
+            index_ty as _,
+            (index_ty.size() * indices.start) as _,
+            (instance.end - instance.start) as _,
+            base_vertex,
+            instance.start as _,
+        );
     }
 
     /// Submit an indirect draw call.
@@ -312,27 +307,23 @@ impl Device {
     ///
     /// - There must be a valid graphics pipeline currently bound.
     /// - There must be a valid draw indirect buffer currently bound.
-    pub fn draw_indirect(&self, primitive: Primitive, offset: u64, count: u32, stride: u32) {
-        unsafe {
-            self.0
-                .MultiDrawArraysIndirect(primitive as _, offset as _, count as _, stride as _);
-        }
+    pub unsafe fn draw_indirect(&self, primitive: Primitive, offset: u64, count: u32, stride: u32) {
+        self.0
+            .MultiDrawArraysIndirect(primitive as _, offset as _, count as _, stride as _);
     }
 
     /// Submit an indirect draw call.
-    pub fn draw_indirect_from_host(&self, primitive: Primitive, data: &[DrawIndirectCmd]) {
-        unsafe {
-            self.0.MultiDrawArraysIndirect(
-                primitive as _,
-                data.as_ptr() as *const _,
-                data.len() as _,
-                mem::size_of::<DrawIndirectCmd>() as _,
-            );
-        }
+    pub unsafe fn draw_indirect_from_host(&self, primitive: Primitive, data: &[DrawIndirectCmd]) {
+        self.0.MultiDrawArraysIndirect(
+            primitive as _,
+            data.as_ptr() as *const _,
+            data.len() as _,
+            mem::size_of::<DrawIndirectCmd>() as _,
+        );
     }
 
     /// Indirect draw call.
-    pub fn draw_indexed_indirect(
+    pub unsafe fn draw_indexed_indirect(
         &self,
         primitive: Primitive,
         index_ty: IndexTy,
@@ -340,33 +331,29 @@ impl Device {
         count: u32,
         stride: u32,
     ) {
-        unsafe {
-            self.0.MultiDrawElementsIndirect(
-                primitive as _,
-                index_ty as _,
-                offset as _,
-                count as _,
-                stride as _,
-            );
-        }
+        self.0.MultiDrawElementsIndirect(
+            primitive as _,
+            index_ty as _,
+            offset as _,
+            count as _,
+            stride as _,
+        );
     }
 
     /// Indirect (indexed) draw call.
-    pub fn draw_indexed_indirect_from_host(
+    pub unsafe fn draw_indexed_indirect_from_host(
         &self,
         primitive: Primitive,
         index_ty: IndexTy,
         data: &[DrawIndexedIndirectCmd],
     ) {
-        unsafe {
-            self.0.MultiDrawElementsIndirect(
-                primitive as _,
-                index_ty as _,
-                data.as_ptr() as *const _,
-                data.len() as _,
-                mem::size_of::<DrawIndirectCmd>() as _,
-            );
-        }
+        self.0.MultiDrawElementsIndirect(
+            primitive as _,
+            index_ty as _,
+            data.as_ptr() as *const _,
+            data.len() as _,
+            mem::size_of::<DrawIndirectCmd>() as _,
+        );
     }
 
     /// Dispatch a workgroup for computation.
@@ -374,69 +361,63 @@ impl Device {
     /// # Valid usage
     ///
     /// - There must be a valid compute shader currently bound.
-    pub fn dispatch(&self, x: u32, y: u32, z: u32) {
-        unsafe {
-            self.0.DispatchCompute(x, y, z);
-        }
+    pub unsafe fn dispatch(&self, x: u32, y: u32, z: u32) {
+        self.0.DispatchCompute(x, y, z);
     }
 
     ///
-    pub fn dispatch_indirect(&self, offset: u64) {
-        unsafe {
-            self.0.DispatchComputeIndirect(offset as _);
-        }
+    pub unsafe fn dispatch_indirect(&self, offset: u64) {
+        self.0.DispatchComputeIndirect(offset as _);
     }
 
     ///
-    pub fn blit(&self, src: Framebuffer, src_region: Region, dst: Framebuffer, dst_region: Region) {
-        unsafe {
-            self.0.BlitNamedFramebuffer(
-                src.0,
-                dst.0,
-                src_region.x,
-                src_region.x,
-                src_region.w,
-                src_region.h,
-                dst_region.x,
-                dst_region.x,
-                dst_region.w,
-                dst_region.h,
-                __gl::COLOR_BUFFER_BIT,
-                __gl::LINEAR,
-            );
-        }
+    pub unsafe fn blit(
+        &self,
+        src: Framebuffer,
+        src_region: Region,
+        dst: Framebuffer,
+        dst_region: Region,
+    ) {
+        self.0.BlitNamedFramebuffer(
+            src.0,
+            dst.0,
+            src_region.x,
+            src_region.x,
+            src_region.w,
+            src_region.h,
+            dst_region.x,
+            dst_region.x,
+            dst_region.w,
+            dst_region.h,
+            __gl::COLOR_BUFFER_BIT,
+            __gl::LINEAR,
+        );
     }
 
     ///
-    pub fn draw_mesh_tasks_nv(&self, task_count: u32, first_task: u32) {
-        unsafe {
-            self.0.DrawMeshTasksNV(first_task, task_count);
-        }
+    pub unsafe fn draw_mesh_tasks_nv(&self, task_count: u32, first_task: u32) {
+        self.0.DrawMeshTasksNV(first_task, task_count);
     }
 
     ///
-    pub fn draw_mesh_tasks_indirect_nv(&self, offset: u64, draw_count: u32, stride: u32) {
-        unsafe {
-            self.0
-                .MultiDrawMeshTasksIndirectNV(offset as _, draw_count as _, stride as _);
-        }
+    pub unsafe fn draw_mesh_tasks_indirect_nv(&self, offset: u64, draw_count: u32, stride: u32) {
+        self.0
+            .MultiDrawMeshTasksIndirectNV(offset as _, draw_count as _, stride as _);
     }
 
     ///
-    pub fn draw_mesh_tasks_indirect_count_nv(
+    pub unsafe fn draw_mesh_tasks_indirect_count_nv(
         &self,
         offset: u64,
         count_buffer_offset: u64,
         max_draw_count: u32,
         stride: u32,
     ) {
-        unsafe {
-            self.0.MultiDrawMeshTasksIndirectCountNV(
-                offset as _,
-                count_buffer_offset as _,
-                max_draw_count as _,
-                stride as _,
-            );
-        }
+        self.0.MultiDrawMeshTasksIndirectCountNV(
+            offset as _,
+            count_buffer_offset as _,
+            max_draw_count as _,
+            stride as _,
+        );
     }
 }

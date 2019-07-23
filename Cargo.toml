@@ -6,6 +6,7 @@ description = "Bare metal OpenGL 4.5+ wrapper"
 homepage = "https://github.com/msiglreith/grr"
 repository = "https://github.com/msiglreith/grr"
 keywords = ["graphics"]
+edition = "2018"
 documentation = "https://docs.rs/grr"
 license = "MPL-2.0"
 exclude = [

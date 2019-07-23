@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use __gl;
-use __gl::types::{GLchar, GLenum, GLsizei, GLuint};
+use crate::__gl;
+use crate::__gl::types::{GLchar, GLenum, GLsizei, GLuint};
 
 use std::os::raw::c_void;
 use std::{ffi, mem};
 
-use debug::{self, DebugCallback, DebugReport};
+use crate::debug::{self, DebugCallback, DebugReport};
 
 /// Logical device, representation one or multiple physical devices (hardware or software).
 ///
@@ -27,14 +27,14 @@ impl Device {
     ///
     /// The context must be initialized with GL 4.5+ core profile.
     /// The passed `loader` is used to obtain the function pointers from the context.
-    pub fn new<F>(loader: F, debug: Debug<DebugCallback>) -> Self
+    pub unsafe fn new<F>(loader: F, debug: Debug<DebugCallback>) -> Self
     where
         F: FnMut(&str) -> *const c_void,
     {
         let ctxt = __gl::Gl::load_with(loader);
 
         let cb = match debug {
-            Debug::Enable { callback, flags } => unsafe {
+            Debug::Enable { callback, flags } => {
                 extern "system" fn callback_ffi(
                     source: GLenum,
                     gltype: GLenum,
@@ -79,29 +79,27 @@ impl Device {
                     None,
                 );
                 Some(Box::from_raw(cb_raw))
-            },
-            Debug::Disable => unsafe {
+            }
+            Debug::Disable => {
                 ctxt.Disable(__gl::DEBUG_OUTPUT);
                 None
-            },
+            }
         };
 
-        unsafe {
-            // Enforce sRGB frmaebuffer handling
-            ctxt.Enable(__gl::FRAMEBUFFER_SRGB);
-            // Enforce lower-left window coordinate system with [0; 1] depth range
-            ctxt.ClipControl(__gl::LOWER_LEFT, __gl::ZERO_TO_ONE);
-            // Always enable scissor testing
-            ctxt.Enable(__gl::SCISSOR_TEST);
-            ctxt.Enable(__gl::TEXTURE_CUBE_MAP_SEAMLESS);
-            ctxt.Enable(__gl::PROGRAM_POINT_SIZE);
-            ctxt.Enable(__gl::SAMPLE_MASK);
-        }
+        // Enforce sRGB frmaebuffer handling
+        ctxt.Enable(__gl::FRAMEBUFFER_SRGB);
+        // Enforce lower-left window coordinate system with [0; 1] depth range
+        ctxt.ClipControl(__gl::LOWER_LEFT, __gl::ZERO_TO_ONE);
+        // Always enable scissor testing
+        ctxt.Enable(__gl::SCISSOR_TEST);
+        ctxt.Enable(__gl::TEXTURE_CUBE_MAP_SEAMLESS);
+        ctxt.Enable(__gl::PROGRAM_POINT_SIZE);
+        ctxt.Enable(__gl::SAMPLE_MASK);
 
         Device(ctxt, cb)
     }
 
-    pub fn limits(&self) -> DeviceLimits {
+    pub unsafe fn limits(&self) -> DeviceLimits {
         DeviceLimits {
             max_compute_work_group_invocations: self
                 .get_u32(__gl::MAX_COMPUTE_WORK_GROUP_INVOCATIONS, None),
@@ -137,21 +135,19 @@ impl Device {
         }
     }
 
-    pub fn features(&self) -> DeviceFeatures {
+    pub unsafe fn features(&self) -> DeviceFeatures {
         DeviceFeatures {}
     }
 
-    fn get_u32(&self, target: GLenum, index: Option<usize>) -> u32 {
+    unsafe fn get_u32(&self, target: GLenum, index: Option<usize>) -> u32 {
         self.get_i32(target, index) as _
     }
 
-    fn get_i32(&self, target: GLenum, index: Option<usize>) -> i32 {
+    unsafe fn get_i32(&self, target: GLenum, index: Option<usize>) -> i32 {
         let mut value = 0;
-        unsafe {
-            match index {
-                Some(i) => self.0.GetIntegeri_v(target, i as _, &mut value),
-                None => self.0.GetIntegerv(target, &mut value),
-            }
+        match index {
+            Some(i) => self.0.GetIntegeri_v(target, i as _, &mut value),
+            None => self.0.GetIntegerv(target, &mut value),
         }
         value
     }
