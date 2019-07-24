@@ -78,6 +78,7 @@ mod device;
 mod error;
 mod format;
 mod framebuffer;
+mod handle;
 mod image;
 mod pipeline;
 mod query;
@@ -85,15 +86,13 @@ mod sampler;
 mod sync;
 mod vertex;
 
-pub use buffer::{Buffer, BufferRange, MappingFlags, MemoryFlags};
-pub use command::{
-    Constant, DrawIndexedIndirectCmd, DrawIndirectCmd, IndexTy, Primitive, Viewport,
-};
-pub use debug::{DebugReport, DebugSource, DebugType, Object};
-pub use device::{Debug, Device, DeviceFeatures, DeviceLimits};
-pub use error::{Error, Result};
-pub use format::{BaseFormat, Format, FormatLayout};
-pub use framebuffer::{Attachment, AttachmentView, ClearAttachment, Framebuffer, Renderbuffer};
+pub use buffer::*;
+pub use command::*;
+pub use debug::*;
+pub use device::*;
+pub use error::*;
+pub use format::*;
+pub use framebuffer::*;
 pub use image::{
     Image, ImageType, ImageView, ImageViewType, SubresourceLayout, SubresourceLevel,
     SubresourceRange,
@@ -107,6 +106,8 @@ pub use query::{ConditionalMode, Query, QueryType};
 pub use sampler::{Filter, Sampler, SamplerAddress, SamplerDesc};
 pub use sync::{Barrier, RegionBarrier};
 pub use vertex::{InputRate, VertexArray, VertexAttributeDesc, VertexBufferView, VertexFormat};
+
+pub use handle::*;
 
 ///
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
