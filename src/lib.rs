@@ -15,36 +15,36 @@
 //! A device wraps an OpenGL context which needs to be created and managed externally.
 //! The documentation and examples will all use `glutin` for window and context management.
 //!
-//! ```rust
+//! ```no_run
 //! extern crate glutin;
 //! extern crate grr;
 //!
-//! use glutin::GlContext;
-//!
-//! fn main() -> grr::Result<()> {
+//! fn main() -> Result<(), Box<std::error::Error>> {
 //!     let mut events_loop = glutin::EventsLoop::new();
-//!     let window = glutin::WindowBuilder::new()
+//!     let wb = glutin::WindowBuilder::new()
 //!         .with_title("Hello grr!")
-//!         .with_dimensions(1024, 768);
-//!     let context = glutin::ContextBuilder::new()
-//!         .with_vsync(true)
-//!         .with_srgb(true)
-//!         .with_gl_debug_flag(true);
+//!         .with_dimensions((1024.0, 768.0).into());
+//!     let window = unsafe {
+//!         glutin::ContextBuilder::new()
+//!             .with_vsync(true)
+//!             .with_srgb(true)
+//!             .with_gl_debug_flag(true)
+//!             .build_windowed(wb, &events_loop)?
+//!             .make_current()
+//!             .unwrap()
+//!     };
 //!
-//!     let window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
-//!     unsafe {
-//!         window.make_current().unwrap();
-//!     }
-//!
-//!     let grr = grr::Device::new(
-//!         |symbol| window.get_proc_address(symbol) as *const _,
-//!         grr::Debug::Enable {
-//!             callback: |_, _, _, _, msg| {
-//!                 println!("{:?}", msg);
+//!     let grr = unsafe {
+//!         grr::Device::new(
+//!             |symbol| window.get_proc_address(symbol) as *const _,
+//!             grr::Debug::Enable {
+//!                 callback: |_, _, _, _, msg| {
+//!                     println!("{:?}", msg);
+//!                 },
+//!                 flags: grr::DebugReport::all(),
 //!             },
-//!             flags: grr::DebugReport::all(),
-//!         },
-//!     );
+//!         )
+//!     };
 //!
 //!     Ok(())
 //! }

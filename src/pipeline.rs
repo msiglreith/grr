@@ -621,7 +621,9 @@ impl Device {
     ///
     /// Basic `Less-Equal` depth test with write:
     ///
-    /// ```rust
+    /// ```no_run
+    /// # unsafe {
+    /// # let grr = grr::Device::new(|_| panic!(), grr::Debug::Disable);
     /// grr.bind_depth_stencil_state(&grr::DepthStencil {
     ///     depth_test: true,
     ///     depth_write: true,
@@ -630,6 +632,7 @@ impl Device {
     ///     stencil_front: grr::StencilFace::KEEP,
     ///     stencil_back: grr::StencilFace::KEEP,
     /// });
+    /// # }
     /// ```
     pub unsafe fn bind_depth_stencil_state(&self, state: &DepthStencil) {
         if state.depth_test {
