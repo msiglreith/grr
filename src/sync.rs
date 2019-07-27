@@ -32,7 +32,7 @@ bitflags!(
         ///
         /// The barrier will ensure that writes to the texel are finished and caches
         /// have been invalidated.
-        const INPUT_ATTACHMENT_READ = 0x80000000;
+        const INPUT_ATTACHMENT_READ = 0x8000_0000;
 
 
         const ALL = __gl::ALL_BARRIER_BITS;

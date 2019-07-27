@@ -1,9 +1,18 @@
+trigger: ["master"]
+pr: ["master"]
+
 stages:
- - template: azure/stages.yml@templates
+ - stage: Lint
+   jobs:
+     - template: job-fmt.yaml@templates
+     - template: job-clippy.yaml@templates
+ - stage: Test
+   jobs:
+     - template: job-test.yaml@templates
 
 resources:
   repositories:
     - repository: templates
       type: github
-      name: crate-ci/azure-pipelines
+      name: norse-rs/azure-ci
       endpoint: msiglreith

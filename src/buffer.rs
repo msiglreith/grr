@@ -113,9 +113,10 @@ impl Device {
     /// # Return
     ///
     /// Returns a typed slice of the mapped memory range.
+     #[allow(clippy::mut_from_ref)]
     pub unsafe fn map_buffer<T>(
         &self,
-        buffer: &Buffer,
+        buffer: Buffer,
         range: Range<u64>,
         mapping: MappingFlags,
     ) -> &mut [T] {
@@ -154,7 +155,7 @@ impl Device {
     /// # Return
     ///
     /// Returns if the unmapping operation was successfull.
-    pub unsafe fn unmap_buffer(&self, buffer: &Buffer) -> bool {
+    pub unsafe fn unmap_buffer(&self, buffer: Buffer) -> bool {
         self.0.UnmapNamedBuffer(buffer.0) != 0
     }
 
@@ -171,7 +172,7 @@ impl Device {
     }
 
     /// Copy memory from the host into the buffer memory.
-    pub unsafe fn copy_host_to_buffer(&self, buffer: &Buffer, offset: isize, data: &[u8]) {
+    pub unsafe fn copy_host_to_buffer(&self, buffer: Buffer, offset: isize, data: &[u8]) {
         self.0
             .NamedBufferSubData(buffer.0, offset, data.len() as _, data.as_ptr() as *const _);
     }
@@ -179,9 +180,9 @@ impl Device {
     /// Copy data from one buffer into another buffer.
     pub unsafe fn copy_buffer(
         &self,
-        src_buffer: &Buffer,
+        src_buffer: Buffer,
         src_offset: isize,
-        dst_buffer: &Buffer,
+        dst_buffer: Buffer,
         dst_offset: isize,
         size: u64,
     ) {
@@ -257,7 +258,7 @@ impl Device {
     }
 
     /// Bind indirect buffer for draw commands.
-    pub unsafe fn bind_draw_indirect_buffer(&self, buffer: &Buffer) {
+    pub unsafe fn bind_draw_indirect_buffer(&self, buffer: Buffer) {
         self.0.BindBuffer(__gl::DRAW_INDIRECT_BUFFER, buffer.0);
     }
 
@@ -267,7 +268,7 @@ impl Device {
     }
 
     /// Bind indirect buffer for dispatch commands.
-    pub unsafe fn bind_dispatch_indirect_buffer(&self, buffer: &Buffer) {
+    pub unsafe fn bind_dispatch_indirect_buffer(&self, buffer: Buffer) {
         self.0.BindBuffer(__gl::DISPATCH_INDIRECT_BUFFER, buffer.0);
     }
 
@@ -279,7 +280,7 @@ impl Device {
     /// Bind parameter buffer for indirect commands.
     ///
     /// Required GL 4.6
-    pub unsafe fn bind_parameter_buffer(&self, buffer: &Buffer) {
+    pub unsafe fn bind_parameter_buffer(&self, buffer: Buffer) {
         self.0.BindBuffer(__gl::PARAMETER_BUFFER, buffer.0);
     }
 }

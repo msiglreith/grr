@@ -5,7 +5,7 @@
 //! Graphics and Compute pipeline
 
 use crate::__gl;
-use crate::__gl::types::GLuint;
+use crate::__gl::types::{GLint, GLuint};
 
 use crate::debug::{Object, ObjectType};
 use crate::device::Device;
@@ -408,7 +408,7 @@ impl Device {
             status
         };
 
-        if status != __gl::TRUE as _ {
+        if status != GLint::from(__gl::TRUE) {
             println!("Shader could not be compiled successfully ({:?})", stage);
         }
 
@@ -445,7 +445,7 @@ impl Device {
 
     /// Delete multiple shaders.
     pub unsafe fn delete_shaders(&self, shaders: &[Shader]) {
-        for shader in shaders.into_iter() {
+        for shader in shaders.iter() {
             self.0.DeleteShader(shader.0);
         }
     }
@@ -528,7 +528,7 @@ impl Device {
             status
         };
 
-        if status != __gl::TRUE as _ {
+        if status != GLint::from(__gl::TRUE) {
             println!("Graphics pipeline could not be linked successfully");
         }
 
@@ -558,7 +558,7 @@ impl Device {
             status
         };
 
-        if status != __gl::TRUE as _ {
+        if status != GLint::from(__gl::TRUE) {
             println!("Compute pipeline could not be linked successfully");
         }
 
@@ -579,7 +579,7 @@ impl Device {
     }
 
     /// Bind input assembly pipeline state.
-    pub unsafe fn bind_input_assembly_state(&self, state: &InputAssembly) {
+    pub unsafe fn bind_input_assembly_state(&self, state: InputAssembly) {
         match state.primitive_restart {
             Some(index) => {
                 self.0.Enable(__gl::PRIMITIVE_RESTART);
@@ -728,9 +728,10 @@ impl Device {
                     self.0.Disable(__gl::SAMPLE_SHADING);
                 }
 
-                self.0.SampleMaski(0, (state.sample_mask & 0xFFFFFFFF) as _);
                 self.0
-                    .SampleMaski(1, ((state.sample_mask >> 32) & 0xFFFFFFFF) as _);
+                    .SampleMaski(0, (state.sample_mask & 0xFFFF_FFFF) as _);
+                self.0
+                    .SampleMaski(1, ((state.sample_mask >> 32) & 0xFFFF_FFFF) as _);
 
                 if state.alpha_to_coverage {
                     self.0.Enable(__gl::SAMPLE_ALPHA_TO_COVERAGE);

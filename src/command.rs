@@ -64,8 +64,8 @@ pub enum IndexTy {
 }
 
 impl IndexTy {
-    fn size(&self) -> u32 {
-        match *self {
+    fn size(self) -> u32 {
+        match self {
             IndexTy::U8 => 1,
             IndexTy::U16 => 2,
             IndexTy::U32 => 4,
