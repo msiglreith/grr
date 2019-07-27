@@ -8,6 +8,7 @@
 [![crates.io](https://img.shields.io/crates/v/grr.svg)](https://crates.io/crates/grr)
 [![docs](https://docs.rs/grr/badge.svg)](https://docs.rs/grr)
 [![license](https://img.shields.io/badge/license-MPL%202.0-brightgreen.svg.svg)](LICENSE)
+[![Build Status](https://dev.azure.com/msiglreith/norse/_apis/build/status/grr?branchName=master)](https://dev.azure.com/msiglreith/norse/_build/latest?definitionId=1&branchName=master)
 
 ```toml
 [dependencies]

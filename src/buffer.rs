@@ -113,7 +113,7 @@ impl Device {
     /// # Return
     ///
     /// Returns a typed slice of the mapped memory range.
-     #[allow(clippy::mut_from_ref)]
+    #[allow(clippy::mut_from_ref)]
     pub unsafe fn map_buffer<T>(
         &self,
         buffer: Buffer,
