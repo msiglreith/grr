@@ -276,7 +276,13 @@ fn main() -> grr::Result<()> {
                 w: w as _,
                 h: h as _,
             };
-            swapchain.blit(present_fbo, screen, grr::Framebuffer::DEFAULT, screen);
+            swapchain.blit(
+                present_fbo,
+                screen,
+                grr::Framebuffer::DEFAULT,
+                screen,
+                grr::Filter::Linear,
+            );
             present_ctxt.swap_buffers().unwrap();
         }
 

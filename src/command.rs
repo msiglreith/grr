@@ -5,11 +5,8 @@
 //! Drawing and Dispatching related commands.
 
 use crate::__gl;
-use std::mem;
-use std::ops::Range;
-
-use crate::device::Device;
-use crate::{Framebuffer, Pipeline, Region};
+use crate::{Device, Filter, Framebuffer, Pipeline, Region};
+use std::{mem, ops::Range};
 
 /// Primitve topology.
 ///
@@ -377,6 +374,7 @@ impl Device {
         src_region: Region,
         dst: Framebuffer,
         dst_region: Region,
+        filter: Filter,
     ) {
         self.0.BlitNamedFramebuffer(
             src.0,
@@ -390,7 +388,7 @@ impl Device {
             dst_region.w,
             dst_region.h,
             __gl::COLOR_BUFFER_BIT,
-            __gl::LINEAR,
+            filter as _,
         );
     }
 
