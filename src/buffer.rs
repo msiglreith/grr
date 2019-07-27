@@ -25,8 +25,8 @@ impl Object for Buffer {
 /// Buffer Range.
 ///
 /// Specifies a subrange of a buffer resource.
-pub struct BufferRange<'a> {
-    pub buffer: &'a Buffer,
+pub struct BufferRange {
+    pub buffer: Buffer,
     pub offset: usize,
     pub size: usize,
 }
