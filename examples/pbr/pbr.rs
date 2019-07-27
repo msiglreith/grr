@@ -110,9 +110,9 @@ fn main() -> Result<(), Box<Error>> {
         let mut base_vertex = 0;
 
         let vertices_cpu =
-            grr.map_buffer::<Vertex>(&mesh_data, 0..mesh_data_len, grr::MappingFlags::empty());
+            grr.map_buffer::<Vertex>(mesh_data, 0..mesh_data_len, grr::MappingFlags::empty());
         let indices_cpu =
-            grr.map_buffer::<u32>(&index_data, 0..index_data_len, grr::MappingFlags::empty());
+            grr.map_buffer::<u32>(index_data, 0..index_data_len, grr::MappingFlags::empty());
 
         let geometries = model_scene
             .mesh_iter()
@@ -155,8 +155,8 @@ fn main() -> Result<(), Box<Error>> {
             })
             .collect::<Vec<_>>();
 
-        grr.unmap_buffer(&mesh_data);
-        grr.unmap_buffer(&index_data);
+        grr.unmap_buffer(mesh_data);
+        grr.unmap_buffer(index_data);
 
         let load_image_rgba =
             |name: &str, format: grr::Format| -> Result<(grr::Image, grr::ImageView), Box<Error>> {

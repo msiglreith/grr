@@ -8,27 +8,27 @@ use crate::device::Device;
 
 /// Message filter.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum Filter<T> {
+pub enum MsgFilter<T> {
     /// Referencing all values of the type `T`.
     All,
     ///
     Some(T),
 }
 
-impl Filter<DebugSource> {
+impl MsgFilter<DebugSource> {
     fn as_gl(self) -> GLenum {
         match self {
-            Filter::All => __gl::DONT_CARE,
-            Filter::Some(v) => v as _,
+            MsgFilter::All => __gl::DONT_CARE,
+            MsgFilter::Some(v) => v as _,
         }
     }
 }
 
-impl Filter<DebugType> {
+impl MsgFilter<DebugType> {
     fn as_gl(self) -> GLenum {
         match self {
-            Filter::All => __gl::DONT_CARE,
-            Filter::Some(v) => v as _,
+            MsgFilter::All => __gl::DONT_CARE,
+            MsgFilter::Some(v) => v as _,
         }
     }
 }
@@ -99,8 +99,8 @@ pub trait Object: Copy {
 pub(crate) unsafe fn set_debug_message_control(
     ctxt: &__gl::Gl,
     enable: bool,
-    src: Filter<DebugSource>,
-    ty: Filter<DebugType>,
+    src: MsgFilter<DebugSource>,
+    ty: MsgFilter<DebugType>,
     flags: DebugReport,
     ids: Option<&[u32]>,
 ) {
@@ -165,8 +165,8 @@ impl Device {
 
     pub unsafe fn enable_debug_message(
         &self,
-        src: Filter<DebugSource>,
-        ty: Filter<DebugType>,
+        src: MsgFilter<DebugSource>,
+        ty: MsgFilter<DebugType>,
         flags: DebugReport,
         ids: Option<&[u32]>,
     ) {
@@ -175,8 +175,8 @@ impl Device {
 
     pub unsafe fn disable_debug_message(
         &self,
-        src: Filter<DebugSource>,
-        ty: Filter<DebugType>,
+        src: MsgFilter<DebugSource>,
+        ty: MsgFilter<DebugType>,
         flags: DebugReport,
         ids: Option<&[u32]>,
     ) {

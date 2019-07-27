@@ -73,8 +73,8 @@ impl Device {
                 debug::set_debug_message_control(
                     &ctxt,
                     true,
-                    debug::Filter::All,
-                    debug::Filter::All,
+                    debug::MsgFilter::All,
+                    debug::MsgFilter::All,
                     flags,
                     None,
                 );
