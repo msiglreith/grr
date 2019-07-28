@@ -47,17 +47,12 @@ impl Device {
             .SamplerParameteri(sampler, __gl::TEXTURE_MAG_FILTER, mag_filter as _);
 
         // Texture address wrap modes
-        let (wrap_s, wrap_t, wrap_r) = (
-            map_sampler_address(desc.address.0),
-            map_sampler_address(desc.address.1),
-            map_sampler_address(desc.address.2),
-        );
         self.0
-            .SamplerParameteri(sampler, __gl::TEXTURE_WRAP_S, wrap_s as _);
+            .SamplerParameteri(sampler, __gl::TEXTURE_WRAP_S, desc.address.0 as _);
         self.0
-            .SamplerParameteri(sampler, __gl::TEXTURE_WRAP_T, wrap_t as _);
+            .SamplerParameteri(sampler, __gl::TEXTURE_WRAP_T, desc.address.1 as _);
         self.0
-            .SamplerParameteri(sampler, __gl::TEXTURE_WRAP_R, wrap_r as _);
+            .SamplerParameteri(sampler, __gl::TEXTURE_WRAP_R, desc.address.2 as _);
 
         // LOD bias
         self.0
@@ -126,10 +121,11 @@ pub struct SamplerDesc {
 }
 
 ///
+#[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Filter {
-    Nearest,
-    Linear,
+    Nearest = __gl::LINEAR,
+    Linear = __gl::NEAREST,
 }
 
 fn map_min_filter(filter: Filter, mip_map: Option<Filter>) -> GLenum {
@@ -147,26 +143,17 @@ fn map_min_filter(filter: Filter, mip_map: Option<Filter>) -> GLenum {
 ///
 /// Specifies how coordinates outide of the texture coordinate system (`[0, 1]`) are treated during
 /// sampling operations.
+#[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum SamplerAddress {
     ///
-    Repeat,
+    Repeat = __gl::REPEAT,
     ///
-    MirrorRepeat,
+    MirrorRepeat = __gl::MIRRORED_REPEAT,
     ///
-    ClampEdge,
+    ClampEdge = __gl::CLAMP_TO_EDGE,
     ///
-    ClampBorder,
+    ClampBorder = __gl::CLAMP_TO_BORDER,
     ///
-    MirrorClampEdge,
-}
-
-fn map_sampler_address(address: SamplerAddress) -> GLenum {
-    match address {
-        SamplerAddress::Repeat => __gl::REPEAT,
-        SamplerAddress::MirrorRepeat => __gl::MIRRORED_REPEAT,
-        SamplerAddress::ClampEdge => __gl::CLAMP_TO_EDGE,
-        SamplerAddress::ClampBorder => __gl::CLAMP_TO_BORDER,
-        SamplerAddress::MirrorClampEdge => __gl::MIRROR_CLAMP_TO_EDGE,
-    }
+    MirrorClampEdge = __gl::MIRROR_CLAMP_TO_EDGE,
 }
