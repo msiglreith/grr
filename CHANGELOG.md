@@ -3,6 +3,12 @@
 ### Added
 
 - Implement `std::error::Error` for `grr::Error`
+- Support for Mesh/Task shaders (NV)
+- Unbinding for indirect buffers
+
+### Changed
+- Resources are now `Copy`-able, removes references in all functions
+- Split `GraphicsPipelineDesc` into `VertexPipelineDesc` and `MeshPipelineDesc`
 
 # 0.6 (Puma)
 
