@@ -241,6 +241,11 @@ impl Device {
             .ScissorArrayv(first, scissors.len() as _, scissors_raw.as_ptr());
     }
 
+    /// Set depth bias factors.
+    pub unsafe fn set_depth_bias(&self, constant_factor: f32, slope_factor: f32) {
+        self.0.PolygonOffset(slope_factor, constant_factor);
+    }
+
     /// Submit a (non-indexed) draw call.
     ///
     /// # Valid usage
