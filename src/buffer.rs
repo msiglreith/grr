@@ -239,7 +239,7 @@ impl Device {
     /// Bind buffer ranges as shader storage buffers.
     ///
     /// Shaders can access the buffer memory as readwrite.
-    pub unsafe fn bind_shader_storage_buffers(&self, first: u32, ranges: &[BufferRange]) {
+    pub unsafe fn bind_storage_buffers(&self, first: u32, ranges: &[BufferRange]) {
         let buffers = ranges.iter().map(|view| view.buffer.0).collect::<Vec<_>>();
         let offsets = ranges
             .iter()

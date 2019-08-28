@@ -315,6 +315,13 @@ impl Device {
         self.0.BindTextures(first, views.len() as _, views.as_ptr());
     }
 
+    /// Bind image views to storage image units.
+    pub unsafe fn bind_storage_image_views(&self, first: u32, views: &[ImageView]) {
+        let views = views.iter().map(|view| view.0).collect::<Vec<_>>();
+        self.0
+            .BindImageTextures(first, views.len() as _, views.as_ptr());
+    }
+
     /// Generate mipmaps.
     ///
     /// This generates the remaining mipmap levels using the base layer
