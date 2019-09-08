@@ -110,6 +110,8 @@ pub enum Constant {
     F32(f32),
     /// 3 elements single precision floating point vector.
     Vec3([f32; 3]),
+    /// 4 elements single precision floating point vector.
+    Vec4([f32; 4]),
     /// 3x3 elements single precision floating point matrix.
     Mat3x3([[f32; 3]; 3]),
     /// 4x4 elements single precision floating point matrix.
@@ -178,6 +180,10 @@ impl Device {
                 Constant::Vec3(v) => {
                     self.0
                         .ProgramUniform3f(pipeline.0, location, v[0], v[1], v[2]);
+                }
+                Constant::Vec4(v) => {
+                    self.0
+                        .ProgramUniform4f(pipeline.0, location, v[0], v[1], v[2], v[3]);
                 }
                 Constant::Mat3x3(mat) => {
                     self.0.ProgramUniformMatrix3fv(
