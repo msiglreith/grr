@@ -28,7 +28,7 @@ const VERTICES: [f32; 15] = [
     -0.5, -0.5, 1.0, 0.0, 0.0, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 0.5, 0.0, 0.0, 1.0,
 ];
 
-fn main() -> Result<(), Box<Error>> {
+fn main() -> Result<(), Box<dyn Error>> {
     unsafe {
         let mut events_loop = glutin::EventsLoop::new();
         let wb = glutin::WindowBuilder::new()

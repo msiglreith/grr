@@ -47,7 +47,7 @@ fn max_mip_levels_2d(width: u32, height: u32) -> u32 {
     (width.max(height) as f32).log2() as u32 + 1
 }
 
-fn main() -> Result<(), Box<Error>> {
+fn main() -> Result<(), Box<dyn Error>> {
     unsafe {
         let mut events_loop = glutin::EventsLoop::new();
         let wb = glutin::WindowBuilder::new()
@@ -158,60 +158,61 @@ fn main() -> Result<(), Box<Error>> {
         grr.unmap_buffer(mesh_data);
         grr.unmap_buffer(index_data);
 
-        let load_image_rgba =
-            |name: &str, format: grr::Format| -> Result<(grr::Image, grr::ImageView), Box<Error>> {
-                let path = format!("{}/{}", base_path, name);
-                let img = image::open(&Path::new(&path)).unwrap().to_rgba();
-                let img_width = img.width();
-                let img_height = img.height();
-                let img_data = img.into_raw();
-                let num_levels = max_mip_levels_2d(img_width, img_height);
+        let load_image_rgba = |name: &str,
+                               format: grr::Format|
+         -> Result<(grr::Image, grr::ImageView), Box<dyn Error>> {
+            let path = format!("{}/{}", base_path, name);
+            let img = image::open(&Path::new(&path)).unwrap().to_rgba();
+            let img_width = img.width();
+            let img_height = img.height();
+            let img_data = img.into_raw();
+            let num_levels = max_mip_levels_2d(img_width, img_height);
 
-                let texture = grr.create_image(
-                    grr::ImageType::D2 {
-                        width: img_width,
-                        height: img_height,
-                        layers: 1,
-                        samples: 1,
-                    },
-                    format,
-                    num_levels,
-                )?;
-                grr.copy_host_to_image(
-                    texture,
-                    grr::SubresourceLevel {
-                        level: 0,
-                        layers: 0..1,
-                    },
-                    grr::Offset { x: 0, y: 0, z: 0 },
-                    grr::Extent {
-                        width: img_width,
-                        height: img_height,
-                        depth: 1,
-                    },
-                    &img_data,
-                    grr::SubresourceLayout {
-                        base_format: grr::BaseFormat::RGBA,
-                        format_layout: grr::FormatLayout::U8,
-                        row_pitch: img_width,
-                        image_height: img_height,
-                        alignment: 4,
-                    },
-                );
-                grr.generate_mipmaps(texture);
+            let texture = grr.create_image(
+                grr::ImageType::D2 {
+                    width: img_width,
+                    height: img_height,
+                    layers: 1,
+                    samples: 1,
+                },
+                format,
+                num_levels,
+            )?;
+            grr.copy_host_to_image(
+                texture,
+                grr::SubresourceLevel {
+                    level: 0,
+                    layers: 0..1,
+                },
+                grr::Offset { x: 0, y: 0, z: 0 },
+                grr::Extent {
+                    width: img_width,
+                    height: img_height,
+                    depth: 1,
+                },
+                &img_data,
+                grr::SubresourceLayout {
+                    base_format: grr::BaseFormat::RGBA,
+                    format_layout: grr::FormatLayout::U8,
+                    row_pitch: img_width,
+                    image_height: img_height,
+                    alignment: 4,
+                },
+            );
+            grr.generate_mipmaps(texture);
 
-                let view = grr.create_image_view(
-                    texture,
-                    grr::ImageViewType::D2,
-                    format,
-                    grr::SubresourceRange {
-                        layers: 0..1,
-                        levels: 0..num_levels,
-                    },
-                )?;
+            let view = grr.create_image_view(
+                texture,
+                grr::ImageViewType::D2,
+                format,
+                grr::SubresourceRange {
+                    layers: 0..1,
+                    levels: 0..num_levels,
+                },
+            )?;
 
-                Ok((texture, view))
-            };
+            Ok((texture, view))
+        };
 
         let (albedo, albedo_view) =
             load_image_rgba("Textures/Cerberus_A.tga", grr::Format::R8G8B8A8_SRGB)?;

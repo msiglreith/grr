@@ -57,7 +57,7 @@ impl Device {
                 let cb = Box::new(callback);
                 let cb_raw = Box::into_raw(cb);
                 ctxt.Enable(__gl::DEBUG_OUTPUT);
-                ctxt.DebugMessageCallback(callback_ffi, cb_raw as *mut _);
+                ctxt.DebugMessageCallback(Some(callback_ffi), cb_raw as *mut _);
                 ctxt.DebugMessageControl(
                     __gl::DONT_CARE,
                     __gl::DONT_CARE,

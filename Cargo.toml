@@ -22,13 +22,13 @@ bitflags = "1"
 assimp = "0.3"
 assimp-sys = "0.3"
 glutin = "0.21"
-image = "0.21"
+image = "0.22"
 nalgebra-glm = "0.4"
-rand = "0.6"
-ndarray = "0.12"
+rand = "0.7"
+ndarray = "0.13"
 
 [build-dependencies]
-gl_generator = "0.10"
+gl_generator = "0.14"
 
 [[example]]
 name = "device"

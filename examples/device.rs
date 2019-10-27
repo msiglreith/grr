@@ -1,4 +1,4 @@
-fn main() -> Result<(), Box<std::error::Error>> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let events_loop = glutin::EventsLoop::new();
     let context = unsafe {
         glutin::ContextBuilder::new()
