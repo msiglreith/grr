@@ -8,7 +8,7 @@ repository = "https://github.com/msiglreith/grr"
 keywords = ["graphics"]
 edition = "2018"
 documentation = "https://docs.rs/grr"
-license = "MPL-2.0"
+license = "MIT OR Apache-2.0"
 exclude = [
     "examples/*",
     "info/*",
