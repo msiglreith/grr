@@ -104,6 +104,8 @@ pub enum Constant {
     U32(u32),
     /// 32-bit single precision floating point.
     F32(f32),
+    /// 2 elements single precision floating point vector.
+    Vec2([f32; 2]),
     /// 3 elements single precision floating point vector.
     Vec3([f32; 3]),
     /// 4 elements single precision floating point vector.
@@ -172,6 +174,9 @@ impl Device {
                 }
                 Constant::F32(val) => {
                     self.0.ProgramUniform1f(pipeline.0, location, *val as _);
+                }
+                Constant::Vec2(v) => {
+                    self.0.ProgramUniform2f(pipeline.0, location, v[0], v[1]);
                 }
                 Constant::Vec3(v) => {
                     self.0
