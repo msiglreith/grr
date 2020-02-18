@@ -47,6 +47,12 @@ pub enum QueryType {
     ComputeShaderInvocations = __gl::COMPUTE_SHADER_INVOCATIONS,
 }
 
+bitflags!(
+    pub struct QueryResultFlags: u8 {
+        const WAIT = 0x1;
+    }
+);
+
 ///
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -65,6 +71,7 @@ pub enum ConditionalMode {
     WaitByRegionInverted = __gl::QUERY_BY_REGION_WAIT_INVERTED,
 }
 
+#[derive(Clone, Copy)]
 pub struct Query {
     raw: GLuint,
     ty: QueryType,
@@ -77,7 +84,7 @@ impl Device {
         Query { raw: query, ty }
     }
 
-    pub unsafe fn begin_query(&self, query: &Query) {
+    pub unsafe fn begin_query(&self, query: Query) {
         let index = match query.ty {
             _ => 0,
         };
@@ -85,7 +92,7 @@ impl Device {
         self.0.BeginQueryIndexed(query.ty as _, index, query.raw);
     }
 
-    pub unsafe fn end_query(&self, query: &Query) {
+    pub unsafe fn end_query(&self, query: Query) {
         let index = match query.ty {
             _ => 0,
         };
@@ -93,11 +100,33 @@ impl Device {
         self.0.EndQueryIndexed(query.ty as _, index);
     }
 
-    pub unsafe fn write_timestamp(&self, query: &Query) {
+    pub unsafe fn write_timestamp(&self, query: Query) {
         self.0.QueryCounter(query.raw, __gl::TIMESTAMP);
     }
 
-    pub unsafe fn begin_conditional_rendering(&self, query: &Query, mode: ConditionalMode) {
+    pub unsafe fn get_query_result_u32(&self, query: Query, flags: QueryResultFlags) -> u32 {
+        let mut result = 0;
+        let flags = if flags.contains(QueryResultFlags::WAIT) {
+            __gl::QUERY_RESULT
+        } else {
+            __gl::QUERY_RESULT_NO_WAIT
+        };
+        self.0.GetQueryObjectuiv(query.raw, flags, &mut result);
+        result
+    }
+
+    pub unsafe fn get_query_result_u64(&self, query: Query, flags: QueryResultFlags) -> u64 {
+        let mut result = 0;
+        let flags = if flags.contains(QueryResultFlags::WAIT) {
+            __gl::QUERY_RESULT
+        } else {
+            __gl::QUERY_RESULT_NO_WAIT
+        };
+        self.0.GetQueryObjectui64v(query.raw, flags, &mut result);
+        result
+    }
+
+    pub unsafe fn begin_conditional_rendering(&self, query: Query, mode: ConditionalMode) {
         self.0.BeginConditionalRender(query.raw, mode as _);
     }
 
