@@ -361,7 +361,7 @@ impl Device {
             index_ty as _,
             data.as_ptr() as *const _,
             data.len() as _,
-            mem::size_of::<DrawIndirectCmd>() as _,
+            mem::size_of::<DrawIndexedIndirectCmd>() as _,
         );
     }
 

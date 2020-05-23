@@ -96,7 +96,7 @@ impl Device {
     }
 
     /// Return the underlying context for the device
-    pub fn context(&self) -> &__gl::Gl {
+    pub unsafe fn context(&self) -> &__gl::Gl {
         &self.0
     }
 
