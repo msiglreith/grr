@@ -95,6 +95,11 @@ impl Device {
         Device(ctxt, cb)
     }
 
+    /// Return the underlying context for the device
+    pub fn context(&self) -> &__gl::Gl {
+        &self.0
+    }
+
     pub unsafe fn limits(&self) -> DeviceLimits {
         DeviceLimits {
             max_compute_work_group_invocations: self
