@@ -13,7 +13,7 @@ use std::{error, fmt, result};
 /// or indicate driver or implementation issues.
 ///
 /// API validation is provided by the debug functionality on device creation.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Error {
     OutOfMemory,
 }
