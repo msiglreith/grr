@@ -9,7 +9,7 @@
 [![docs](https://docs.rs/grr/badge.svg)](https://docs.rs/grr)
 [![license-mit](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](LICENSE-MIT)
 [![license-apache2](https://img.shields.io/badge/license-APACHE2-green.svg?style=flat-square)](LICENSE-Apache2)
-[![Build Status](https://dev.azure.com/msiglreith/norse/_apis/build/status/grr?branchName=master)](https://dev.azure.com/msiglreith/norse/_build/latest?definitionId=1&branchName=master)
+[![Build Status](https://github.com/msiglreith/grr/workflows/ci/badge.svg?style=flat)](https://github.com/msiglreith/grr/actions)
 
 ```toml
 [dependencies]
