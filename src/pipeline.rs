@@ -75,7 +75,15 @@ pub enum ShaderStage {
 bitflags!(
     /// Shader compilation flags.
     pub struct ShaderFlags: u8 {
-        /// Send compilation errors to stdout.
+        /// Write compilation errors to stdout.
+        const VERBOSE = 0x1;
+    }
+);
+
+bitflags!(
+    /// Pipeline link flags.
+    pub struct PipelineFlags: u8 {
+        /// Write link errors to stdout.
         const VERBOSE = 0x1;
     }
 );
@@ -381,7 +389,7 @@ impl Device {
 
         if status != GLint::from(__gl::TRUE) {
             //self.0.DeleteShader(shader);
-            return Err(Error::CompileError(Some(shader)));
+            return Err(Error::CompileError(shader));
         }
 
         Ok(shader)
@@ -409,7 +417,7 @@ impl Device {
         }
 
         match shader {
-            Ok(s) | Err(Error::CompileError(Some(s))) => {
+            Ok(s) | Err(Error::CompileError(s)) => {
                 if shader.is_err() {
                     println!("Shader could not be compiled successfully ({:?})", stage);
                 }
@@ -418,14 +426,14 @@ impl Device {
                 if let Some(msg) = log {
                     println!("Shader Info Log: {}", msg);
                 }
-            },
+            }
             _ => {}
         }
 
         shader
     }
 
-    /// Return the compilation result of compiling a shader.
+    /// Return the log, if any, from compiling the shader.
     pub unsafe fn get_shader_log(&self, shader: Shader) -> Option<String> {
         let mut len = {
             let mut len = 0;
@@ -463,64 +471,23 @@ impl Device {
     ///
     /// - Ok(log) if the link was successful.
     /// - Err(log) if the link failed.
-    pub unsafe fn get_pipeline_log(
-        &self,
-        pipeline: Pipeline,
-    ) -> std::result::Result<String, String> {
-        let status = {
-            let mut status = 0;
+    pub unsafe fn get_pipeline_log(&self, pipeline: Pipeline) -> Option<String> {
+        let mut len = {
+            let mut len = 0;
             self.0
-                .GetProgramiv(pipeline.0, __gl::LINK_STATUS, &mut status);
-            status
+                .GetProgramiv(pipeline.0, __gl::INFO_LOG_LENGTH, &mut len);
+            len
         };
 
-        let is_success = status == GLint::from(__gl::TRUE);
-
-        let log = {
-            let mut len = {
-                let mut len = 0;
-                self.0
-                    .GetProgramiv(pipeline.0, __gl::INFO_LOG_LENGTH, &mut len);
-                len
-            };
-
-            if len > 0 {
-                let mut log = String::with_capacity(len as usize);
-                log.extend(std::iter::repeat('\0').take(len as usize));
-                self.0
-                    .GetProgramInfoLog(pipeline.0, len, &mut len, (&log[..]).as_ptr() as *mut _);
-                log.truncate(len as usize);
-                log
-            } else {
-                String::new()
-            }
-        };
-
-        if is_success {
-            Ok(log)
+        if len > 0 {
+            let mut log = String::with_capacity(len as usize);
+            log.extend(std::iter::repeat('\0').take(len as usize));
+            self.0
+                .GetProgramInfoLog(pipeline.0, len, &mut len, (&log[..]).as_ptr() as *mut _);
+            log.truncate(len as usize);
+            Some(log)
         } else {
-            Err(log)
-        }
-    }
-
-    /// Print when the previous link failed or if there is information
-    /// in the log from the last link operation.
-    unsafe fn check_pipeline_log(&self, pipeline: Pipeline, pipeline_name: &str) {
-        let pipeline_log = self.get_pipeline_log(pipeline);
-
-        if pipeline_log.is_err() {
-            println!(
-                "{} pipeline could not be linked successfully",
-                pipeline_name
-            );
-        }
-
-        match pipeline_log {
-            Ok(log) | Err(log) => {
-                if !log.is_empty() {
-                    println!("Pipeline Info Log: {}", log);
-                }
-            }
+            None
         }
     }
 
@@ -539,65 +506,30 @@ impl Device {
     ///   `ShaderStage::Geometry` if specified.
     /// - The fragment shader in `desc` must be valid and created with
     ///   `ShaderStage::Fragment` if specified.
-    pub unsafe fn create_graphics_pipeline<D>(&self, desc: D) -> Result<Pipeline>
+    pub unsafe fn create_graphics_pipeline<D>(
+        &self,
+        desc: D,
+        flags: PipelineFlags,
+    ) -> Result<Pipeline>
     where
         D: Into<GraphicsPipelineDesc>,
     {
         let desc = desc.into();
-        let pipeline = self.0.CreateProgram();
-        self.get_error()?;
 
-        // Attach
-        if let Some(vs) = desc.vertex_shader {
-            self.0.AttachShader(pipeline, vs.0);
-        }
-        if let Some(tsc) = desc.tessellation_control_shader {
-            self.0.AttachShader(pipeline, tsc.0);
-        }
-        if let Some(tse) = desc.tessellation_evaluation_shader {
-            self.0.AttachShader(pipeline, tse.0);
-        }
-        if let Some(geometry) = desc.geometry_shader {
-            self.0.AttachShader(pipeline, geometry.0);
-        }
-        if let Some(fragment) = desc.fragment_shader {
-            self.0.AttachShader(pipeline, fragment.0);
-        }
-        if let Some(ms) = desc.mesh_shader {
-            self.0.AttachShader(pipeline, ms.0);
-        }
-        if let Some(ts) = desc.task_shader {
-            self.0.AttachShader(pipeline, ts.0);
-        }
+        let shaders: Vec<_> = [
+            desc.vertex_shader,
+            desc.tessellation_control_shader,
+            desc.tessellation_evaluation_shader,
+            desc.geometry_shader,
+            desc.fragment_shader,
+            desc.mesh_shader,
+            desc.task_shader,
+        ]
+        .iter()
+        .filter_map(|&x| x)
+        .collect();
 
-        self.0.LinkProgram(pipeline);
-
-        // Detach
-        if let Some(vs) = desc.vertex_shader {
-            self.0.DetachShader(pipeline, vs.0);
-        }
-        if let Some(tsc) = desc.tessellation_control_shader {
-            self.0.DetachShader(pipeline, tsc.0);
-        }
-        if let Some(tse) = desc.tessellation_evaluation_shader {
-            self.0.DetachShader(pipeline, tse.0);
-        }
-        if let Some(geometry) = desc.geometry_shader {
-            self.0.DetachShader(pipeline, geometry.0);
-        }
-        if let Some(fragment) = desc.fragment_shader {
-            self.0.DetachShader(pipeline, fragment.0);
-        }
-        if let Some(ms) = desc.mesh_shader {
-            self.0.DetachShader(pipeline, ms.0);
-        }
-        if let Some(ts) = desc.task_shader {
-            self.0.DetachShader(pipeline, ts.0);
-        }
-
-        let p = Pipeline(pipeline);
-        self.check_pipeline_log(p, "Graphics");
-        Ok(p)
+        self.create_pipeline(&shaders, flags)
     }
 
     /// Create a compute pipeline.
@@ -607,17 +539,12 @@ impl Device {
     /// # Valid usage
     ///
     /// - The compute shader in must be valid and created with `ShaderStage::Compute`.
-    pub unsafe fn create_compute_pipeline(&self, compute_shader: Shader) -> Result<Pipeline> {
-        let pipeline = self.0.CreateProgram();
-        self.get_error()?;
-
-        self.0.AttachShader(pipeline, compute_shader.0);
-        self.0.LinkProgram(pipeline);
-        self.0.DetachShader(pipeline, compute_shader.0);
-
-        let p = Pipeline(pipeline);
-        self.check_pipeline_log(p, "Compute");
-        Ok(p)
+    pub unsafe fn create_compute_pipeline(
+        &self,
+        compute_shader: Shader,
+        flags: PipelineFlags,
+    ) -> Result<Pipeline> {
+        self.create_pipeline(&[compute_shader], flags)
     }
 
     /// Create a generic pipeline with an arbitrary list of shaders.
@@ -626,20 +553,56 @@ impl Device {
     ///
     /// # Valid usage
     ///
-    /// - The set of shaders of must be mutually compatible.
-    pub unsafe fn create_pipeline(&self, shaders: &[Shader]) -> Result<Pipeline> {
+    /// - The shaders must all be valid.
+    /// - The shader stages must be mutually compatible.
+    pub unsafe fn create_pipeline(
+        &self,
+        shaders: &[Shader],
+        flags: PipelineFlags,
+    ) -> Result<Pipeline> {
         let pipeline = self.0.CreateProgram();
         self.get_error()?;
 
-        for s in shaders {
-            self.0.AttachShader(pipeline, s.0);
+        for shader in shaders {
+            self.0.AttachShader(pipeline, shader.0);
         }
         self.0.LinkProgram(pipeline);
-        for s in shaders {
-            self.0.DetachShader(pipeline, s.0);
+        for shader in shaders {
+            self.0.DetachShader(pipeline, shader.0);
         }
 
-        Ok(Pipeline(pipeline))
+        let pipeline_result = {
+            let status = {
+                let mut status = 0;
+                self.0
+                    .GetProgramiv(pipeline, __gl::LINK_STATUS, &mut status);
+                status
+            };
+
+            if status == GLint::from(__gl::TRUE) {
+                Ok(Pipeline(pipeline))
+            } else {
+                Err(Error::LinkError(Pipeline(pipeline)))
+            }
+        };
+
+        if !flags.contains(PipelineFlags::VERBOSE) {
+            return pipeline_result;
+        }
+
+        match pipeline_result {
+            Ok(p) | Err(Error::LinkError(p)) => {
+                if pipeline_result.is_err() {
+                    println!("Pipeline could not be linked.");
+                }
+                if let Some(msg) = self.get_pipeline_log(p) {
+                    println!("Pipeline Info Log: {}", msg);
+                }
+            }
+            _ => {}
+        }
+
+        pipeline_result
     }
 
     /// Delete a pipeline.
