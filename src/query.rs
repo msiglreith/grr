@@ -85,6 +85,7 @@ impl Device {
     }
 
     pub unsafe fn begin_query(&self, query: Query) {
+        #[allow(clippy::match_single_binding)]
         let index = match query.ty {
             _ => 0,
         };
@@ -93,6 +94,7 @@ impl Device {
     }
 
     pub unsafe fn end_query(&self, query: Query) {
+        #[allow(clippy::match_single_binding)]
         let index = match query.ty {
             _ => 0,
         };
