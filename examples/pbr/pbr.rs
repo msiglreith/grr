@@ -243,19 +243,24 @@ fn main() -> Result<(), Box<dyn Error>> {
         let pbr_vs = grr.create_shader(
             grr::ShaderStage::Vertex,
             include_bytes!("assets/Shaders/pbr.vs"),
+            grr::ShaderFlags::VERBOSE,
         )?;
         let pbr_fs = grr.create_shader(
             grr::ShaderStage::Fragment,
             include_bytes!("assets/Shaders/pbr.fs"),
+            grr::ShaderFlags::VERBOSE,
         )?;
 
-        let pbr_pipeline = grr.create_graphics_pipeline(grr::VertexPipelineDesc {
-            vertex_shader: pbr_vs,
-            tessellation_control_shader: None,
-            tessellation_evaluation_shader: None,
-            geometry_shader: None,
-            fragment_shader: Some(pbr_fs),
-        })?;
+        let pbr_pipeline = grr.create_graphics_pipeline(
+            grr::VertexPipelineDesc {
+                vertex_shader: pbr_vs,
+                tessellation_control_shader: None,
+                tessellation_evaluation_shader: None,
+                geometry_shader: None,
+                fragment_shader: Some(pbr_fs),
+            },
+            grr::PipelineFlags::VERBOSE,
+        )?;
 
         let pbr_vertex_array = grr.create_vertex_array(&[
             grr::VertexAttributeDesc {
@@ -493,19 +498,24 @@ fn main() -> Result<(), Box<dyn Error>> {
         let cubemap_proj_vs = grr.create_shader(
             grr::ShaderStage::Vertex,
             include_bytes!("assets/Shaders/cubemap.vs"),
+            grr::ShaderFlags::VERBOSE,
         )?;
         let cubemap_proj_fs = grr.create_shader(
             grr::ShaderStage::Fragment,
             include_bytes!("assets/Shaders/cubemap_proj.fs"),
+            grr::ShaderFlags::VERBOSE,
         )?;
 
-        let cubemap_proj_pipeline = grr.create_graphics_pipeline(grr::VertexPipelineDesc {
-            vertex_shader: cubemap_proj_vs,
-            tessellation_control_shader: None,
-            tessellation_evaluation_shader: None,
-            geometry_shader: None,
-            fragment_shader: Some(cubemap_proj_fs),
-        })?;
+        let cubemap_proj_pipeline = grr.create_graphics_pipeline(
+            grr::VertexPipelineDesc {
+                vertex_shader: cubemap_proj_vs,
+                tessellation_control_shader: None,
+                tessellation_evaluation_shader: None,
+                geometry_shader: None,
+                fragment_shader: Some(cubemap_proj_fs),
+            },
+            grr::PipelineFlags::VERBOSE,
+        )?;
 
         grr.bind_framebuffer(env_proj_fbo);
         grr.set_color_attachments(env_proj_fbo, &[0]);
@@ -569,19 +579,24 @@ fn main() -> Result<(), Box<dyn Error>> {
         let brdf_integration_vs = grr.create_shader(
             grr::ShaderStage::Vertex,
             include_bytes!("assets/Shaders/brdf_integration.vs"),
+            grr::ShaderFlags::VERBOSE,
         )?;
         let brdf_integration_fs = grr.create_shader(
             grr::ShaderStage::Fragment,
             include_bytes!("assets/Shaders/brdf_integration.fs"),
+            grr::ShaderFlags::VERBOSE,
         )?;
 
-        let brdf_integration_pipeline = grr.create_graphics_pipeline(grr::VertexPipelineDesc {
-            vertex_shader: brdf_integration_vs,
-            tessellation_control_shader: None,
-            tessellation_evaluation_shader: None,
-            geometry_shader: None,
-            fragment_shader: Some(brdf_integration_fs),
-        })?;
+        let brdf_integration_pipeline = grr.create_graphics_pipeline(
+            grr::VertexPipelineDesc {
+                vertex_shader: brdf_integration_vs,
+                tessellation_control_shader: None,
+                tessellation_evaluation_shader: None,
+                geometry_shader: None,
+                fragment_shader: Some(brdf_integration_fs),
+            },
+            grr::PipelineFlags::VERBOSE,
+        )?;
 
         let brdf_lut = grr.create_image(
             grr::ImageType::D2 {
@@ -655,19 +670,24 @@ fn main() -> Result<(), Box<dyn Error>> {
         let env_irradiance_vs = grr.create_shader(
             grr::ShaderStage::Vertex,
             include_bytes!("assets/Shaders/cubemap.vs"),
+            grr::ShaderFlags::VERBOSE,
         )?;
         let env_irradiance_fs = grr.create_shader(
             grr::ShaderStage::Fragment,
             include_bytes!("assets/Shaders/cubemap_irradiance.fs"),
+            grr::ShaderFlags::VERBOSE,
         )?;
 
-        let env_irradiance_pipeline = grr.create_graphics_pipeline(grr::VertexPipelineDesc {
-            vertex_shader: env_irradiance_vs,
-            tessellation_control_shader: None,
-            tessellation_evaluation_shader: None,
-            geometry_shader: None,
-            fragment_shader: Some(env_irradiance_fs),
-        })?;
+        let env_irradiance_pipeline = grr.create_graphics_pipeline(
+            grr::VertexPipelineDesc {
+                vertex_shader: env_irradiance_vs,
+                tessellation_control_shader: None,
+                tessellation_evaluation_shader: None,
+                geometry_shader: None,
+                fragment_shader: Some(env_irradiance_fs),
+            },
+            grr::PipelineFlags::VERBOSE,
+        )?;
 
         let env_irradiance_size = 32;
         let env_irradiance = grr.create_image(
@@ -767,19 +787,24 @@ fn main() -> Result<(), Box<dyn Error>> {
         let env_prefilter_vs = grr.create_shader(
             grr::ShaderStage::Vertex,
             include_bytes!("assets/Shaders/cubemap.vs"),
+            grr::ShaderFlags::VERBOSE,
         )?;
         let env_prefilter_fs = grr.create_shader(
             grr::ShaderStage::Fragment,
             include_bytes!("assets/Shaders/cubemap_specular_filtered.fs"),
+            grr::ShaderFlags::VERBOSE,
         )?;
 
-        let env_prefilter_pipeline = grr.create_graphics_pipeline(grr::VertexPipelineDesc {
-            vertex_shader: env_prefilter_vs,
-            tessellation_control_shader: None,
-            tessellation_evaluation_shader: None,
-            geometry_shader: None,
-            fragment_shader: Some(env_prefilter_fs),
-        })?;
+        let env_prefilter_pipeline = grr.create_graphics_pipeline(
+            grr::VertexPipelineDesc {
+                vertex_shader: env_prefilter_vs,
+                tessellation_control_shader: None,
+                tessellation_evaluation_shader: None,
+                geometry_shader: None,
+                fragment_shader: Some(env_prefilter_fs),
+            },
+            grr::PipelineFlags::VERBOSE,
+        )?;
 
         let num_prefiltered_levels = 5;
         let env_prefiltered_size = 128;
@@ -898,19 +923,24 @@ fn main() -> Result<(), Box<dyn Error>> {
         let skybox_vs = grr.create_shader(
             grr::ShaderStage::Vertex,
             include_bytes!("assets/Shaders/cubemap.vs"),
+            grr::ShaderFlags::VERBOSE,
         )?;
         let skybox_fs = grr.create_shader(
             grr::ShaderStage::Fragment,
             include_bytes!("assets/Shaders/skybox.fs"),
+            grr::ShaderFlags::VERBOSE,
         )?;
 
-        let skybox_pipeline = grr.create_graphics_pipeline(grr::VertexPipelineDesc {
-            vertex_shader: skybox_vs,
-            tessellation_control_shader: None,
-            tessellation_evaluation_shader: None,
-            geometry_shader: None,
-            fragment_shader: Some(skybox_fs),
-        })?;
+        let skybox_pipeline = grr.create_graphics_pipeline(
+            grr::VertexPipelineDesc {
+                vertex_shader: skybox_vs,
+                tessellation_control_shader: None,
+                tessellation_evaluation_shader: None,
+                geometry_shader: None,
+                fragment_shader: Some(skybox_fs),
+            },
+            grr::PipelineFlags::VERBOSE,
+        )?;
 
         // Scene description
         let mut camera =

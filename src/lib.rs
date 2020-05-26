@@ -62,6 +62,8 @@
 //! * **Vertex Array**: Specifies the vertex attributes and bindings for the input assembler stage. Buffers are bound to a [`VertexArray`](struct.VertexArray.html)
 //!       to declare the memory region to fetch attribute data from.
 
+#![allow(clippy::missing_safety_doc)]
+
 #[macro_use]
 extern crate bitflags;
 

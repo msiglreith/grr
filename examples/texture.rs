@@ -69,16 +69,27 @@ fn main() -> grr::Result<()> {
             },
         );
 
-        let vs = grr.create_shader(grr::ShaderStage::Vertex, VERTEX_SRC.as_bytes())?;
-        let fs = grr.create_shader(grr::ShaderStage::Fragment, FRAGMENT_SRC.as_bytes())?;
+        let vs = grr.create_shader(
+            grr::ShaderStage::Vertex,
+            VERTEX_SRC.as_bytes(),
+            grr::ShaderFlags::VERBOSE,
+        )?;
+        let fs = grr.create_shader(
+            grr::ShaderStage::Fragment,
+            FRAGMENT_SRC.as_bytes(),
+            grr::ShaderFlags::VERBOSE,
+        )?;
 
-        let pipeline = grr.create_graphics_pipeline(grr::VertexPipelineDesc {
-            vertex_shader: vs,
-            tessellation_control_shader: None,
-            tessellation_evaluation_shader: None,
-            geometry_shader: None,
-            fragment_shader: Some(fs),
-        })?;
+        let pipeline = grr.create_graphics_pipeline(
+            grr::VertexPipelineDesc {
+                vertex_shader: vs,
+                tessellation_control_shader: None,
+                tessellation_evaluation_shader: None,
+                geometry_shader: None,
+                fragment_shader: Some(fs),
+            },
+            grr::PipelineFlags::VERBOSE,
+        )?;
 
         let vertex_array = grr.create_vertex_array(&[
             grr::VertexAttributeDesc {
