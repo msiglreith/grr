@@ -5,7 +5,7 @@ use crate::__gl::types::{GLint, GLuint};
 
 use crate::debug::{Object, ObjectType};
 use crate::device::Device;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::Compare;
 
 /// Shader.
@@ -24,7 +24,7 @@ use crate::Compare;
 /// via an built-in compiler. Beside the shader representation in text form (GLSL) with GL 4.6 comes also support
 /// for the binary SPIR-V format.
 #[repr(transparent)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Shader(GLuint);
 
 impl Object for Shader {
@@ -38,7 +38,7 @@ impl Object for Shader {
 ///
 /// Specifies how draw or dispatch commands are executed.
 #[repr(transparent)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Pipeline(pub(crate) GLuint);
 
 impl Object for Pipeline {
@@ -71,6 +71,14 @@ pub enum ShaderStage {
     /// Task stage (NVIDIA).
     TaskNv,
 }
+
+bitflags!(
+    /// Shader compilation flags.
+    pub struct ShaderFlags: u8 {
+        /// Send compilation errors to stdout.
+        const VERBOSE = 0x1;
+    }
+);
 
 /// Graphics Pipeline Descriptor.
 ///
@@ -338,14 +346,8 @@ pub struct Multisample {
 }
 
 impl Device {
-    /// Compile a new shader from GLSL, silently.
-    ///
-    /// # Valid usage
-    ///
-    /// - `source` must be a NULL-terminated C-String.
-    /// - The GLSL shader version must be `450 core` or higher.
-    /// - The `stage` parameter must be a valid stage of the passed shader source.
-    pub unsafe fn compile_shader(&self, stage: ShaderStage, source: &[u8]) -> Result<Shader> {
+    /// Compile a new shader from GLSL, returning the shader object iff compilation was successful.
+    unsafe fn compile_shader(&self, stage: ShaderStage, source: &[u8]) -> Result<Shader> {
         let stage = match stage {
             ShaderStage::Vertex => __gl::VERTEX_SHADER,
             ShaderStage::TessellationControl => __gl::TESS_CONTROL_SHADER,
@@ -368,10 +370,21 @@ impl Device {
             );
             self.0.CompileShader(shader);
 
-            shader
+            Shader(shader)
+        };
+        let status = {
+            let mut status = 0;
+            self.0
+                .GetShaderiv(shader.0, __gl::COMPILE_STATUS, &mut status);
+            status
         };
 
-        Ok(Shader(shader))
+        if status != GLint::from(__gl::TRUE) {
+            //self.0.DeleteShader(shader);
+            return Err(Error::CompileError(Some(shader)));
+        }
+
+        Ok(shader)
     }
 
     /// Create a new shader from GLSL.
@@ -381,58 +394,55 @@ impl Device {
     /// - `source` must be a NULL-terminated C-String.
     /// - The GLSL shader version must be `450 core` or higher.
     /// - The `stage` parameter must be a valid stage of the passed shader source.
-    pub unsafe fn create_shader(&self, stage: ShaderStage, source: &[u8]) -> Result<Shader> {
-        let shader = self.compile_shader(stage, source)?;
+    pub unsafe fn create_shader(
+        &self,
+        stage: ShaderStage,
+        source: &[u8],
+        flags: ShaderFlags,
+    ) -> Result<Shader> {
+        let shader = self.compile_shader(stage, source);
 
-        let log = self.get_shader_compile_log(shader);
-        if log.is_err() {
-            println!("Shader could not be compiled successfully ({:?})", stage);
+        // If we're not in a verbose mode, just return the result of
+        // the shader compilation.
+        if !(flags.contains(ShaderFlags::VERBOSE)) {
+            return shader;
         }
-        match log {
-            Ok(s) | Err(s) => {
-                if !s.is_empty() {
-                    println!("Shader Info Log: {}", s);
+
+        match shader {
+            Ok(s) | Err(Error::CompileError(Some(s))) => {
+                if shader.is_err() {
+                    println!("Shader could not be compiled successfully ({:?})", stage);
                 }
-            }
+
+                let log = self.get_shader_log(s);
+                if let Some(msg) = log {
+                    println!("Shader Info Log: {}", msg);
+                }
+            },
+            _ => {}
         }
 
-        Ok(shader)
+        shader
     }
 
     /// Return the compilation result of compiling a shader.
-    pub unsafe fn get_shader_compile_log(&self, shader: Shader) -> std::result::Result<String, String> {
-        let status = {
-            let mut status = 0;
+    pub unsafe fn get_shader_log(&self, shader: Shader) -> Option<String> {
+        let mut len = {
+            let mut len = 0;
             self.0
-                .GetShaderiv(shader.0, __gl::COMPILE_STATUS, &mut status);
-            status
+                .GetShaderiv(shader.0, __gl::INFO_LOG_LENGTH, &mut len);
+            len
         };
 
-        let success = status == GLint::from(__gl::TRUE);
-
-        let log = {
-            let mut len = {
-                let mut len = 0;
-                self.0.GetShaderiv(shader.0, __gl::INFO_LOG_LENGTH, &mut len);
-                len
-            };
-
-            if len > 0 {
-                let mut log = String::with_capacity(len as usize);
-                log.extend(std::iter::repeat('\0').take(len as usize));
-                self.0
-                    .GetShaderInfoLog(shader.0, len, &mut len, (&log[..]).as_ptr() as *mut _);
-                log.truncate(len as usize);
-                log
-            } else {
-                String::new()
-            }
-        };
-
-        if success {
-            Ok(log)
+        if len > 0 {
+            let mut log = String::with_capacity(len as usize);
+            log.extend(std::iter::repeat('\0').take(len as usize));
+            self.0
+                .GetShaderInfoLog(shader.0, len, &mut len, (&log[..]).as_ptr() as *mut _);
+            log.truncate(len as usize);
+            Some(log)
         } else {
-            Err(log)
+            None
         }
     }
 
@@ -453,7 +463,10 @@ impl Device {
     ///
     /// - Ok(log) if the link was successful.
     /// - Err(log) if the link failed.
-    pub unsafe fn get_pipeline_log(&self, pipeline: Pipeline) -> std::result::Result<String, String> {
+    pub unsafe fn get_pipeline_log(
+        &self,
+        pipeline: Pipeline,
+    ) -> std::result::Result<String, String> {
         let status = {
             let mut status = 0;
             self.0
@@ -461,7 +474,7 @@ impl Device {
             status
         };
 
-        let is_success =  status == GLint::from(__gl::TRUE);
+        let is_success = status == GLint::from(__gl::TRUE);
 
         let log = {
             let mut len = {
@@ -483,17 +496,23 @@ impl Device {
             }
         };
 
-        if is_success { Ok(log) } else { Err(log) }
+        if is_success {
+            Ok(log)
+        } else {
+            Err(log)
+        }
     }
 
     /// Print when the previous link failed or if there is information
     /// in the log from the last link operation.
-    unsafe fn check_pipeline_log(&self, pipeline: Pipeline, pipeline_name: &str)  {
+    unsafe fn check_pipeline_log(&self, pipeline: Pipeline, pipeline_name: &str) {
         let pipeline_log = self.get_pipeline_log(pipeline);
 
-
         if pipeline_log.is_err() {
-            println!("{} pipeline could not be linked successfully", pipeline_name);
+            println!(
+                "{} pipeline could not be linked successfully",
+                pipeline_name
+            );
         }
 
         match pipeline_log {

@@ -3,6 +3,7 @@
 use crate::__gl;
 
 use crate::device::Device;
+use crate::pipeline::Shader;
 use std::{error, fmt, result};
 
 /// Error return codes
@@ -16,6 +17,9 @@ use std::{error, fmt, result};
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     OutOfMemory,
+
+    /// Shader compilation failure.
+    CompileError(Option<Shader>),
 }
 
 /// A specialized Result type for `grr` operations.
@@ -37,6 +41,7 @@ impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> result::Result<(), fmt::Error> {
         match *self {
             Error::OutOfMemory => write!(fmt, "OutOfMemory"),
+            Error::CompileError(_) => write!(fmt, "CompileError")
         }
     }
 }
