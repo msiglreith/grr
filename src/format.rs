@@ -11,7 +11,41 @@ pub enum Format {
     R16G16B16_SFLOAT = __gl::RGB16F,
     R16G16B16A16_SFLOAT = __gl::RGBA16F,
     D32_SFLOAT = __gl::DEPTH_COMPONENT32F,
+    R32F = __gl::R32F,
+    RG32F = __gl::RG32F,
+    RGB32F = __gl::RGB32F,
+    RGBA32F = __gl::RGBA32F,
     // TODO
+}
+
+impl Format {
+    /// Return the number of components of the pixel format.
+    pub fn num_components(&self) -> u32 {
+        use Format::*;
+        match self {
+            R8_UNORM | D32_SFLOAT | R32F => 1,
+            R16G16_SFLOAT | RG32F => 2,
+            R16G16B16_SFLOAT | RGB32F => 3,
+            R8G8B8A8_SRGB | R8G8B8A8_UNORM | RGBA32F | R16G16B16A16_SFLOAT => 4,
+        }
+    }
+
+    /// Return the corresponding base format for this format.
+    pub fn base_format(&self) -> BaseFormat {
+        match self {
+            Format::R8_UNORM => BaseFormat::R,
+            Format::R8G8B8A8_SRGB => BaseFormat::RGBA,
+            Format::R8G8B8A8_UNORM => BaseFormat::RGBA,
+            Format::R16G16_SFLOAT => BaseFormat::RG,
+            Format::R16G16B16_SFLOAT => BaseFormat::RGB,
+            Format::R16G16B16A16_SFLOAT => BaseFormat::RGBA,
+            Format::D32_SFLOAT => BaseFormat::Depth,
+            Format::R32F => BaseFormat::R,
+            Format::RG32F => BaseFormat::RG,
+            Format::RGB32F => BaseFormat::RGB,
+            Format::RGBA32F => BaseFormat::RGBA,
+        }
+    }
 }
 
 #[allow(non_camel_case_types)]
