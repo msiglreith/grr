@@ -79,6 +79,22 @@ pub enum ImageType {
     },
 }
 
+impl ImageType {
+    /// Return the number of texels in a single layer of the texture.
+    pub fn num_texels(&self) -> usize {
+        match self {
+            &ImageType::D1 { width, .. } => width as usize,
+            &ImageType::D2 { width, height, .. } => width as usize * height as usize,
+            &ImageType::D3 {
+                width,
+                height,
+                depth,
+                ..
+            } => width as usize * height as usize * depth as usize,
+        }
+    }
+}
+
 /// Image view handle.
 ///
 /// Image Views denote subranges of an image storage. Pipelines will
