@@ -39,6 +39,7 @@ impl Object for Image {
 /// Image dimensionality type.
 ///
 /// Layer, as in arrays or cube maps, don't affect the dimensionality type.
+#[derive(Clone, Copy)]
 pub enum ImageType {
     // One dimensional image.
     D1 {
@@ -94,7 +95,10 @@ impl Object for ImageView {
     }
 }
 
+/// Image View type.
 ///
+/// An `ImageViewType` maps roughly to OpenGL texture targets.
+#[derive(Clone, Copy)]
 pub enum ImageViewType {
     D1,
     D2,
