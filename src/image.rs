@@ -292,6 +292,15 @@ impl Device {
         self.0
             .PixelStorei(__gl::UNPACK_ALIGNMENT, layout.alignment as _);
         match image.target {
+            __gl::TEXTURE_1D if subresource.layers == (0..1) => self.0.TextureSubImage1D(
+                image.raw,
+                subresource.level as _,
+                offset.x,
+                extent.width as _,
+                layout.base_format as _,
+                layout.format_layout as _,
+                data.as_ptr() as *const _,
+            ),
             __gl::TEXTURE_2D if subresource.layers == (0..1) => self.0.TextureSubImage2D(
                 image.raw,
                 subresource.level as _,
@@ -299,6 +308,19 @@ impl Device {
                 offset.y,
                 extent.width as _,
                 extent.height as _,
+                layout.base_format as _,
+                layout.format_layout as _,
+                data.as_ptr() as *const _,
+            ),
+            __gl::TEXTURE_3D if subresource.layers == (0..1) => self.0.TextureSubImage3D(
+                image.raw,
+                subresource.level as _,
+                offset.x,
+                offset.y,
+		offset.z,
+                extent.width as _,
+                extent.height as _,
+                extent.depth as _,
                 layout.base_format as _,
                 layout.format_layout as _,
                 data.as_ptr() as *const _,
