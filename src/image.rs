@@ -82,10 +82,10 @@ pub enum ImageType {
 impl ImageType {
     /// Return the number of texels in a single layer of the texture.
     pub fn num_texels(&self) -> usize {
-        match self {
-            &ImageType::D1 { width, .. } => width as usize,
-            &ImageType::D2 { width, height, .. } => width as usize * height as usize,
-            &ImageType::D3 {
+        match *self {
+            ImageType::D1 { width, .. } => width as usize,
+            ImageType::D2 { width, height, .. } => width as usize * height as usize,
+            ImageType::D3 {
                 width,
                 height,
                 depth,
