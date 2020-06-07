@@ -39,6 +39,7 @@ impl Object for Image {
 /// Image dimensionality type.
 ///
 /// Layer, as in arrays or cube maps, don't affect the dimensionality type.
+#[derive(Clone, Copy)]
 pub enum ImageType {
     // One dimensional image.
     D1 {
@@ -78,6 +79,63 @@ pub enum ImageType {
     },
 }
 
+impl ImageType {
+    /// Return the number of texels in the top layer of the image.
+    pub fn num_texels(&self) -> usize {
+        match *self {
+            ImageType::D1 { width, .. } => width as usize,
+            ImageType::D2 { width, height, .. } => width as usize * height as usize,
+            ImageType::D3 {
+                width,
+                height,
+                depth,
+                ..
+            } => width as usize * height as usize * depth as usize,
+        }
+    }
+
+    /// Return the width of the image.
+    pub fn width(&self) -> u32 {
+        match *self {
+            ImageType::D1 { width, .. }
+            | ImageType::D2 { width, .. }
+            | ImageType::D3 { width, .. } => width,
+        }
+    }
+
+    /// Return the height of the image.
+    pub fn height(&self) -> u32 {
+        match *self {
+            ImageType::D1 { .. } => 1,
+            ImageType::D2 { height, .. } | ImageType::D3 { height, .. } => height,
+        }
+    }
+
+    /// Return the height of the image.
+    pub fn depth(&self) -> u32 {
+        match *self {
+            ImageType::D1 { .. } | ImageType::D2 { .. } => 1,
+            ImageType::D3 { depth, .. } => depth,
+        }
+    }
+
+    /// Return the number of samples in a texel of the image.
+    pub fn samples(&self) -> u32 {
+        match *self {
+            ImageType::D1 { .. } | ImageType::D3 { .. } => 1,
+            ImageType::D2 { samples, .. } => samples,
+        }
+    }
+
+    /// Return the number of layers in the texutre.
+    pub fn layers(&self) -> u32 {
+        match *self {
+            ImageType::D1 { layers, .. } | ImageType::D2 { layers, .. } => layers,
+            ImageType::D3 { .. } => 1,
+        }
+    }
+}
+
 /// Image view handle.
 ///
 /// Image Views denote subranges of an image storage. Pipelines will
@@ -94,7 +152,10 @@ impl Object for ImageView {
     }
 }
 
+/// Image View type.
 ///
+/// An `ImageViewType` maps roughly to OpenGL texture targets.
+#[derive(Clone, Copy)]
 pub enum ImageViewType {
     D1,
     D2,
