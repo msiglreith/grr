@@ -116,12 +116,17 @@ pub struct SamplerDesc {
     pub border_color: [f32; 4],
 }
 
-///
+/// Filter options for computing pixels when the texture maps to an
+/// area different from one texture element.
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Filter {
-    Nearest = __gl::LINEAR,
-    Linear = __gl::NEAREST,
+    /// Use the closest texel, by Manhattan distance.
+    Nearest = __gl::NEAREST,
+
+    /// Use a weighted average of the four texels closest to the
+    /// pixel.
+    Linear = __gl::LINEAR,
 }
 
 fn map_min_filter(filter: Filter, mip_map: Option<Filter>) -> GLenum {
