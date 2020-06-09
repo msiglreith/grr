@@ -116,6 +116,25 @@ pub struct SamplerDesc {
     pub border_color: [f32; 4],
 }
 
+impl Default for SamplerDesc {
+    fn default() -> SamplerDesc {
+        SamplerDesc {
+            min_filter: Filter::Nearest,
+            mag_filter: Filter::Linear,
+            mip_map: Some(Filter::Linear),
+            address: (
+                SamplerAddress::Repeat,
+                SamplerAddress::Repeat,
+                SamplerAddress::Repeat,
+            ),
+            lod_bias: 0.0,
+            lod: -1000.0..1000.0,
+            compare: None,
+            border_color: [0.0, 0.0, 0.0, 0.0],
+        }
+    }
+}
+
 /// Filter options for computing pixels when the texture maps to an
 /// area different from one texture element.
 #[repr(u32)]
@@ -147,14 +166,22 @@ fn map_min_filter(filter: Filter, mip_map: Option<Filter>) -> GLenum {
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum SamplerAddress {
-    ///
+    /// Strip off the integer part of the coordinate, effectively
+    /// repeating the texture across the entire space.
     Repeat = __gl::REPEAT,
-    ///
+
+    /// Strip of the integer part of the coordinate, but mirror the
+    /// coordinate when the interger is odd. This will create repeated
+    /// images that are alternately flipped.
     MirrorRepeat = __gl::MIRRORED_REPEAT,
-    ///
+
+    /// Clamp the coordinate to [0.0, 1.0].
     ClampEdge = __gl::CLAMP_TO_EDGE,
-    ///
+
+    /// Use the border color for coordinates outside [0.0, 1.0].
     ClampBorder = __gl::CLAMP_TO_BORDER,
-    ///
+
+    /// Coordinates in the range [-1.0, 0.0] will be mirrored onto
+    /// [0.0, 1.0]. Outside of [-1.0, 1.0], behavior is the same as `ClampEdge`.
     MirrorClampEdge = __gl::MIRROR_CLAMP_TO_EDGE,
 }
