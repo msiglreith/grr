@@ -225,12 +225,6 @@ impl Device {
                 height,
                 layers: 1,
                 samples: 1,
-            }
-            | ImageType::D2 {
-                width,
-                height,
-                layers: 6,
-                samples: 1,
             } => {
                 self.0
                     .TextureStorage2D(image, levels as _, format as _, width as _, height as _);
