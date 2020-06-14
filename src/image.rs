@@ -201,14 +201,6 @@ impl Device {
                 samples: 1,
                 ..
             } => __gl::TEXTURE_2D,
-            ImageType::D2 {
-                layers: 6,
-                samples: 1,
-                ..
-            } => __gl::TEXTURE_CUBE_MAP,
-            ImageType::D2 {
-                layers, samples: 1, ..
-            } if layers % 6 == 0 => __gl::TEXTURE_CUBE_MAP_ARRAY,
             ImageType::D2 { samples: 1, .. } => __gl::TEXTURE_2D_ARRAY,
             ImageType::D2 { layers: 1, .. } => __gl::TEXTURE_2D_MULTISAMPLE,
             ImageType::D2 { .. } => __gl::TEXTURE_2D_MULTISAMPLE_ARRAY,
