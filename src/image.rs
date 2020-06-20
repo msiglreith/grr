@@ -134,6 +134,16 @@ impl ImageType {
             ImageType::D3 { .. } => 1,
         }
     }
+
+    fn view_ty(&self) -> ImageViewType {
+        match *self {
+            ImageType::D1 { layers: 1, .. } => ImageViewType::D1,
+            ImageType::D1 { .. } => ImageViewType::D1Array,
+            ImageType::D2 { layers: 1, .. } => ImageViewType::D2,
+            ImageType::D2 { .. } => ImageViewType::D2Array,
+            ImageType::D3 { .. } => ImageViewType::D3,
+        }
+    }
 }
 
 /// Image view handle.
@@ -201,14 +211,6 @@ impl Device {
                 samples: 1,
                 ..
             } => __gl::TEXTURE_2D,
-            ImageType::D2 {
-                layers: 6,
-                samples: 1,
-                ..
-            } => __gl::TEXTURE_CUBE_MAP,
-            ImageType::D2 {
-                layers, samples: 1, ..
-            } if layers % 6 == 0 => __gl::TEXTURE_CUBE_MAP_ARRAY,
             ImageType::D2 { samples: 1, .. } => __gl::TEXTURE_2D_ARRAY,
             ImageType::D2 { layers: 1, .. } => __gl::TEXTURE_2D_MULTISAMPLE,
             ImageType::D2 { .. } => __gl::TEXTURE_2D_MULTISAMPLE_ARRAY,
@@ -232,12 +234,6 @@ impl Device {
                 width,
                 height,
                 layers: 1,
-                samples: 1,
-            }
-            | ImageType::D2 {
-                width,
-                height,
-                layers: 6,
                 samples: 1,
             } => {
                 self.0
@@ -351,6 +347,31 @@ impl Device {
         self.get_error()?;
 
         Ok(ImageView(view))
+    }
+
+    /// Create an image and an associated view.
+    ///
+    /// The image view type is derived from the `ImageType`.
+    /// It creates either non-arrayed or arrayed view types.
+    pub unsafe fn create_image_and_view(
+        &self,
+        ty: ImageType,
+        format: Format,
+        levels: u32,
+    ) -> Result<(Image, ImageView)> {
+        let image = self.create_image(ty, format, levels)?;
+        let view_ty = ty.view_ty();
+        let image_view = self.create_image_view(
+            image,
+            view_ty,
+            format,
+            SubresourceRange {
+                levels: 0..levels,
+                layers: 0..ty.layers(),
+            },
+        )?;
+
+        Ok((image, image_view))
     }
 
     /// Delete an image views.

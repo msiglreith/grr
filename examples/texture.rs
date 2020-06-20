@@ -118,7 +118,7 @@ fn main() -> grr::Result<()> {
         let img_height = img.height();
         let img_data = img.into_raw();
 
-        let texture = grr.create_image(
+        let (texture, texture_view) = grr.create_image_and_view(
             grr::ImageType::D2 {
                 width: img_width,
                 height: img_height,
@@ -151,16 +151,6 @@ fn main() -> grr::Result<()> {
                 alignment: 4,
             },
         );
-
-        let texture_view = grr.create_image_view(
-            texture,
-            grr::ImageViewType::D2,
-            grr::Format::R8G8B8A8_SRGB,
-            grr::SubresourceRange {
-                layers: 0..1,
-                levels: 0..1,
-            },
-        )?;
 
         let sampler = grr.create_sampler(grr::SamplerDesc {
             min_filter: grr::Filter::Linear,
