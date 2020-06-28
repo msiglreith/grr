@@ -199,6 +199,12 @@ impl Device {
             .BindFramebuffer(__gl::DRAW_FRAMEBUFFER, framebuffer.0);
     }
 
+    /// Bind a framebuffer for read commands.
+    pub unsafe fn bind_read_framebuffer(&self, framebuffer: Framebuffer) {
+        self.0
+            .BindFramebuffer(__gl::READ_FRAMEBUFFER, framebuffer.0);
+    }
+
     /// Bind attachments to the framebuffer.
     ///
     /// All previously bound attachments become invalid.
