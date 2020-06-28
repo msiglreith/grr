@@ -617,6 +617,25 @@ impl Device {
         }
     }
 
+    /// For a compute pipeline, return the size of the work group
+    /// defined in the main shader.
+    pub unsafe fn get_work_group_size(&self, pipeline: Pipeline) -> Option<[i32; 3]> {
+        // On error, `sizes` won't be changed. So, we can initialize
+        // with negative values and check for success by looking for
+        // non-negative values.
+        let mut sizes: [i32; 3] = [-1, -1, -1];
+        self.0.GetProgramiv(
+            pipeline.handle(),
+            __gl::COMPUTE_WORK_GROUP_SIZE,
+            sizes.as_mut_ptr(),
+        );
+        if sizes[0] >= 0 {
+            Some(sizes)
+        } else {
+            None
+        }
+    }
+
     /// Bind input assembly pipeline state.
     pub unsafe fn bind_input_assembly_state(&self, state: InputAssembly) {
         match state.primitive_restart {
