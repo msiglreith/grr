@@ -5,9 +5,20 @@ use crate::image::SubresourceLayout;
 use crate::{Region, __gl};
 
 impl Device {
-    /// Ready a region of pixel data from the current read framebuffer
+    /// Read a region of pixel data from the current read framebuffer
     /// into the provided storage slice.
-    pub unsafe fn read_pixels<T: Sized>(
+    ///
+    /// # Remarks:
+    ///
+    /// The transfer in `copy_attachement_to_host` is done
+    /// synchronously; the method won't return until the transfer is
+    /// complete.
+    ///
+    /// # See also
+    ///
+    /// * [copy_attachement_to_buffer](struct.Device.html#method.copy_attachment_to_buffer)
+    /// for an asynchronous alternative.
+    pub unsafe fn copy_attachment_to_host<T: Sized>(
         &self,
         region: Region,
         layout: SubresourceLayout,
@@ -30,7 +41,11 @@ impl Device {
 
     /// Read a region of pixel data from the current read framebuffer
     /// into a buffer object.
-    pub unsafe fn read_pixels_to_buffer(
+    ///
+    /// # Remarks:
+    ///
+    /// The transfer for `copy_attachment_to_buffer` is asynchronous.
+    pub unsafe fn copy_attachment_to_buffer(
         &self,
         region: Region,
         layout: SubresourceLayout,
