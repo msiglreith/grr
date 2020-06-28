@@ -206,5 +206,7 @@ pub enum FormatLayout {
     I32 = __gl::INT,
     F16 = __gl::HALF_FLOAT,
     F32 = __gl::FLOAT,
+    U24U8 = __gl::UNSIGNED_INT_24_8,
+    F32U8 = __gl::FLOAT_32_UNSIGNED_INT_24_8_REV,
     // TODO
 }
