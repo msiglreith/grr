@@ -2,7 +2,7 @@
 use crate::buffer::BufferRange;
 use crate::device::Device;
 use crate::image::SubresourceLayout;
-use crate::{__gl, Region};
+use crate::{Region, __gl};
 
 impl Device {
     /// Ready a region of pixel data from the current read framebuffer
@@ -15,7 +15,7 @@ impl Device {
     ) {
         self.0
             .PixelStorei(__gl::PACK_ALIGNMENT, layout.alignment as _);
-	self.unbind_pixel_pack_buffer();
+        self.unbind_pixel_pack_buffer();
         self.0.ReadnPixels(
             region.x,
             region.y,
@@ -46,7 +46,7 @@ impl Device {
             region.h as _,
             layout.base_format as _,
             layout.format_layout as _,
-	    buffer_range.size as _,
+            buffer_range.size as _,
             buffer_range.offset as _,
         );
     }
