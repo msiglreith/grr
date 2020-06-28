@@ -78,6 +78,7 @@ mod format;
 mod framebuffer;
 mod image;
 mod pipeline;
+mod pixels;
 mod query;
 mod sampler;
 mod sync;
