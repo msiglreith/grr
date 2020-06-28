@@ -258,7 +258,7 @@ impl Device {
     /// # Valid usage
     ///
     /// - There must be a valid graphics pipeline currently bound.
-    /// - There must be a calid vertex array currently bound.
+    /// - There must be a valid vertex array currently bound.
     /// - For each attribute in the bound vertex array there must be a vertex buffer bound
     ///   at the specified binding slot.
     /// - For each attribute in the bound vertex array there must be a vertex attribute
@@ -282,7 +282,7 @@ impl Device {
     /// # Valid usage
     ///
     /// - There must be a valid graphics pipeline currently bound.
-    /// - There must be a calid vertex array currently bound.
+    /// - There must be a valid vertex array currently bound.
     /// - For each attribute in the bound vertex array there must be a vertex buffer bound
     ///   at the specified binding slot.
     /// - For each attribute in the bound vertex array there must be a vertex attribute

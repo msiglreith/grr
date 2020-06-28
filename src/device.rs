@@ -140,6 +140,18 @@ impl Device {
         DeviceFeatures {}
     }
 
+    /// Submit all pending operations for device execution.
+    ///
+    /// This function may return before all operations have finished executing.
+    pub unsafe fn submit(&self) {
+        self.0.Flush();
+    }
+
+    /// Wait on the host for execution of all outstanding device operations.
+    pub unsafe fn wait_idle(&self) {
+        self.0.Finish();
+    }
+
     unsafe fn get_u32(&self, target: GLenum, index: Option<usize>) -> u32 {
         self.get_i32(target, index) as _
     }
