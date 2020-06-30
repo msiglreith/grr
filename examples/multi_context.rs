@@ -254,7 +254,7 @@ fn main() -> grr::Result<()> {
                 }],
             );
 
-            grr.bind_framebuffer(ctxt_fbo);
+            grr.bind_draw_framebuffer(ctxt_fbo);
             grr.set_color_attachments(ctxt_fbo, &[0]);
             grr.bind_attachments(
                 ctxt_fbo,

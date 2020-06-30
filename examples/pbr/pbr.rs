@@ -517,7 +517,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             grr::PipelineFlags::VERBOSE,
         )?;
 
-        grr.bind_framebuffer(env_proj_fbo);
+        grr.bind_draw_framebuffer(env_proj_fbo);
         grr.set_color_attachments(env_proj_fbo, &[0]);
         grr.set_viewport(
             0,
@@ -635,7 +635,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let brdf_fbo = grr.create_framebuffer()?;
         grr.bind_pipeline(brdf_integration_pipeline);
-        grr.bind_framebuffer(brdf_fbo);
+        grr.bind_draw_framebuffer(brdf_fbo);
         grr.bind_attachments(
             brdf_fbo,
             &[(
@@ -725,7 +725,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         })?;
 
         let env_irradiance_fbo = grr.create_framebuffer()?;
-        grr.bind_framebuffer(env_irradiance_fbo);
+        grr.bind_draw_framebuffer(env_irradiance_fbo);
         grr.set_color_attachments(env_irradiance_fbo, &[0]);
         grr.set_viewport(
             0,
@@ -848,7 +848,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         grr.bind_image_views(0, &[env_cubemap_view]);
         grr.bind_samplers(0, &[env_cubemap_sampler]);
 
-        grr.bind_framebuffer(env_prefilter_fbo);
+        grr.bind_draw_framebuffer(env_prefilter_fbo);
         grr.set_color_attachments(env_prefilter_fbo, &[0]);
 
         let mut level_dim = env_prefiltered_size;
@@ -976,7 +976,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             let view = camera.view();
             let model = glm::rotation(-glm::half_pi::<f32>(), &glm::vec3(1.0, 0.0, 0.0));
 
-            grr.bind_framebuffer(grr::Framebuffer::DEFAULT);
+            grr.bind_draw_framebuffer(grr::Framebuffer::DEFAULT);
             grr.set_viewport(
                 0,
                 &[grr::Viewport {

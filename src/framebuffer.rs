@@ -194,7 +194,7 @@ impl Device {
     }
 
     /// Bind a framebuffer for draw commands.
-    pub unsafe fn bind_framebuffer(&self, framebuffer: Framebuffer) {
+    pub unsafe fn bind_draw_framebuffer(&self, framebuffer: Framebuffer) {
         self.0
             .BindFramebuffer(__gl::DRAW_FRAMEBUFFER, framebuffer.0);
     }
