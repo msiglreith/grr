@@ -287,6 +287,16 @@ impl Device {
         self.0.BindBuffer(__gl::PIXEL_PACK_BUFFER, 0);
     }
 
+    /// Bind the buffer for reading / packing pixels from framebuffer attachments.
+    pub(crate) unsafe fn bind_pixel_unpack_buffer(&self, buffer: Buffer) {
+        self.0.BindBuffer(__gl::PIXEL_UNPACK_BUFFER, buffer.0);
+    }
+
+    /// Unind the buffer for reading / packing pixels from framebuffer attachments.
+    pub(crate) unsafe fn unbind_pixel_unpack_buffer(&self) {
+        self.0.BindBuffer(__gl::PIXEL_UNPACK_BUFFER, 0);
+    }
+
     /// Bind parameter buffer for indirect commands.
     ///
     /// Required GL 4.6
