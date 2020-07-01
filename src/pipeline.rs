@@ -189,7 +189,7 @@ pub struct InputAssembly {
     pub primitive_restart: Option<u32>,
 }
 
-/// Rasteriyer Descriptor.
+/// Rasterizer Descriptor.
 ///
 /// Controls the rasterization process for converting primitives into fragments.
 #[derive(Debug, Copy, Clone)]
@@ -310,14 +310,30 @@ pub enum StencilOp {
     DecrementWrap = __gl::DECR_WRAP,
 }
 
-///
+/// Stencil operation settings, per-face.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct StencilFace {
+    /// Action taken on the buffer when the stencil test
+    /// fails on the new fragment.
     pub fail: StencilOp,
+
+    /// Action taken on the buffer when the stencil and
+    /// depth tests succeed.
     pub pass: StencilOp,
+
+    /// Action taken on the buffer when the stencil test
+    /// succeeds but the depth test fails.
     pub depth_fail: StencilOp,
+
+    /// Comparison operation used in testing the reference and buffer
+    /// stencil values.
     pub compare_op: Compare,
+
+    /// Bitwise mask applied to both stencil reference and buffer
+    /// values before being compared.
     pub compare_mask: u32,
+
+    /// Reference value used in certain stencil comparison ops.
     pub reference: u32,
 }
 
@@ -325,6 +341,7 @@ impl StencilFace {
     pub const KEEP: StencilFace = StencilFace {
         fail: StencilOp::Keep,
         pass: StencilOp::Keep,
+
         depth_fail: StencilOp::Keep,
         compare_op: Compare::Always,
         compare_mask: !0,
@@ -332,15 +349,47 @@ impl StencilFace {
     };
 }
 
-///
+impl Default for StencilFace {
+    fn default() -> StencilFace {
+        StencilFace::KEEP
+    }
+}
+
+/// Depth and stencil test and associated options.
 #[derive(Debug, Copy, Clone)]
 pub struct DepthStencil {
+    /// Whether or not a depth test is applied to fragments.
     pub depth_test: bool,
+
+    /// Whether or not the depth buffer is written to.
     pub depth_write: bool,
+
+    /// Determines how depth values are compared for passing the depth tests.
     pub depth_compare_op: Compare,
+
+    /// Whether or not a stencil test is applied to fragments.
     pub stencil_test: bool,
+
+    /// Stencil options for front-facing polygons.
     pub stencil_front: StencilFace,
+
+    /// Stencil options for back-facing polygons.
     pub stencil_back: StencilFace,
+}
+
+impl Default for DepthStencil {
+    /// By default in OpenGL, both and depth and stencil tests are
+    /// disabled.
+    fn default() -> DepthStencil {
+        DepthStencil {
+            depth_test: false,
+            depth_write: true,
+            depth_compare_op: Compare::Less,
+            stencil_test: false,
+            stencil_front: StencilFace::default(),
+            stencil_back: StencilFace::default(),
+        }
+    }
 }
 
 ///
