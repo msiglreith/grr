@@ -189,7 +189,7 @@ pub struct InputAssembly {
     pub primitive_restart: Option<u32>,
 }
 
-/// Rasteriyer Descriptor.
+/// Rasterizer Descriptor.
 ///
 /// Controls the rasterization process for converting primitives into fragments.
 #[derive(Debug, Copy, Clone)]

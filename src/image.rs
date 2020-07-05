@@ -5,6 +5,7 @@ use crate::__gl::types::{GLenum, GLuint};
 
 use std::ops::Range;
 
+use crate::buffer::BufferRange;
 use crate::debug::{Object, ObjectType};
 use crate::device::Device;
 use crate::error::Result;
@@ -279,6 +280,100 @@ impl Device {
             .DeleteTextures(images.len() as _, images.as_ptr() as *const _);
     }
 
+    pub(crate) unsafe fn set_pixel_unpack_params(&self, layout: &SubresourceLayout) {
+        self.0
+            .PixelStorei(__gl::UNPACK_ALIGNMENT, layout.alignment as _);
+        self.0
+            .PixelStorei(__gl::UNPACK_IMAGE_HEIGHT, layout.image_height as _);
+        self.0
+            .PixelStorei(__gl::UNPACK_ROW_LENGTH, layout.row_pitch as _);
+    }
+
+    pub(crate) unsafe fn set_pixel_pack_params(&self, layout: &SubresourceLayout) {
+        self.0
+            .PixelStorei(__gl::PACK_ALIGNMENT, layout.alignment as _);
+        self.0
+            .PixelStorei(__gl::PACK_IMAGE_HEIGHT, layout.image_height as _);
+        self.0
+            .PixelStorei(__gl::PACK_ROW_LENGTH, layout.row_pitch as _);
+    }
+
+    /// Copy image data from a location to device memory.
+    ///
+    /// Location can be either a buffer or a host memory, depending on
+    /// whether or not pixel_unpack_buffer is bound.
+    unsafe fn copy_to_image(
+        &self,
+        image: Image,
+        subresource: SubresourceLevel,
+        offset: Offset,
+        extent: Extent,
+        data_ptr: *const __gl::types::GLvoid,
+        layout: SubresourceLayout,
+    ) {
+        self.set_pixel_unpack_params(&layout);
+        match image.target {
+            __gl::TEXTURE_1D if subresource.layers == (0..1) => self.0.TextureSubImage1D(
+                image.raw,
+                subresource.level as _,
+                offset.x,
+                extent.width as _,
+                layout.base_format as _,
+                layout.format_layout as _,
+                data_ptr,
+            ),
+            __gl::TEXTURE_1D_ARRAY => self.0.TextureSubImage2D(
+                image.raw,
+                subresource.level as _,
+                offset.x,
+                subresource.layers.start as _,
+                extent.width as _,
+                (subresource.layers.end - subresource.layers.start) as _,
+                layout.base_format as _,
+                layout.format_layout as _,
+                data_ptr,
+            ),
+            __gl::TEXTURE_2D if subresource.layers == (0..1) => self.0.TextureSubImage2D(
+                image.raw,
+                subresource.level as _,
+                offset.x,
+                offset.y,
+                extent.width as _,
+                extent.height as _,
+                layout.base_format as _,
+                layout.format_layout as _,
+                data_ptr,
+            ),
+            __gl::TEXTURE_2D_ARRAY => self.0.TextureSubImage3D(
+                image.raw,
+                subresource.level as _,
+                offset.x,
+                offset.y,
+                subresource.layers.start as _,
+                extent.width as _,
+                extent.height as _,
+                (subresource.layers.end - subresource.layers.start) as _,
+                layout.base_format as _,
+                layout.format_layout as _,
+                data_ptr,
+            ),
+            __gl::TEXTURE_3D if subresource.layers == (0..1) => self.0.TextureSubImage3D(
+                image.raw,
+                subresource.level as _,
+                offset.x,
+                offset.y,
+                offset.z,
+                extent.width as _,
+                extent.height as _,
+                extent.depth as _,
+                layout.base_format as _,
+                layout.format_layout as _,
+                data_ptr,
+            ),
+            _ => unimplemented!(), // panic!("Invalid target image: {}", image.target),
+        }
+    }
+
     /// Copy image data from host memory to device memory.
     pub unsafe fn copy_host_to_image<T>(
         &self,
@@ -289,22 +384,36 @@ impl Device {
         data: &[T],
         layout: SubresourceLayout,
     ) {
-        self.0
-            .PixelStorei(__gl::UNPACK_ALIGNMENT, layout.alignment as _);
-        match image.target {
-            __gl::TEXTURE_2D if subresource.layers == (0..1) => self.0.TextureSubImage2D(
-                image.raw,
-                subresource.level as _,
-                offset.x,
-                offset.y,
-                extent.width as _,
-                extent.height as _,
-                layout.base_format as _,
-                layout.format_layout as _,
-                data.as_ptr() as *const _,
-            ),
-            _ => unimplemented!(), // panic!("Invalid target image: {}", image.target),
-        }
+        self.unbind_pixel_unpack_buffer();
+        self.copy_to_image(
+            image,
+            subresource,
+            offset,
+            extent,
+            data.as_ptr() as *const _,
+            layout,
+        );
+    }
+
+    /// Copy image data from buffer to device memory.
+    pub unsafe fn copy_buffer_to_image<T>(
+        &self,
+        image: Image,
+        subresource: SubresourceLevel,
+        offset: Offset,
+        extent: Extent,
+        buffer: BufferRange,
+        layout: SubresourceLayout,
+    ) {
+        self.bind_pixel_unpack_buffer(buffer.buffer);
+        self.copy_to_image(
+            image,
+            subresource,
+            offset,
+            extent,
+            buffer.offset as *const _,
+            layout,
+        );
     }
 
     /// Create an image view from an image.

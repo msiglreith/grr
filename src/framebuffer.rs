@@ -279,8 +279,7 @@ impl Device {
         layout: SubresourceLayout,
         data: &mut [T],
     ) {
-        self.0
-            .PixelStorei(__gl::PACK_ALIGNMENT, layout.alignment as _);
+        self.set_pixel_pack_params(&layout);
         self.unbind_pixel_pack_buffer();
         self.0.ReadnPixels(
             region.x,
@@ -306,8 +305,7 @@ impl Device {
         layout: SubresourceLayout,
         buffer_range: BufferRange,
     ) {
-        self.0
-            .PixelStorei(__gl::PACK_ALIGNMENT, layout.alignment as _);
+        self.set_pixel_pack_params(&layout);
         self.bind_pixel_pack_buffer(buffer_range.buffer);
         self.0.ReadnPixels(
             region.x,
