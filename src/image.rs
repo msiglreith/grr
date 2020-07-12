@@ -177,6 +177,35 @@ pub enum ImageViewType {
     CubeArray,
 }
 
+/// Represent either an Image or and ImageView.
+#[derive(Copy, Clone)]
+pub enum ImageOrView {
+    Image(Image),
+    View(ImageView),
+}
+
+impl From<Image> for ImageOrView {
+    fn from(img: Image) -> Self {
+        ImageOrView::Image(img)
+    }
+}
+
+impl From<ImageView> for ImageOrView {
+    fn from(img_view: ImageView) -> Self {
+        ImageOrView::View(img_view)
+    }
+}
+
+impl Object for ImageOrView {
+    const TYPE: ObjectType = ObjectType::Image;
+    fn handle(&self) -> GLuint {
+        match self {
+            Self::Image(img) => img.handle(),
+            Self::View(view) => view.handle(),
+        }
+    }
+}
+
 /// Subresource of an image.
 pub struct SubresourceRange {
     /// Range of mip levels.
@@ -485,7 +514,7 @@ impl Device {
 
     unsafe fn copy_image_to(
         &self,
-        image: Image,
+        image: ImageOrView,
         layout: SubresourceLayout,
         level: u32,
         buf_size: i32,
@@ -503,16 +532,16 @@ impl Device {
     }
 
     /// Copy image data from device memory to a host array.
-    pub unsafe fn copy_image_to_host<T>(
+    pub unsafe fn copy_image_to_host<T, I: Into<ImageOrView>>(
         &self,
-        image: Image,
+        image: I,
         layout: SubresourceLayout,
         level: u32,
         data: &mut [T],
     ) {
         self.unbind_pixel_pack_buffer();
         self.copy_image_to(
-            image,
+            image.into(),
             layout,
             level,
             (data.len() * std::mem::size_of::<T>()) as _,
@@ -521,15 +550,21 @@ impl Device {
     }
 
     /// Copy image data from device memory to a buffer object.
-    pub unsafe fn copy_image_to_buffer(
+    pub unsafe fn copy_image_to_buffer<I: Into<ImageOrView>>(
         &self,
-        image: Image,
+        image: I,
         layout: SubresourceLayout,
         level: u32,
         buffer: BufferRange,
     ) {
         self.bind_pixel_pack_buffer(buffer.buffer);
-        self.copy_image_to(image, layout, level, buffer.size as _, buffer.offset as _);
+        self.copy_image_to(
+            image.into(),
+            layout,
+            level,
+            buffer.size as _,
+            buffer.offset as _,
+        );
     }
 
     /// Delete an image views.
