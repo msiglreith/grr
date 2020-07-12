@@ -483,6 +483,55 @@ impl Device {
         Ok((image, image_view))
     }
 
+    unsafe fn copy_image_to(
+        &self,
+        image: Image,
+        layout: SubresourceLayout,
+        level: u32,
+        buf_size: i32,
+        buf_ptr: *mut __gl::types::GLvoid,
+    ) {
+        self.set_pixel_pack_params(&layout);
+        self.0.GetTextureImage(
+            image.handle(),
+            level as _,
+            layout.base_format as _,
+            layout.format_layout as _,
+            buf_size as _,
+            buf_ptr,
+        );
+    }
+
+    /// Copy image data from device memory to a host array.
+    pub unsafe fn copy_image_to_host<T>(
+        &self,
+        image: Image,
+        layout: SubresourceLayout,
+        level: u32,
+        data: &mut [T],
+    ) {
+        self.unbind_pixel_pack_buffer();
+        self.copy_image_to(
+            image,
+            layout,
+            level,
+            (data.len() * std::mem::size_of::<T>()) as _,
+            data.as_mut_ptr() as _,
+        );
+    }
+
+    /// Copy image data from device memory to a buffer object.
+    pub unsafe fn copy_image_to_buffer(
+        &self,
+        image: Image,
+        layout: SubresourceLayout,
+        level: u32,
+        buffer: BufferRange,
+    ) {
+        self.bind_pixel_pack_buffer(buffer.buffer);
+        self.copy_image_to(image, layout, level, buffer.size as _, buffer.offset as _);
+    }
+
     /// Delete an image views.
     pub unsafe fn delete_image_view(&self, view: ImageView) {
         self.delete_image_views(&[view]);
