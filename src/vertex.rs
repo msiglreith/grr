@@ -19,6 +19,7 @@ impl Object for VertexArray {
 }
 
 /// Buffer representation for vertex attributes
+#[derive(Clone)]
 pub struct VertexBufferView {
     pub buffer: Buffer,
     pub offset: u64,
@@ -26,7 +27,8 @@ pub struct VertexBufferView {
     pub input_rate: InputRate,
 }
 
-///
+/// Vertex attribute format and binding.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VertexAttributeDesc {
     pub location: u32,
     pub binding: u32,
@@ -37,6 +39,7 @@ pub struct VertexAttributeDesc {
 /// Vertex attribute addresssing.
 ///
 /// Specifies if the vertex attribute address depends on vertex index or instance index.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InputRate {
     /// Vertex index addressing.
     ///
@@ -51,6 +54,7 @@ pub enum InputRate {
 }
 
 /// Vertex attribute formats.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VertexFormat {
     X8Int,
     X8Uint,
