@@ -396,7 +396,7 @@ impl Device {
     }
 
     /// Copy image data from buffer to device memory.
-    pub unsafe fn copy_buffer_to_image<T>(
+    pub unsafe fn copy_buffer_to_image(
         &self,
         image: Image,
         subresource: SubresourceLevel,
