@@ -186,35 +186,6 @@ pub enum ImageViewType {
     CubeArray,
 }
 
-/// Represent either an Image or and ImageView.
-#[derive(Copy, Clone)]
-pub enum ImageOrView {
-    Image(Image),
-    View(ImageView),
-}
-
-impl From<Image> for ImageOrView {
-    fn from(img: Image) -> Self {
-        ImageOrView::Image(img)
-    }
-}
-
-impl From<ImageView> for ImageOrView {
-    fn from(img_view: ImageView) -> Self {
-        ImageOrView::View(img_view)
-    }
-}
-
-impl Object for ImageOrView {
-    const TYPE: ObjectType = ObjectType::Image;
-    fn handle(&self) -> GLuint {
-        match self {
-            Self::Image(img) => img.handle(),
-            Self::View(view) => view.handle(),
-        }
-    }
-}
-
 /// Subresource of an image.
 pub struct SubresourceRange {
     /// Range of mip levels.
