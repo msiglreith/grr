@@ -120,6 +120,15 @@ impl ImageType {
         }
     }
 
+    /// Full extent of the image dimensions for a single layer.
+    pub fn full_extent(&self) -> Extent {
+        Extent {
+            width: self.width(),
+            height: self.height(),
+            depth: self.depth(),
+        }
+    }
+
     /// Return the number of samples in a texel of the image.
     pub fn samples(&self) -> u32 {
         match *self {
@@ -396,7 +405,7 @@ impl Device {
     }
 
     /// Copy image data from buffer to device memory.
-    pub unsafe fn copy_buffer_to_image<T>(
+    pub unsafe fn copy_buffer_to_image(
         &self,
         image: Image,
         subresource: SubresourceLevel,
@@ -481,6 +490,103 @@ impl Device {
         )?;
 
         Ok((image, image_view))
+    }
+
+    unsafe fn copy_image_to(
+        &self,
+        image: Image,
+        subresource: SubresourceLevel,
+        offset: Offset,
+        extent: Extent,
+        layout: SubresourceLayout,
+        (buf_size, buf_ptr): (i32, *mut __gl::types::GLvoid),
+    ) {
+        use __gl::types::{GLint, GLsizei};
+        self.set_pixel_pack_params(&layout);
+        let (y, z, height, depth): (GLint, GLint, GLsizei, GLsizei) = match image.target {
+            __gl::TEXTURE_1D if subresource.layers == (0..1) => (0, 0, 1, 1),
+            __gl::TEXTURE_1D_ARRAY => (
+                subresource.layers.start as _,
+                0,
+                (subresource.layers.end - subresource.layers.start) as _,
+                1,
+            ),
+            __gl::TEXTURE_2D if subresource.layers == (0..1) => {
+                (offset.y, 0, extent.height as _, 1)
+            }
+            __gl::TEXTURE_2D_ARRAY => (
+                offset.y,
+                subresource.layers.start as _,
+                extent.height as _,
+                (subresource.layers.end - subresource.layers.start) as _,
+            ),
+            __gl::TEXTURE_3D => (offset.y, offset.z, extent.height as _, extent.depth as _),
+            _ => {
+                unimplemented!(
+                    "Cannot copy from image for multisample, cube arraay, or buffer textures"
+                );
+            }
+        };
+
+        self.0.GetTextureSubImage(
+            image.handle(),
+            subresource.level as _,
+            offset.x,
+            y,
+            z,
+            extent.width as _,
+            height,
+            depth,
+            layout.base_format as _,
+            layout.format_layout as _,
+            buf_size as _,
+            buf_ptr,
+        );
+    }
+
+    /// Copy image data from device memory to a host array.
+    pub unsafe fn copy_image_to_host<T>(
+        &self,
+        image: Image,
+        subresource: SubresourceLevel,
+        offset: Offset,
+        extent: Extent,
+        layout: SubresourceLayout,
+        data: &mut [T],
+    ) {
+        self.unbind_pixel_pack_buffer();
+        self.copy_image_to(
+            image,
+            subresource,
+            offset,
+            extent,
+            layout,
+            (
+                (data.len() * std::mem::size_of::<T>()) as _,
+                data.as_mut_ptr() as _,
+            ),
+        );
+    }
+
+    /// Copy image data from device memory to a buffer object.
+    pub unsafe fn copy_image_to_buffer(
+        &self,
+        image: Image,
+        subresource: SubresourceLevel,
+        offset: Offset,
+        extent: Extent,
+        layout: SubresourceLayout,
+        buffer: BufferRange,
+    ) {
+        self.bind_pixel_pack_buffer(buffer.buffer);
+        self.copy_image_to(
+            image,
+            subresource,
+            offset,
+            extent,
+            layout,
+            (buffer.size as _, buffer.offset as _),
+        );
     }
 
     /// Delete an image views.
