@@ -99,12 +99,16 @@ pub struct Region {
     pub h: i32,
 }
 
-///
+/// Starting location for copying from or to texture data.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Offset {
     pub x: i32,
     pub y: i32,
     pub z: i32,
+}
+
+impl Offset {
+    pub const ORIGIN: Offset = Offset { x: 0, y: 0, z: 0 };
 }
 
 ///
