@@ -528,8 +528,7 @@ impl Device {
         offset: Offset,
         extent: Extent,
         layout: SubresourceLayout,
-        buf_size: i32,
-        buf_ptr: *mut __gl::types::GLvoid,
+        (buf_size, buf_ptr): (i32, *mut __gl::types::GLvoid),
     ) {
         use __gl::types::{GLint, GLsizei};
         self.set_pixel_pack_params(&layout);
@@ -591,8 +590,10 @@ impl Device {
             offset,
             extent,
             layout,
-            (data.len() * std::mem::size_of::<T>()) as _,
-            data.as_mut_ptr() as _,
+            (
+                (data.len() * std::mem::size_of::<T>()) as _,
+                data.as_mut_ptr() as _,
+            ),
         );
     }
 
@@ -613,8 +614,7 @@ impl Device {
             offset,
             extent,
             layout,
-            buffer.size as _,
-            buffer.offset as _,
+            (buffer.size as _, buffer.offset as _),
         );
     }
 
