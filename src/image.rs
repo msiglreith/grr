@@ -120,6 +120,15 @@ impl ImageType {
         }
     }
 
+    /// Full extent of the image dimensions for a single layer.
+    pub fn full_extent(&self) -> Extent {
+        Extent {
+            width: self.width(),
+            height: self.height(),
+            depth: self.depth(),
+        }
+    }
+
     /// Return the number of samples in a texel of the image.
     pub fn samples(&self) -> u32 {
         match *self {
