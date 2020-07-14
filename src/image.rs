@@ -514,16 +514,50 @@ impl Device {
 
     unsafe fn copy_image_to(
         &self,
-        image: ImageOrView,
+        image: Image,
+        subresource: SubresourceLevel,
+        offset: Offset,
+        extent: Extent,
         layout: SubresourceLayout,
-        level: u32,
         buf_size: i32,
         buf_ptr: *mut __gl::types::GLvoid,
     ) {
+        use __gl::types::{GLint, GLsizei};
         self.set_pixel_pack_params(&layout);
-        self.0.GetTextureImage(
+        let (y, z, height, depth): (GLint, GLint, GLsizei, GLsizei) = match image.target {
+            __gl::TEXTURE_1D if subresource.layers == (0..1) => (0, 0, 1, 1),
+            __gl::TEXTURE_1D_ARRAY => (
+                subresource.layers.start as _,
+                0,
+                (subresource.layers.end - subresource.layers.start) as _,
+                1,
+            ),
+            __gl::TEXTURE_2D if subresource.layers == (0..1) => {
+                (offset.y, 0, extent.height as _, 1)
+            }
+            __gl::TEXTURE_2D_ARRAY => (
+                offset.y,
+                subresource.layers.start as _,
+                extent.height as _,
+                (subresource.layers.end - subresource.layers.start) as _,
+            ),
+            __gl::TEXTURE_3D => (offset.y, offset.z, extent.height as _, extent.depth as _),
+            _ => {
+                unimplemented!(
+                    "Cannot copy from image for multisample, cube arraay, or buffer textures"
+                );
+            }
+        };
+
+        self.0.GetTextureSubImage(
             image.handle(),
-            level as _,
+            subresource.level as _,
+            offset.x,
+            y,
+            z,
+            extent.width as _,
+            height,
+            depth,
             layout.base_format as _,
             layout.format_layout as _,
             buf_size as _,
@@ -532,36 +566,44 @@ impl Device {
     }
 
     /// Copy image data from device memory to a host array.
-    pub unsafe fn copy_image_to_host<T, I: Into<ImageOrView>>(
+    pub unsafe fn copy_image_to_host<T>(
         &self,
-        image: I,
+        image: Image,
+        subresource: SubresourceLevel,
+        offset: Offset,
+        extent: Extent,
         layout: SubresourceLayout,
-        level: u32,
         data: &mut [T],
     ) {
         self.unbind_pixel_pack_buffer();
         self.copy_image_to(
-            image.into(),
+            image,
+            subresource,
+            offset,
+            extent,
             layout,
-            level,
             (data.len() * std::mem::size_of::<T>()) as _,
             data.as_mut_ptr() as _,
         );
     }
 
     /// Copy image data from device memory to a buffer object.
-    pub unsafe fn copy_image_to_buffer<I: Into<ImageOrView>>(
+    pub unsafe fn copy_image_to_buffer(
         &self,
-        image: I,
+        image: Image,
+        subresource: SubresourceLevel,
+        offset: Offset,
+        extent: Extent,
         layout: SubresourceLayout,
-        level: u32,
         buffer: BufferRange,
     ) {
         self.bind_pixel_pack_buffer(buffer.buffer);
         self.copy_image_to(
-            image.into(),
+            image,
+            subresource,
+            offset,
+            extent,
             layout,
-            level,
             buffer.size as _,
             buffer.offset as _,
         );
