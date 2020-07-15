@@ -194,6 +194,13 @@ impl Device {
         )
     }
 
+    /// Bind a framebuffer for draw and read commands.
+    ///
+    /// This will overwrite both (draw and read) binding points.
+    pub unsafe fn bind_framebuffer(&self, framebuffer: Framebuffer) {
+        self.0.BindFramebuffer(__gl::FRAMEBUFFER, framebuffer.0);
+    }
+
     /// Bind a framebuffer for draw commands.
     pub unsafe fn bind_draw_framebuffer(&self, framebuffer: Framebuffer) {
         self.0
@@ -258,5 +265,11 @@ impl Device {
             attachments.len() as _,
             attachments.as_ptr(),
         );
+    }
+
+    /// Specify read attachment.
+    pub unsafe fn set_read_attachment(&self, framebuffer: Framebuffer, attachment: u32) {
+        self.0
+            .NamedFramebufferReadBuffer(framebuffer.0, __gl::COLOR_ATTACHMENT0 + attachment);
     }
 }
