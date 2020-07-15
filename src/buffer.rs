@@ -177,44 +177,6 @@ impl Device {
             .NamedBufferSubData(buffer.0, offset, data.len() as _, data.as_ptr() as *const _);
     }
 
-    /// Copy data from one buffer into another buffer.
-    pub unsafe fn copy_buffer(
-        &self,
-        src_buffer: Buffer,
-        src_offset: isize,
-        dst_buffer: Buffer,
-        dst_offset: isize,
-        size: u64,
-    ) {
-        self.0.CopyNamedBufferSubData(
-            src_buffer.0,
-            dst_buffer.0,
-            src_offset,
-            dst_offset,
-            size as _,
-        );
-    }
-
-    /// Fill buffer with data.
-    pub unsafe fn fill_buffer(
-        &self,
-        buffer: BufferRange,
-        buffer_format: Format,
-        base_format: BaseFormat,
-        format_layout: FormatLayout,
-        value: &[u8],
-    ) {
-        self.0.ClearNamedBufferSubData(
-            buffer.buffer.0,
-            buffer_format as _,
-            buffer.offset as _,
-            buffer.size as _,
-            format_layout as _,
-            base_format as _,
-            value.as_ptr() as *const _,
-        );
-    }
-
     /// Bind buffer ranges as uniform buffers.
     ///
     /// Shader can access the buffer memory as readonly.
