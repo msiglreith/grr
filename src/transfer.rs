@@ -21,7 +21,7 @@ pub struct MemoryLayout {
 #[derive(Debug, Clone)]
 pub struct BufferImageCopy {
     /// Offset in bytes from the start of the source/destination buffer.
-    pub buffer_offset: isize,
+    pub buffer_offset: u64,
     /// Layout of the source/destination buffer.
     pub buffer_layout: MemoryLayout,
     /// Layers of the source/destination image.
@@ -182,10 +182,10 @@ impl Device {
         offset: Offset,
         extent: Extent,
         layout: MemoryLayout,
-        (buf_size, buf_ptr): (i32, *mut __gl::types::GLvoid),
+        (buf_size, buf_ptr): (u32, *mut __gl::types::GLvoid),
     ) {
         use __gl::types::{GLint, GLsizei};
-        self.set_pixel_pack_params(&layout);
+        // self.set_pixel_pack_params(&layout);
         let (y, z, height, depth): (GLint, GLint, GLsizei, GLsizei) = match image.target {
             __gl::TEXTURE_1D if subresource.layers == (0..1) => (0, 0, 1, 1),
             __gl::TEXTURE_1D_ARRAY => (
@@ -256,13 +256,14 @@ impl Device {
         region: BufferImageCopy,
     ) {
         self.bind_pixel_pack_buffer(dst_buffer);
+        let buffer_size = self.get_buffer_size(dst_buffer) - region.buffer_offset;
         self.copy_image_to(
             src_image,
             region.image_subresource,
             region.image_offset,
             region.image_extent,
             region.buffer_layout,
-            (!0, region.buffer_offset as _),
+            (buffer_size as _, region.buffer_offset as _),
         );
     }
 

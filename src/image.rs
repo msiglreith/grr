@@ -5,12 +5,11 @@ use crate::__gl::types::{GLenum, GLuint};
 
 use std::ops::Range;
 
-use crate::buffer::BufferRange;
 use crate::debug::{Object, ObjectType};
 use crate::device::Device;
 use crate::error::Result;
-use crate::format::{BaseFormat, Format, FormatLayout};
-use crate::{Extent, Offset};
+use crate::format::Format;
+use crate::Extent;
 
 /// Image resource handle.
 ///

@@ -3,7 +3,6 @@
 use crate::__gl;
 use crate::__gl::types::{GLenum, GLuint};
 
-use crate::buffer::BufferRange;
 use crate::debug::{Object, ObjectType};
 use crate::device::Device;
 use crate::error::Result;
@@ -269,6 +268,11 @@ impl Device {
 
     /// Specify read attachment.
     pub unsafe fn set_read_attachment(&self, framebuffer: Framebuffer, attachment: u32) {
+        assert_ne!(
+            framebuffer.0, 0,
+            "The default framebuffer can't be changed."
+        );
+
         self.0
             .NamedFramebufferReadBuffer(framebuffer.0, __gl::COLOR_ATTACHMENT0 + attachment);
     }

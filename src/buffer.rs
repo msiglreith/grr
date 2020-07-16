@@ -9,7 +9,6 @@ use std::{mem, ptr, slice};
 use crate::debug::{Object, ObjectType};
 use crate::device::Device;
 use crate::error::Result;
-use crate::format::{BaseFormat, Format, FormatLayout};
 
 ///
 #[derive(Clone, Copy)]
@@ -239,22 +238,22 @@ impl Device {
         self.0.BindBuffer(__gl::DISPATCH_INDIRECT_BUFFER, 0);
     }
 
-    /// Bind the buffer for reading / packing pixels from framebuffer attachments.
+    /// Bind the buffer for reading / packing pixels from framebuffer attachments or images.
     pub(crate) unsafe fn bind_pixel_pack_buffer(&self, buffer: Buffer) {
         self.0.BindBuffer(__gl::PIXEL_PACK_BUFFER, buffer.0);
     }
 
-    /// Unind the buffer for reading / packing pixels from framebuffer attachments.
+    /// Unind the buffer for reading / packing pixels from framebuffer attachments or images.
     pub(crate) unsafe fn unbind_pixel_pack_buffer(&self) {
         self.0.BindBuffer(__gl::PIXEL_PACK_BUFFER, 0);
     }
 
-    /// Bind the buffer for reading / packing pixels from framebuffer attachments.
+    /// Bind the buffer for writing / unpacking pixels to framebuffer attachments or images.
     pub(crate) unsafe fn bind_pixel_unpack_buffer(&self, buffer: Buffer) {
         self.0.BindBuffer(__gl::PIXEL_UNPACK_BUFFER, buffer.0);
     }
 
-    /// Unind the buffer for reading / packing pixels from framebuffer attachments.
+    /// Unind the buffer for writing / unpacking pixels to framebuffer attachments or images.
     pub(crate) unsafe fn unbind_pixel_unpack_buffer(&self) {
         self.0.BindBuffer(__gl::PIXEL_UNPACK_BUFFER, 0);
     }
@@ -264,6 +263,13 @@ impl Device {
     /// Required GL 4.6
     pub unsafe fn bind_parameter_buffer(&self, buffer: Buffer) {
         self.0.BindBuffer(__gl::PARAMETER_BUFFER, buffer.0);
+    }
+
+    pub(crate) unsafe fn get_buffer_size(&self, buffer: Buffer) -> u64 {
+        let mut size = 0;
+        self.0
+            .GetNamedBufferParameteri64v(buffer.0, __gl::BUFFER_SIZE, &mut size);
+        size as _
     }
 }
 
