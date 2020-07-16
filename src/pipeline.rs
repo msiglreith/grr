@@ -210,6 +210,20 @@ pub struct Rasterization {
     pub depth_bias: bool,
 }
 
+impl Default for Rasterization {
+    /// OpenGL default settings for rasterization
+    fn default() -> Rasterization {
+        Rasterization {
+            depth_clamp: false,
+            rasterizer_discard: false,
+            polygon_mode: PolygonMode::Fill,
+            cull_mode: None,
+            front_face: FrontFace::CounterClockwise,
+            depth_bias: false,
+        }
+    }
+}
+
 /// Polygon rendering mode.
 ///
 /// Used during [`Rasterization`](struct.Rasterization.html).
