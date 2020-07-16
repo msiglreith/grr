@@ -179,24 +179,26 @@ fn main() -> Result<(), Box<dyn Error>> {
                 num_levels,
             )?;
             grr.copy_host_to_image(
-                texture,
-                grr::SubresourceLevel {
-                    level: 0,
-                    layers: 0..1,
-                },
-                grr::Offset { x: 0, y: 0, z: 0 },
-                grr::Extent {
-                    width: img_width,
-                    height: img_height,
-                    depth: 1,
-                },
                 &img_data,
-                grr::SubresourceLayout {
-                    base_format: grr::BaseFormat::RGBA,
-                    format_layout: grr::FormatLayout::U8,
-                    row_pitch: img_width,
-                    image_height: img_height,
-                    alignment: 4,
+                texture,
+                grr::HostImageCopy {
+                    host_layout: grr::MemoryLayout {
+                        base_format: grr::BaseFormat::RGBA,
+                        format_layout: grr::FormatLayout::U8,
+                        row_length: img_width,
+                        image_height: img_height,
+                        alignment: 4,
+                    },
+                    image_subresource: grr::SubresourceLayers {
+                        level: 0,
+                        layers: 0..1,
+                    },
+                    image_offset: grr::Offset { x: 0, y: 0, z: 0 },
+                    image_extent: grr::Extent {
+                        width: img_width,
+                        height: img_height,
+                        depth: 1,
+                    },
                 },
             );
             grr.generate_mipmaps(texture);
@@ -302,7 +304,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         };
 
         println!("Loading HDR image from disk");
-        let hdr_image = image::hdr::HDRDecoder::new(io::BufReader::new(
+        let hdr_image = image::hdr::HdrDecoder::new(io::BufReader::new(
             fs::File::open(format!("{}/Lobby-Center_2k.hdr", base_path)).unwrap(),
         ))
         .unwrap();
@@ -348,24 +350,26 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         println!("Uploading HDR image into GPU memory");
         grr.copy_host_to_image(
-            hdr_texture,
-            grr::SubresourceLevel {
-                level: 0,
-                layers: 0..1,
-            },
-            grr::Offset { x: 0, y: 0, z: 0 },
-            grr::Extent {
-                width: hdr_image_width,
-                height: hdr_image_height,
-                depth: 1,
-            },
             &hdr_image_raw,
-            grr::SubresourceLayout {
-                base_format: grr::BaseFormat::RGB,
-                format_layout: grr::FormatLayout::F32,
-                row_pitch: hdr_image_width,
-                image_height: hdr_image_height,
-                alignment: 4,
+            hdr_texture,
+            grr::HostImageCopy {
+                host_layout: grr::MemoryLayout {
+                    base_format: grr::BaseFormat::RGB,
+                    format_layout: grr::FormatLayout::F32,
+                    row_length: hdr_image_width,
+                    image_height: hdr_image_height,
+                    alignment: 4,
+                },
+                image_subresource: grr::SubresourceLayers {
+                    level: 0,
+                    layers: 0..1,
+                },
+                image_offset: grr::Offset { x: 0, y: 0, z: 0 },
+                image_extent: grr::Extent {
+                    width: hdr_image_width,
+                    height: hdr_image_height,
+                    depth: 1,
+                },
             },
         );
 

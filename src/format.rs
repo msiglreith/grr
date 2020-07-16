@@ -20,7 +20,7 @@ use crate::__gl;
 /// * The '_SFLOAT' suffix denotes floating point formats, equivalent
 /// to the OpenGL 'F' suffix.
 ///
-/// * The '_INT' suffix denotes signed integer formats, exposed to
+/// * The '_SINT' suffix denotes signed integer formats, exposed to
 /// shaders unmodified as integers. This is equivalent to the OpenGL
 /// 'I' suffix.
 ///
@@ -76,20 +76,20 @@ pub enum Format {
     R32G32B32A32_SFLOAT = __gl::RGBA32F,
 
     // signed integer formats
-    R8_INT = __gl::R8I,
-    R8G8_INT = __gl::RG8I,
-    R8G8B8_INT = __gl::RGB8I,
-    R8G8B8A8_INT = __gl::RGBA8I,
+    R8_SINT = __gl::R8I,
+    R8G8_SINT = __gl::RG8I,
+    R8G8B8_SINT = __gl::RGB8I,
+    R8G8B8A8_SINT = __gl::RGBA8I,
 
-    R16_INT = __gl::R16I,
-    R16G16_INT = __gl::RG16I,
-    R16G16B16_INT = __gl::RGB16I,
-    R16G16B16A16_INT = __gl::RGBA16I,
+    R16_SINT = __gl::R16I,
+    R16G16_SINT = __gl::RG16I,
+    R16G16B16_SINT = __gl::RGB16I,
+    R16G16B16A16_SINT = __gl::RGBA16I,
 
-    R32_INT = __gl::R32I,
-    R32G32_INT = __gl::RG32I,
-    R32G32B32_INT = __gl::RGB32I,
-    R32G32B32A32_INT = __gl::RGBA32I,
+    R32_SINT = __gl::R32I,
+    R32G32_SINT = __gl::RG32I,
+    R32G32B32_SINT = __gl::RGB32I,
+    R32G32B32A32_SINT = __gl::RGBA32I,
 
     // unsigned integer formats
     R8_UINT = __gl::R8UI,
@@ -135,26 +135,21 @@ impl Format {
     pub fn base_format(self) -> BaseFormat {
         use Format::*;
         match self {
-            R8_UNORM | R16_UNORM | R8_SNORM | R16_SNORM | R8_INT | R16_INT | R32_INT | R8_UINT
-            | R16_UINT | R32_UINT | R16_SFLOAT | R32_SFLOAT => BaseFormat::R,
+            R8_UNORM | R16_UNORM | R8_SNORM | R16_SNORM | R8_SINT | R16_SINT | R32_SINT
+            | R8_UINT | R16_UINT | R32_UINT | R16_SFLOAT | R32_SFLOAT => BaseFormat::R,
 
-            R8G8_UNORM | R16G16_UNORM | R8G8_SNORM | R16G16_SNORM | R8G8_INT | R16G16_INT
-            | R32G32_INT | R8G8_UINT | R16G16_UINT | R32G32_UINT | R16G16_SFLOAT
+            R8G8_UNORM | R16G16_UNORM | R8G8_SNORM | R16G16_SNORM | R8G8_SINT | R16G16_SINT
+            | R32G32_SINT | R8G8_UINT | R16G16_UINT | R32G32_UINT | R16G16_SFLOAT
             | R32G32_SFLOAT => BaseFormat::RG,
 
-            R8G8B8_UNORM | R16G16B16_UNORM | R8G8B8_SNORM | R16G16B16_SNORM | R8G8B8_INT
-            | R16G16B16_INT | R32G32B32_INT | R8G8B8_UINT | R16G16B16_UINT | R32G32B32_UINT
-            | R16G16B16_SFLOAT | R32G32B32_SFLOAT => BaseFormat::RGB,
+            R8G8B8_UNORM | R16G16B16_UNORM | R8G8B8_SNORM | R16G16B16_SNORM | R8G8B8_SINT
+            | R16G16B16_SINT | R32G32B32_SINT | R8G8B8_UINT | R16G16B16_UINT | R32G32B32_UINT
+            | R16G16B16_SFLOAT | R32G32B32_SFLOAT | R8G8B8_SRGB => BaseFormat::RGB,
 
             R8G8B8A8_UNORM | R16G16B16A16_UNORM | R8G8B8A8_SNORM | R16G16B16A16_SNORM
-            | R8G8B8A8_INT | R16G16B16A16_INT | R32G32B32A32_INT | R8G8B8A8_UINT
-            | R16G16B16A16_UINT | R32G32B32A32_UINT | R16G16B16A16_SFLOAT | R32G32B32A32_SFLOAT => {
-                BaseFormat::RGBA
-            }
-
-            R8G8B8_SRGB => BaseFormat::RGB,
-
-            R8G8B8A8_SRGB => BaseFormat::RGBA,
+            | R8G8B8A8_SINT | R16G16B16A16_SINT | R32G32B32A32_SINT | R8G8B8A8_UINT
+            | R16G16B16A16_UINT | R32G32B32A32_UINT | R16G16B16A16_SFLOAT | R32G32B32A32_SFLOAT
+            | R8G8B8A8_SRGB => BaseFormat::RGBA,
 
             D32_SFLOAT | D16_UNORM | D24_UNORM | D32_UNORM => BaseFormat::Depth,
 

@@ -53,7 +53,7 @@
 //! All other objects created are opaque handles!
 //!
 //! * **Resource**: Objects with associated memory. Can be a [`Buffer`](struct.Buffer.html) (untyped) or an [`Image`](struct.Image.html).
-//! * **Pipeline**: There currently are two sort of pipelines suppoerted:
+//! * **Pipeline**: There currently are two sort of pipelines supported:
 //!       [*Graphics*](struct.Device.html#method.create_graphics_pipeline) and
 //!       [*Compute*](struct.Device.html#method.create_compute_pipeline)
 //! * **Framebuffer**: Assembles the attachments ([`ImageView`](struct.ImageView.html) or [`RenderBuffer`](struct.RenderBuffer.html)) for draw calls
@@ -81,11 +81,12 @@ mod pipeline;
 mod query;
 mod sampler;
 mod sync;
+mod transfer;
 mod vertex;
 
 pub use crate::{
     buffer::*, command::*, debug::*, device::*, error::*, format::*, framebuffer::*, image::*,
-    pipeline::*, query::*, sampler::*, sync::*, vertex::*,
+    pipeline::*, query::*, sampler::*, sync::*, transfer::*, vertex::*,
 };
 
 ///

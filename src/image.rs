@@ -5,12 +5,11 @@ use crate::__gl::types::{GLenum, GLuint};
 
 use std::ops::Range;
 
-use crate::buffer::BufferRange;
 use crate::debug::{Object, ObjectType};
 use crate::device::Device;
 use crate::error::Result;
-use crate::format::{BaseFormat, Format, FormatLayout};
-use crate::{Extent, Offset};
+use crate::format::Format;
+use crate::Extent;
 
 /// Image resource handle.
 ///
@@ -26,8 +25,8 @@ use crate::{Extent, Offset};
 /// affects the underlying memory (e.g copy operations).
 #[derive(Clone, Copy)]
 pub struct Image {
-    raw: GLuint,
-    target: GLenum,
+    pub(crate) raw: GLuint,
+    pub(crate) target: GLenum,
 }
 
 impl Object for Image {
@@ -175,7 +174,7 @@ impl Object for ImageView {
 /// Image View type.
 ///
 /// An `ImageViewType` maps roughly to OpenGL texture targets.
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum ImageViewType {
     D1,
     D2,
@@ -187,6 +186,7 @@ pub enum ImageViewType {
 }
 
 /// Subresource of an image.
+#[derive(Debug, Clone)]
 pub struct SubresourceRange {
     /// Range of mip levels.
     pub levels: Range<u32>,
@@ -194,20 +194,12 @@ pub struct SubresourceRange {
     pub layers: Range<u32>,
 }
 
-pub struct SubresourceLevel {
-    /// Mip level.
+#[derive(Debug, Clone)]
+pub struct SubresourceLayers {
+    /// Mipmap level.
     pub level: u32,
     /// Range of array layers.
     pub layers: Range<u32>,
-}
-
-///
-pub struct SubresourceLayout {
-    pub base_format: BaseFormat,
-    pub format_layout: FormatLayout,
-    pub row_pitch: u32,
-    pub image_height: u32,
-    pub alignment: u32,
 }
 
 impl Device {
@@ -289,142 +281,6 @@ impl Device {
             .DeleteTextures(images.len() as _, images.as_ptr() as *const _);
     }
 
-    pub(crate) unsafe fn set_pixel_unpack_params(&self, layout: &SubresourceLayout) {
-        self.0
-            .PixelStorei(__gl::UNPACK_ALIGNMENT, layout.alignment as _);
-        self.0
-            .PixelStorei(__gl::UNPACK_IMAGE_HEIGHT, layout.image_height as _);
-        self.0
-            .PixelStorei(__gl::UNPACK_ROW_LENGTH, layout.row_pitch as _);
-    }
-
-    pub(crate) unsafe fn set_pixel_pack_params(&self, layout: &SubresourceLayout) {
-        self.0
-            .PixelStorei(__gl::PACK_ALIGNMENT, layout.alignment as _);
-        self.0
-            .PixelStorei(__gl::PACK_IMAGE_HEIGHT, layout.image_height as _);
-        self.0
-            .PixelStorei(__gl::PACK_ROW_LENGTH, layout.row_pitch as _);
-    }
-
-    /// Copy image data from a location to device memory.
-    ///
-    /// Location can be either a buffer or a host memory, depending on
-    /// whether or not pixel_unpack_buffer is bound.
-    unsafe fn copy_to_image(
-        &self,
-        image: Image,
-        subresource: SubresourceLevel,
-        offset: Offset,
-        extent: Extent,
-        data_ptr: *const __gl::types::GLvoid,
-        layout: SubresourceLayout,
-    ) {
-        self.set_pixel_unpack_params(&layout);
-        match image.target {
-            __gl::TEXTURE_1D if subresource.layers == (0..1) => self.0.TextureSubImage1D(
-                image.raw,
-                subresource.level as _,
-                offset.x,
-                extent.width as _,
-                layout.base_format as _,
-                layout.format_layout as _,
-                data_ptr,
-            ),
-            __gl::TEXTURE_1D_ARRAY => self.0.TextureSubImage2D(
-                image.raw,
-                subresource.level as _,
-                offset.x,
-                subresource.layers.start as _,
-                extent.width as _,
-                (subresource.layers.end - subresource.layers.start) as _,
-                layout.base_format as _,
-                layout.format_layout as _,
-                data_ptr,
-            ),
-            __gl::TEXTURE_2D if subresource.layers == (0..1) => self.0.TextureSubImage2D(
-                image.raw,
-                subresource.level as _,
-                offset.x,
-                offset.y,
-                extent.width as _,
-                extent.height as _,
-                layout.base_format as _,
-                layout.format_layout as _,
-                data_ptr,
-            ),
-            __gl::TEXTURE_2D_ARRAY => self.0.TextureSubImage3D(
-                image.raw,
-                subresource.level as _,
-                offset.x,
-                offset.y,
-                subresource.layers.start as _,
-                extent.width as _,
-                extent.height as _,
-                (subresource.layers.end - subresource.layers.start) as _,
-                layout.base_format as _,
-                layout.format_layout as _,
-                data_ptr,
-            ),
-            __gl::TEXTURE_3D if subresource.layers == (0..1) => self.0.TextureSubImage3D(
-                image.raw,
-                subresource.level as _,
-                offset.x,
-                offset.y,
-                offset.z,
-                extent.width as _,
-                extent.height as _,
-                extent.depth as _,
-                layout.base_format as _,
-                layout.format_layout as _,
-                data_ptr,
-            ),
-            _ => unimplemented!(), // panic!("Invalid target image: {}", image.target),
-        }
-    }
-
-    /// Copy image data from host memory to device memory.
-    pub unsafe fn copy_host_to_image<T>(
-        &self,
-        image: Image,
-        subresource: SubresourceLevel,
-        offset: Offset,
-        extent: Extent,
-        data: &[T],
-        layout: SubresourceLayout,
-    ) {
-        self.unbind_pixel_unpack_buffer();
-        self.copy_to_image(
-            image,
-            subresource,
-            offset,
-            extent,
-            data.as_ptr() as *const _,
-            layout,
-        );
-    }
-
-    /// Copy image data from buffer to device memory.
-    pub unsafe fn copy_buffer_to_image(
-        &self,
-        image: Image,
-        subresource: SubresourceLevel,
-        offset: Offset,
-        extent: Extent,
-        buffer: BufferRange,
-        layout: SubresourceLayout,
-    ) {
-        self.bind_pixel_unpack_buffer(buffer.buffer);
-        self.copy_to_image(
-            image,
-            subresource,
-            offset,
-            extent,
-            buffer.offset as *const _,
-            layout,
-        );
-    }
-
     /// Create an image view from an image.
     pub unsafe fn create_image_view(
         &self,
@@ -490,103 +346,6 @@ impl Device {
         )?;
 
         Ok((image, image_view))
-    }
-
-    unsafe fn copy_image_to(
-        &self,
-        image: Image,
-        subresource: SubresourceLevel,
-        offset: Offset,
-        extent: Extent,
-        layout: SubresourceLayout,
-        (buf_size, buf_ptr): (i32, *mut __gl::types::GLvoid),
-    ) {
-        use __gl::types::{GLint, GLsizei};
-        self.set_pixel_pack_params(&layout);
-        let (y, z, height, depth): (GLint, GLint, GLsizei, GLsizei) = match image.target {
-            __gl::TEXTURE_1D if subresource.layers == (0..1) => (0, 0, 1, 1),
-            __gl::TEXTURE_1D_ARRAY => (
-                subresource.layers.start as _,
-                0,
-                (subresource.layers.end - subresource.layers.start) as _,
-                1,
-            ),
-            __gl::TEXTURE_2D if subresource.layers == (0..1) => {
-                (offset.y, 0, extent.height as _, 1)
-            }
-            __gl::TEXTURE_2D_ARRAY => (
-                offset.y,
-                subresource.layers.start as _,
-                extent.height as _,
-                (subresource.layers.end - subresource.layers.start) as _,
-            ),
-            __gl::TEXTURE_3D => (offset.y, offset.z, extent.height as _, extent.depth as _),
-            _ => {
-                unimplemented!(
-                    "Cannot copy from image for multisample, cube arraay, or buffer textures"
-                );
-            }
-        };
-
-        self.0.GetTextureSubImage(
-            image.handle(),
-            subresource.level as _,
-            offset.x,
-            y,
-            z,
-            extent.width as _,
-            height,
-            depth,
-            layout.base_format as _,
-            layout.format_layout as _,
-            buf_size as _,
-            buf_ptr,
-        );
-    }
-
-    /// Copy image data from device memory to a host array.
-    pub unsafe fn copy_image_to_host<T>(
-        &self,
-        image: Image,
-        subresource: SubresourceLevel,
-        offset: Offset,
-        extent: Extent,
-        layout: SubresourceLayout,
-        data: &mut [T],
-    ) {
-        self.unbind_pixel_pack_buffer();
-        self.copy_image_to(
-            image,
-            subresource,
-            offset,
-            extent,
-            layout,
-            (
-                (data.len() * std::mem::size_of::<T>()) as _,
-                data.as_mut_ptr() as _,
-            ),
-        );
-    }
-
-    /// Copy image data from device memory to a buffer object.
-    pub unsafe fn copy_image_to_buffer(
-        &self,
-        image: Image,
-        subresource: SubresourceLevel,
-        offset: Offset,
-        extent: Extent,
-        layout: SubresourceLayout,
-        buffer: BufferRange,
-    ) {
-        self.bind_pixel_pack_buffer(buffer.buffer);
-        self.copy_image_to(
-            image,
-            subresource,
-            offset,
-            extent,
-            layout,
-            (buffer.size as _, buffer.offset as _),
-        );
     }
 
     /// Delete an image views.

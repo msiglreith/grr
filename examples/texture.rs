@@ -131,24 +131,26 @@ fn main() -> grr::Result<()> {
         grr.object_name(texture, "grr logo");
 
         grr.copy_host_to_image(
-            texture,
-            grr::SubresourceLevel {
-                level: 0,
-                layers: 0..1,
-            },
-            grr::Offset { x: 0, y: 0, z: 0 },
-            grr::Extent {
-                width: img_width,
-                height: img_height,
-                depth: 1,
-            },
             &img_data,
-            grr::SubresourceLayout {
-                base_format: grr::BaseFormat::RGBA,
-                format_layout: grr::FormatLayout::U8,
-                row_pitch: img_width,
-                image_height: img_height,
-                alignment: 4,
+            texture,
+            grr::HostImageCopy {
+                host_layout: grr::MemoryLayout {
+                    base_format: grr::BaseFormat::RGBA,
+                    format_layout: grr::FormatLayout::U8,
+                    row_length: img_width,
+                    image_height: img_height,
+                    alignment: 4,
+                },
+                image_subresource: grr::SubresourceLayers {
+                    level: 0,
+                    layers: 0..1,
+                },
+                image_offset: grr::Offset { x: 0, y: 0, z: 0 },
+                image_extent: grr::Extent {
+                    width: img_width,
+                    height: img_height,
+                    depth: 1,
+                },
             },
         );
 
