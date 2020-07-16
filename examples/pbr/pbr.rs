@@ -304,7 +304,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         };
 
         println!("Loading HDR image from disk");
-        let hdr_image = image::hdr::HDRDecoder::new(io::BufReader::new(
+        let hdr_image = image::hdr::HdrDecoder::new(io::BufReader::new(
             fs::File::open(format!("{}/Lobby-Center_2k.hdr", base_path)).unwrap(),
         ))
         .unwrap();
