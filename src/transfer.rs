@@ -19,6 +19,20 @@ pub struct MemoryLayout {
 }
 
 #[derive(Debug, Clone)]
+pub struct ImageCopy {
+    /// Layers of the source image.
+    pub src_subresource: SubresourceLayers,
+    /// Initial x,y,z texel offsets in the subregion of the source image.
+    pub src_offset: Offset,
+    /// Layers of the destination image.
+    pub dst_subresource: SubresourceLayers,
+    /// Initial x,y,z texel offsets in the subregion of the destination image.
+    pub dst_offset: Offset,
+    /// Size of texels to copy in the subregion of of the source/destination image.
+    pub extent: Extent,
+}
+
+#[derive(Debug, Clone)]
 pub struct BufferImageCopy {
     /// Offset in bytes from the start of the source/destination buffer.
     pub buffer_offset: u64,
@@ -175,6 +189,71 @@ impl Device {
         );
     }
 
+    unsafe fn map_subresource_region(
+        image: Image,
+        subresource: &SubresourceLayers,
+        offset: Offset,
+        extent: Extent,
+    ) -> (Offset, Extent) {
+        match image.target {
+            __gl::TEXTURE_1D => (
+                Offset {
+                    x: offset.x,
+                    y: 0,
+                    z: 0,
+                },
+                Extent {
+                    width: extent.width,
+                    height: 1,
+                    depth: 1,
+                },
+            ),
+            __gl::TEXTURE_1D_ARRAY => (
+                Offset {
+                    x: offset.x,
+                    y: subresource.layers.start as _,
+                    z: 0,
+                },
+                Extent {
+                    width: extent.width,
+                    height: (subresource.layers.end - subresource.layers.start) as _,
+                    depth: 1,
+                },
+            ),
+            __gl::TEXTURE_2D => (
+                Offset {
+                    x: offset.x,
+                    y: offset.y,
+                    z: 0,
+                },
+                Extent {
+                    width: extent.width,
+                    height: extent.height,
+                    depth: 1,
+                },
+            ),
+            __gl::TEXTURE_2D_ARRAY => (
+                Offset {
+                    x: offset.x,
+                    y: offset.y,
+                    z: subresource.layers.start as _,
+                },
+                Extent {
+                    width: extent.width,
+                    height: extent.height,
+                    depth: (subresource.layers.end - subresource.layers.start) as _,
+                },
+            ),
+            __gl::TEXTURE_3D => (offset, extent),
+            _ => {
+                // todo
+                unimplemented!(
+                    "Cannot copy from image for multisample, cube array, or buffer textures"
+                );
+            }
+        }
+    }
+
     unsafe fn copy_image_to(
         &self,
         image: Image,
@@ -184,42 +263,17 @@ impl Device {
         layout: MemoryLayout,
         (buf_size, buf_ptr): (u32, *mut __gl::types::GLvoid),
     ) {
-        use __gl::types::{GLint, GLsizei};
-        // self.set_pixel_pack_params(&layout);
-        let (y, z, height, depth): (GLint, GLint, GLsizei, GLsizei) = match image.target {
-            __gl::TEXTURE_1D if subresource.layers == (0..1) => (0, 0, 1, 1),
-            __gl::TEXTURE_1D_ARRAY => (
-                subresource.layers.start as _,
-                0,
-                (subresource.layers.end - subresource.layers.start) as _,
-                1,
-            ),
-            __gl::TEXTURE_2D if subresource.layers == (0..1) => {
-                (offset.y, 0, extent.height as _, 1)
-            }
-            __gl::TEXTURE_2D_ARRAY => (
-                offset.y,
-                subresource.layers.start as _,
-                extent.height as _,
-                (subresource.layers.end - subresource.layers.start) as _,
-            ),
-            __gl::TEXTURE_3D => (offset.y, offset.z, extent.height as _, extent.depth as _),
-            _ => {
-                unimplemented!(
-                    "Cannot copy from image for multisample, cube arraay, or buffer textures"
-                );
-            }
-        };
-
+        self.set_pixel_pack_params(&layout);
+        let (offset, extent) = Self::map_subresource_region(image, &subresource, offset, extent);
         self.0.GetTextureSubImage(
             image.raw,
             subresource.level as _,
             offset.x,
-            y,
-            z,
+            offset.y,
+            offset.z,
             extent.width as _,
-            height,
-            depth,
+            extent.height as _,
+            extent.depth as _,
             layout.base_format as _,
             layout.format_layout as _,
             buf_size as _,
@@ -323,6 +377,38 @@ impl Device {
             layout.format_layout as _,
             buffer_range.size as _,
             buffer_range.offset as _,
+        );
+    }
+
+    pub unsafe fn copy_image(&self, src_image: Image, dst_image: Image, region: ImageCopy) {
+        let (src_offset, _) = Self::map_subresource_region(
+            src_image,
+            &region.src_subresource,
+            region.src_offset,
+            region.extent,
+        );
+        let (dst_offset, extent) = Self::map_subresource_region(
+            dst_image,
+            &region.dst_subresource,
+            region.dst_offset,
+            region.extent,
+        );
+        self.0.CopyImageSubData(
+            src_image.raw,
+            src_image.target,
+            region.src_subresource.level as _,
+            src_offset.x,
+            src_offset.y,
+            src_offset.z,
+            dst_image.raw,
+            dst_image.target,
+            region.dst_subresource.level as _,
+            dst_offset.x,
+            dst_offset.y,
+            dst_offset.z,
+            extent.width as _,
+            extent.height as _,
+            extent.depth as _,
         );
     }
 
