@@ -191,7 +191,7 @@ impl Device {
 
     unsafe fn map_subresource_region(
         image: Image,
-        subresource: SubresourceLayers,
+        subresource: &SubresourceLayers,
         offset: Offset,
         extent: Extent,
     ) -> (Offset, Extent) {
@@ -263,9 +263,8 @@ impl Device {
         layout: MemoryLayout,
         (buf_size, buf_ptr): (u32, *mut __gl::types::GLvoid),
     ) {
-        use __gl::types::{GLint, GLsizei};
         self.set_pixel_pack_params(&layout);
-        let (offset, extent) = Self::map_subresource_region(image, subresource, offset, extent);
+        let (offset, extent) = Self::map_subresource_region(image, &subresource, offset, extent);
         self.0.GetTextureSubImage(
             image.raw,
             subresource.level as _,
@@ -384,13 +383,13 @@ impl Device {
     pub unsafe fn copy_image(&self, src_image: Image, dst_image: Image, region: ImageCopy) {
         let (src_offset, _) = Self::map_subresource_region(
             src_image,
-            region.src_subresource,
+            &region.src_subresource,
             region.src_offset,
             region.extent,
         );
         let (dst_offset, extent) = Self::map_subresource_region(
             dst_image,
-            region.dst_subresource,
+            &region.dst_subresource,
             region.dst_offset,
             region.extent,
         );
