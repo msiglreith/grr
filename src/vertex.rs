@@ -21,18 +21,26 @@ impl Object for VertexArray {
 /// Buffer representation for vertex attributes
 #[derive(Clone)]
 pub struct VertexBufferView {
+    /// Buffer handle for this buffer binding.
     pub buffer: Buffer,
+    /// Vertex binding start address relative to the buffer.
     pub offset: u64,
+    /// Distance in bytes between two consecutive elements.
     pub stride: u32,
+    /// Vertex attribute addressing.
     pub input_rate: InputRate,
 }
 
 /// Vertex attribute format and binding.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VertexAttributeDesc {
+    /// Shader binding location of the attribute.
     pub location: u32,
+    /// Vertex buffer binding number which is the data source.
     pub binding: u32,
+    /// Size and type of the vertex data.
     pub format: VertexFormat,
+    /// Byte offset of this attribute relative to the start of an element in the vertex binding.
     pub offset: u32,
 }
 

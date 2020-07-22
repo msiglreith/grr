@@ -413,19 +413,28 @@ impl Device {
     }
 
     /// Copy data from one buffer into another buffer.
+    ///
+    /// # Valid usage
+    ///
+    /// - `src_buffer` and `dst_buffer` **must** be valid handles.
+    /// - `src_offset` **must** be less than the size of `src_buffer`.
+    /// - `dst_offset` **must** be less than the size of `dst_buffer`.
+    /// - `size` **must** be less than or equal the size of `src_buffer` minus `src_offset`.
+    /// - `size` **must** be less than or equal the size of `dst_buffer` minus `dst_offset`.
+    /// - The source and destination region **must** not overlap in memory.
     pub unsafe fn copy_buffer(
         &self,
         src_buffer: Buffer,
-        src_offset: isize,
+        src_offset: u64,
         dst_buffer: Buffer,
-        dst_offset: isize,
+        dst_offset: u64,
         size: u64,
     ) {
         self.0.CopyNamedBufferSubData(
             src_buffer.0,
             dst_buffer.0,
-            src_offset,
-            dst_offset,
+            src_offset as _,
+            dst_offset as _,
             size as _,
         );
     }
