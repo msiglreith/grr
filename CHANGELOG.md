@@ -1,3 +1,26 @@
+# 0.8 (Panthera tigris)
+
+### Added
+
+- Setting depth bias
+- Storage Images
+- Add vec2/vec4 uniform constant
+- Add query result retrieval
+- Expose context for raw calls
+- Add a bunch of new formats :tada:
+- Default implementation for pipeline states
+- Device/Queue submission commands
+- Transfer operations (host <-> buffer <-> image <-> attachment)
+- Image type accessors
+
+### Changed
+- Rename `bind_shader_storage_buffers` to `bind_storage_buffers`
+- Shader and Pipeline creation may optionally print the shader log
+
+### Fixed
+- Linear and Nearest filters were swapped
+- Incorrect `draw_indexed_indirect_from_host` stride
+
 # 0.7 (Feral Cat)
 
 ### Added
