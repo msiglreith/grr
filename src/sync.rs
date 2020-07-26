@@ -94,9 +94,11 @@ impl Device {
             self.0.TextureBarrier();
         }
 
-        flags.remove(Barrier::INPUT_ATTACHMENT_READ);
-        if flags.is_empty() {
-            return;
+        if flags != Barrier::ALL {
+            flags.remove(Barrier::INPUT_ATTACHMENT_READ);
+            if flags.is_empty() {
+                return;
+            }
         }
 
         self.0.MemoryBarrier(flags.bits());
