@@ -100,8 +100,6 @@ pub struct Viewport {
 ///
 /// GLSL: `layout (location = 0) uniform mat4 u_perspective;`
 pub enum Constant {
-    /// 32-bit unsigned integer.
-    U32(u32),
     /// 32-bit single precision floating point.
     F32(f32),
     /// 2 elements single precision floating point vector.
@@ -114,10 +112,28 @@ pub enum Constant {
     Vec3([f32; 3]),
     /// 4 elements single precision floating point vector.
     Vec4([f32; 4]),
+    /// 2x2 elements single precision floating point matrix.
+    Mat2x2([[f32; 2]; 2]),
     /// 3x3 elements single precision floating point matrix.
     Mat3x3([[f32; 3]; 3]),
     /// 4x4 elements single precision floating point matrix.
     Mat4x4([[f32; 4]; 4]),
+    /// 32-bit signed integer
+    I32(i32),
+    /// 2 elements 32-bit signed integer.
+    Ivec2([i32; 2]),
+    /// 3 elements 32-bit signed integer.
+    Ivec3([i32; 3]),
+    /// 4 elements 32-bit signed integer.
+    Ivec4([i32; 4]),
+    /// 32-bit signed integer
+    U32(i32),
+    /// 2 elements 32-bit unsigned integer.
+    Uvec2([u32; 2]),
+    /// 3 elements 32-bit unsigned integer.
+    Uvec3([u32; 3]),
+    /// 4 elements 32-bit unsigned integer.
+    Uvec4([u32; 4]),
 }
 
 /// Indirect draw command structure.
@@ -176,6 +192,17 @@ impl Device {
                 Constant::U32(val) => {
                     self.0.ProgramUniform1ui(pipeline.0, location, *val as _);
                 }
+                Constant::Uvec2(v) => {
+                    self.0.ProgramUniform2ui(pipeline.0, location, v[0], v[1]);
+                }
+                Constant::Uvec3(v) => {
+                    self.0
+                        .ProgramUniform3ui(pipeline.0, location, v[0], v[1], v[2]);
+                }
+                Constant::Uvec4(v) => {
+                    self.0
+                        .ProgramUniform4ui(pipeline.0, location, v[0], v[1], v[2], v[3]);
+                }
                 Constant::F32(val) => {
                     self.0.ProgramUniform1f(pipeline.0, location, *val as _);
                 }
@@ -195,6 +222,29 @@ impl Device {
                 Constant::Vec4(v) => {
                     self.0
                         .ProgramUniform4f(pipeline.0, location, v[0], v[1], v[2], v[3]);
+                }
+                Constant::I32(val) => {
+                    self.0.ProgramUniform1i(pipeline.0, location, *val as _);
+                }
+                Constant::Ivec2(v) => {
+                    self.0.ProgramUniform2i(pipeline.0, location, v[0], v[1]);
+                }
+                Constant::Ivec3(v) => {
+                    self.0
+                        .ProgramUniform3i(pipeline.0, location, v[0], v[1], v[2]);
+                }
+                Constant::Ivec4(v) => {
+                    self.0
+                        .ProgramUniform4i(pipeline.0, location, v[0], v[1], v[2], v[3]);
+                }
+                Constant::Mat2x2(mat) => {
+                    self.0.ProgramUniformMatrix2fv(
+                        pipeline.0,
+                        location,
+                        1,
+                        __gl::FALSE,
+                        mat.as_ptr() as *const _,
+                    );
                 }
                 Constant::Mat3x3(mat) => {
                     self.0.ProgramUniformMatrix3fv(
