@@ -459,6 +459,7 @@ impl Device {
                         &(source.as_ptr() as *const _),
                         &(source.len() as _),
                     );
+                    self.0.CompileShader(shader);
                 }
                 ShaderSource::Spirv { entrypoint } => {
                     self.0.ShaderBinary(
@@ -473,7 +474,6 @@ impl Device {
                         .SpecializeShader(shader, entry.as_ptr(), 0, ptr::null(), ptr::null());
                 }
             }
-            self.0.CompileShader(shader);
 
             Shader(shader)
         };
