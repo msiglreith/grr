@@ -1,6 +1,6 @@
 use crate::{
-    BaseFormat, Buffer, BufferRange, Device, Extent, Format, FormatLayout, Image, Offset, Region,
-    SubresourceLayers, __gl,
+    BaseFormat, Buffer, BufferRange, Device, Extent, FormatLayout, Image, Offset, Region,
+    SubresourceLayers, __gl, WHOLE_SIZE,
 };
 
 /// Specifies the layout of the host or buffer memory.
@@ -439,23 +439,22 @@ impl Device {
         );
     }
 
-    /// Fill buffer with data.
-    pub unsafe fn fill_buffer(
-        &self,
-        buffer: BufferRange,
-        buffer_format: Format,
-        base_format: BaseFormat,
-        format_layout: FormatLayout,
-        value: &[u8],
-    ) {
+    /// Fill a region of a buffer with a fixed value
+    pub unsafe fn fill_buffer(&self, buffer: BufferRange, value: u32) {
+        let size = if buffer.size == WHOLE_SIZE {
+            ((self.get_buffer_size(buffer.buffer) - buffer.offset as u64) & !0x3) as _
+        } else {
+            buffer.size as _
+        };
+
         self.0.ClearNamedBufferSubData(
             buffer.buffer.0,
-            buffer_format as _,
+            __gl::R32UI,
             buffer.offset as _,
-            buffer.size as _,
-            format_layout as _,
-            base_format as _,
-            value.as_ptr() as *const _,
+            size,
+            __gl::RED,
+            __gl::UNSIGNED_INT,
+            &value as *const _ as _,
         );
     }
 }

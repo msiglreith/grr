@@ -89,6 +89,8 @@ pub use crate::{
     pipeline::*, query::*, sampler::*, sync::*, transfer::*, vertex::*,
 };
 
+pub const WHOLE_SIZE: u64 = !0;
+
 ///
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Region {
