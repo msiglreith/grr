@@ -8,6 +8,8 @@ use crate::device::Device;
 use crate::error::{Error, Result};
 use crate::Compare;
 
+use std::ptr;
+
 /// Shader.
 ///
 /// Shaders are programmable parts of [`Pipelines`](struct.Pipeline.html). Each shader has a fixed
@@ -416,9 +418,24 @@ pub struct Multisample {
     pub alpha_to_one: bool,
 }
 
+///
+pub enum ShaderSource<'a> {
+    /// GLSL text shader.
+    Glsl,
+    /// SPIR-V binary shader.
+    ///
+    /// Requires GL 4.6 support.
+    Spirv { entrypoint: &'a str },
+}
+
 impl Device {
     /// Compile a new shader from GLSL, returning the shader object iff compilation was successful.
-    unsafe fn compile_shader(&self, stage: ShaderStage, source: &[u8]) -> Result<Shader> {
+    unsafe fn compile_shader(
+        &self,
+        stage: ShaderStage,
+        ty: ShaderSource,
+        source: &[u8],
+    ) -> Result<Shader> {
         let stage = match stage {
             ShaderStage::Vertex => __gl::VERTEX_SHADER,
             ShaderStage::TessellationControl => __gl::TESS_CONTROL_SHADER,
@@ -433,12 +450,29 @@ impl Device {
         let shader = {
             let shader = self.0.CreateShader(stage);
             self.get_error()?;
-            self.0.ShaderSource(
-                shader,
-                1,
-                &(source.as_ptr() as *const _),
-                &(source.len() as _),
-            );
+
+            match ty {
+                ShaderSource::Glsl => {
+                    self.0.ShaderSource(
+                        shader,
+                        1,
+                        &(source.as_ptr() as *const _),
+                        &(source.len() as _),
+                    );
+                }
+                ShaderSource::Spirv { entrypoint } => {
+                    self.0.ShaderBinary(
+                        1,
+                        &shader,
+                        __gl::SHADER_BINARY_FORMAT_SPIR_V,
+                        source.as_ptr() as *const _,
+                        source.len() as _,
+                    );
+                    let entry = std::ffi::CString::new(entrypoint).unwrap();
+                    self.0
+                        .SpecializeShader(shader, entry.as_ptr(), 0, ptr::null(), ptr::null());
+                }
+            }
             self.0.CompileShader(shader);
 
             Shader(shader)
@@ -468,10 +502,11 @@ impl Device {
     pub unsafe fn create_shader(
         &self,
         stage: ShaderStage,
+        ty: ShaderSource,
         source: &[u8],
         flags: ShaderFlags,
     ) -> Result<Shader> {
-        let shader = self.compile_shader(stage, source);
+        let shader = self.compile_shader(stage, ty, source);
 
         // If we're not in a verbose mode, just return the result of
         // the shader compilation.

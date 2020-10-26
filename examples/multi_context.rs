@@ -144,11 +144,13 @@ fn main() -> grr::Result<()> {
 
         let vs = grr.create_shader(
             grr::ShaderStage::Vertex,
+            grr::ShaderSource::Glsl,
             VERTEX_SRC.as_bytes(),
             grr::ShaderFlags::VERBOSE,
         )?;
         let fs = grr.create_shader(
             grr::ShaderStage::Fragment,
+            grr::ShaderSource::Glsl,
             FRAGMENT_SRC.as_bytes(),
             grr::ShaderFlags::VERBOSE,
         )?;

@@ -244,11 +244,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let pbr_vs = grr.create_shader(
             grr::ShaderStage::Vertex,
+            grr::ShaderSource::Glsl,
             include_bytes!("assets/Shaders/pbr.vs"),
             grr::ShaderFlags::VERBOSE,
         )?;
         let pbr_fs = grr.create_shader(
             grr::ShaderStage::Fragment,
+            grr::ShaderSource::Glsl,
             include_bytes!("assets/Shaders/pbr.fs"),
             grr::ShaderFlags::VERBOSE,
         )?;
@@ -501,11 +503,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         // Project HDR env to cubmap
         let cubemap_proj_vs = grr.create_shader(
             grr::ShaderStage::Vertex,
+            grr::ShaderSource::Glsl,
             include_bytes!("assets/Shaders/cubemap.vs"),
             grr::ShaderFlags::VERBOSE,
         )?;
         let cubemap_proj_fs = grr.create_shader(
             grr::ShaderStage::Fragment,
+            grr::ShaderSource::Glsl,
             include_bytes!("assets/Shaders/cubemap_proj.fs"),
             grr::ShaderFlags::VERBOSE,
         )?;
@@ -582,11 +586,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         // Pre-Pass: Split sum: BRDF integration
         let brdf_integration_vs = grr.create_shader(
             grr::ShaderStage::Vertex,
+            grr::ShaderSource::Glsl,
             include_bytes!("assets/Shaders/brdf_integration.vs"),
             grr::ShaderFlags::VERBOSE,
         )?;
         let brdf_integration_fs = grr.create_shader(
             grr::ShaderStage::Fragment,
+            grr::ShaderSource::Glsl,
             include_bytes!("assets/Shaders/brdf_integration.fs"),
             grr::ShaderFlags::VERBOSE,
         )?;
@@ -673,11 +679,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         // Pre-Pass: Env map irradiance convolution
         let env_irradiance_vs = grr.create_shader(
             grr::ShaderStage::Vertex,
+            grr::ShaderSource::Glsl,
             include_bytes!("assets/Shaders/cubemap.vs"),
             grr::ShaderFlags::VERBOSE,
         )?;
         let env_irradiance_fs = grr.create_shader(
             grr::ShaderStage::Fragment,
+            grr::ShaderSource::Glsl,
             include_bytes!("assets/Shaders/cubemap_irradiance.fs"),
             grr::ShaderFlags::VERBOSE,
         )?;
@@ -790,11 +798,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         // Pre-Pass: Prefiltered specular env map
         let env_prefilter_vs = grr.create_shader(
             grr::ShaderStage::Vertex,
+            grr::ShaderSource::Glsl,
             include_bytes!("assets/Shaders/cubemap.vs"),
             grr::ShaderFlags::VERBOSE,
         )?;
         let env_prefilter_fs = grr.create_shader(
             grr::ShaderStage::Fragment,
+            grr::ShaderSource::Glsl,
             include_bytes!("assets/Shaders/cubemap_specular_filtered.fs"),
             grr::ShaderFlags::VERBOSE,
         )?;
@@ -926,11 +936,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         // Pass: skybox background
         let skybox_vs = grr.create_shader(
             grr::ShaderStage::Vertex,
+            grr::ShaderSource::Glsl,
             include_bytes!("assets/Shaders/cubemap.vs"),
             grr::ShaderFlags::VERBOSE,
         )?;
         let skybox_fs = grr.create_shader(
             grr::ShaderStage::Fragment,
+            grr::ShaderSource::Glsl,
             include_bytes!("assets/Shaders/skybox.fs"),
             grr::ShaderFlags::VERBOSE,
         )?;
