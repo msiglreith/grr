@@ -2,13 +2,14 @@
 
 use crate::__gl;
 use crate::__gl::types::{GLbitfield, GLuint};
+use crate::{
+    debug::{Object, ObjectType},
+    device::Device,
+    error::Result,
+    WHOLE_SIZE,
+};
 
-use std::ops::Range;
-use std::{mem, ptr, slice};
-
-use crate::debug::{Object, ObjectType};
-use crate::device::Device;
-use crate::error::Result;
+use std::{mem, ops::Range, ptr, slice};
 
 ///
 #[derive(Clone, Copy)]
@@ -26,8 +27,18 @@ impl Object for Buffer {
 /// Specifies a subrange of a buffer resource.
 pub struct BufferRange {
     pub buffer: Buffer,
-    pub offset: usize,
-    pub size: usize,
+    pub offset: u64,
+    pub size: u64,
+}
+
+impl BufferRange {
+    pub const fn whole(buffer: Buffer) -> Self {
+        BufferRange {
+            buffer,
+            offset: 0,
+            size: WHOLE_SIZE,
+        }
+    }
 }
 
 impl Device {
@@ -185,7 +196,16 @@ impl Device {
             .iter()
             .map(|view| view.offset as _)
             .collect::<Vec<_>>();
-        let sizes = ranges.iter().map(|view| view.size as _).collect::<Vec<_>>();
+        let sizes = ranges
+            .iter()
+            .map(|view| {
+                if view.size == WHOLE_SIZE {
+                    (self.get_buffer_size(view.buffer) - view.offset as u64) as _
+                } else {
+                    view.size as _
+                }
+            })
+            .collect::<Vec<_>>();
 
         self.0.BindBuffersRange(
             __gl::UNIFORM_BUFFER,
@@ -206,7 +226,16 @@ impl Device {
             .iter()
             .map(|view| view.offset as _)
             .collect::<Vec<_>>();
-        let sizes = ranges.iter().map(|view| view.size as _).collect::<Vec<_>>();
+        let sizes = ranges
+            .iter()
+            .map(|view| {
+                if view.size == WHOLE_SIZE {
+                    (self.get_buffer_size(view.buffer) - view.offset as u64) as _
+                } else {
+                    view.size as _
+                }
+            })
+            .collect::<Vec<_>>();
 
         self.0.BindBuffersRange(
             __gl::SHADER_STORAGE_BUFFER,
