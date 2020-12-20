@@ -5,6 +5,7 @@ use crate::__gl::types::{GLenum, GLuint};
 
 use std::ops::Range;
 
+use crate::buffer::BufferRange;
 use crate::debug::{Object, ObjectType};
 use crate::device::Device;
 use crate::error::Result;
@@ -33,6 +34,17 @@ impl Object for Image {
     const TYPE: ObjectType = ObjectType::Image;
     fn handle(&self) -> GLuint {
         self.raw
+    }
+}
+
+impl Image {
+    /// Get image view from current image.
+    ///
+    /// # Valid Usage
+    ///
+    /// - These image view **must** not be deleted.
+    pub fn as_view(&self) -> ImageView {
+        ImageView(self.raw)
     }
 }
 
@@ -266,6 +278,18 @@ impl Device {
         self.get_error()?;
 
         Ok(Image { raw: image, target })
+    }
+
+    /// Create a texel buffer.
+    pub unsafe fn create_texel_buffer(&self, buffer: BufferRange, format: Format) -> Result<Image> {
+        let mut image = 0;
+        self.0.CreateTextures(__gl::TEXTURE_BUFFER, 1, &mut image);
+        self.get_error()?;
+
+        self.0.TextureBufferRange(image, format as _, buffer.buffer.0, buffer.offset as _, buffer.size as _);
+        self.get_error()?;
+
+        Ok(Image { raw: image, target: __gl::TEXTURE_BUFFER })
     }
 
     /// Delete an images.
