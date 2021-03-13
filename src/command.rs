@@ -126,8 +126,8 @@ pub enum Constant {
     Ivec3([i32; 3]),
     /// 4 elements 32-bit signed integer.
     Ivec4([i32; 4]),
-    /// 32-bit signed integer
-    U32(i32),
+    /// 32-bit unsigned integer
+    U32(u32),
     /// 2 elements 32-bit unsigned integer.
     Uvec2([u32; 2]),
     /// 3 elements 32-bit unsigned integer.
