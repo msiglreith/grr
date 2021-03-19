@@ -1,4 +1,10 @@
-use glutin::dpi::LogicalSize;
+use raw_gl_context::{GlConfig, GlContext, Profile};
+use winit::{
+    dpi::LogicalSize,
+    event::{Event, WindowEvent},
+    event_loop::{ControlFlow, EventLoop},
+    window::WindowBuilder,
+};
 
 use std::path::Path;
 
@@ -36,31 +42,38 @@ const VERTICES: [f32; 16] = [
 
 const INDICES: [u16; 6] = [0, 1, 2, 2, 3, 0];
 
-fn main() -> grr::Result<()> {
+fn main() -> anyhow::Result<()> {
     unsafe {
-        let mut events_loop = glutin::EventsLoop::new();
-        let wb = glutin::WindowBuilder::new()
-            .with_title("grr - Texture")
-            .with_dimensions(LogicalSize {
-                width: 1024.0,
-                height: 768.0,
-            });
-        let window = glutin::ContextBuilder::new()
-            .with_vsync(true)
-            .with_srgb(true)
-            .with_gl_debug_flag(true)
-            .build_windowed(wb, &events_loop)
-            .unwrap()
-            .make_current()
-            .unwrap();
+        let event_loop = EventLoop::new();
 
-        let LogicalSize {
-            width: mut w,
-            height: mut h,
-        } = window.window().get_inner_size().unwrap();
+        let window = WindowBuilder::new()
+            .with_title("grr :: texture")
+            .with_inner_size(LogicalSize::new(1024.0, 768.0))
+            .build(&event_loop)?;
+
+        let context = GlContext::create(
+            &window,
+            GlConfig {
+                version: (4, 5),
+                profile: Profile::Core,
+                red_bits: 8,
+                blue_bits: 8,
+                green_bits: 8,
+                alpha_bits: 0,
+                depth_bits: 0,
+                stencil_bits: 0,
+                samples: None,
+                srgb: true,
+                double_buffer: true,
+                vsync: true,
+            },
+        )
+        .unwrap();
+
+        context.make_current();
 
         let grr = grr::Device::new(
-            |symbol| window.get_proc_address(symbol) as *const _,
+            |symbol| context.get_proc_address(symbol) as *const _,
             grr::Debug::Enable {
                 callback: |_, _, _, _, msg| {
                     println!("{:?}", msg);
@@ -187,79 +200,76 @@ fn main() -> grr::Result<()> {
             }],
         };
 
-        let mut running = true;
-        while running {
-            events_loop.poll_events(|event| match event {
-                glutin::Event::WindowEvent { event, .. } => match event {
-                    glutin::WindowEvent::CloseRequested => running = false,
-                    glutin::WindowEvent::Resized(size) => {
-                        w = size.width;
-                        h = size.height;
-                        let dpi_factor = window.window().get_hidpi_factor();
-                        window.resize(size.to_physical(dpi_factor));
-                    }
-                    _ => (),
-                },
+        event_loop.run(move |event, _, control_flow| {
+            *control_flow = ControlFlow::Wait;
+
+            match event {
+                Event::WindowEvent {
+                    event: WindowEvent::CloseRequested,
+                    ..
+                } => *control_flow = ControlFlow::Exit,
+                Event::LoopDestroyed => {
+                    grr.delete_shaders(&[vs, fs]);
+                    grr.delete_pipeline(pipeline);
+                    grr.delete_sampler(sampler);
+                    grr.delete_image_view(texture_view);
+                    grr.delete_image(texture);
+                    grr.delete_vertex_array(vertex_array);
+                    grr.delete_buffers(&[vertex_buffer, index_buffer]);
+                }
+                Event::RedrawRequested(_) => {
+                    let size = window.inner_size();
+
+                    grr.bind_pipeline(pipeline);
+                    grr.bind_vertex_array(vertex_array);
+                    grr.bind_color_blend_state(&color_blend);
+
+                    grr.bind_image_views(3, &[texture_view]);
+                    grr.bind_samplers(3, &[sampler]);
+
+                    grr.bind_index_buffer(vertex_array, index_buffer);
+                    grr.bind_vertex_buffers(
+                        vertex_array,
+                        0,
+                        &[grr::VertexBufferView {
+                            buffer: vertex_buffer,
+                            offset: 0,
+                            stride: (std::mem::size_of::<f32>() * 4) as _,
+                            input_rate: grr::InputRate::Vertex,
+                        }],
+                    );
+
+                    grr.set_viewport(
+                        0,
+                        &[grr::Viewport {
+                            x: 0.0,
+                            y: 0.0,
+                            w: size.width as _,
+                            h: size.height as _,
+                            n: 0.0,
+                            f: 1.0,
+                        }],
+                    );
+                    grr.set_scissor(
+                        0,
+                        &[grr::Region {
+                            x: 0,
+                            y: 0,
+                            w: size.width as _,
+                            h: size.height as _,
+                        }],
+                    );
+
+                    grr.clear_attachment(
+                        grr::Framebuffer::DEFAULT,
+                        grr::ClearAttachment::ColorFloat(0, [0.9, 0.9, 0.9, 1.0]),
+                    );
+                    grr.draw_indexed(grr::Primitive::Triangles, grr::IndexTy::U16, 0..6, 0..1, 0);
+
+                    context.swap_buffers();
+                }
                 _ => (),
-            });
-
-            grr.bind_pipeline(pipeline);
-            grr.bind_vertex_array(vertex_array);
-            grr.bind_color_blend_state(&color_blend);
-
-            grr.bind_image_views(3, &[texture_view]);
-            grr.bind_samplers(3, &[sampler]);
-
-            grr.bind_index_buffer(vertex_array, index_buffer);
-            grr.bind_vertex_buffers(
-                vertex_array,
-                0,
-                &[grr::VertexBufferView {
-                    buffer: vertex_buffer,
-                    offset: 0,
-                    stride: (std::mem::size_of::<f32>() * 4) as _,
-                    input_rate: grr::InputRate::Vertex,
-                }],
-            );
-
-            grr.set_viewport(
-                0,
-                &[grr::Viewport {
-                    x: 0.0,
-                    y: 0.0,
-                    w: w as _,
-                    h: h as _,
-                    n: 0.0,
-                    f: 1.0,
-                }],
-            );
-            grr.set_scissor(
-                0,
-                &[grr::Region {
-                    x: 0,
-                    y: 0,
-                    w: w as _,
-                    h: h as _,
-                }],
-            );
-
-            grr.clear_attachment(
-                grr::Framebuffer::DEFAULT,
-                grr::ClearAttachment::ColorFloat(0, [0.9, 0.9, 0.9, 1.0]),
-            );
-            grr.draw_indexed(grr::Primitive::Triangles, grr::IndexTy::U16, 0..6, 0..1, 0);
-
-            window.swap_buffers().unwrap();
-        }
-
-        grr.delete_shaders(&[vs, fs]);
-        grr.delete_pipeline(pipeline);
-        grr.delete_sampler(sampler);
-        grr.delete_image_view(texture_view);
-        grr.delete_image(texture);
-        grr.delete_vertex_array(vertex_array);
-        grr.delete_buffers(&[vertex_buffer, index_buffer]);
+            }
+        })
     }
-
-    Ok(())
 }

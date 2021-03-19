@@ -1,5 +1,5 @@
-use glm;
-use glutin::*;
+use nalgebra_glm as glm;
+use winit::event::{ElementState, KeyboardInput, VirtualKeyCode};
 
 #[derive(Debug, Copy, Clone)]
 enum Direction {

@@ -1,4 +1,10 @@
-use glutin::dpi::LogicalSize;
+use core::ffi::c_void;
+use glutin::{
+    dpi::LogicalSize,
+    event::{Event, WindowEvent},
+    event_loop::{ControlFlow, EventLoop},
+    window::WindowBuilder,
+};
 
 const VERTEX_SRC: &str = r#"
     #version 450 core
@@ -34,7 +40,7 @@ impl<W> ErasedWindowContext<W> {
         self.0.as_ref().unwrap().swap_buffers()
     }
 
-    pub fn resize(&self, size: glutin::dpi::PhysicalSize) {
+    pub fn resize(&self, size: glutin::dpi::PhysicalSize<u32>) {
         self.0.as_ref().unwrap().resize(size)
     }
 
@@ -57,7 +63,7 @@ impl<W> ErasedWindowContext<W> {
         }
     }
 
-    pub fn get_proc_address(&self, addr: &str) -> *const () {
+    pub fn get_proc_address(&self, addr: &str) -> *const c_void {
         self.0.as_ref().unwrap().get_proc_address(addr)
     }
 }
@@ -84,33 +90,30 @@ impl ErasedContext {
         }
     }
 
-    pub fn get_proc_address(&self, addr: &str) -> *const () {
+    pub fn get_proc_address(&self, addr: &str) -> *const c_void {
         self.0.as_ref().unwrap().get_proc_address(addr)
     }
 }
 
-fn main() -> grr::Result<()> {
+fn main() -> anyhow::Result<()> {
     unsafe {
-        let mut events_loop = glutin::EventsLoop::new();
+        let event_loop = EventLoop::new();
 
         let context = glutin::ContextBuilder::new()
             .with_srgb(true)
             .with_gl_debug_flag(true)
-            .build_headless(&events_loop, (1, 1).into())
+            .build_headless(&event_loop, (1, 1).into())
             .unwrap();
 
-        let wb = glutin::WindowBuilder::new()
+        let wb = WindowBuilder::new()
             .with_title("grr - MultiContext")
-            .with_dimensions(LogicalSize {
-                width: 1024.0,
-                height: 768.0,
-            });
+            .with_inner_size(LogicalSize::new(1024.0, 768.0));
         let window = glutin::ContextBuilder::new()
             .with_vsync(true)
             .with_srgb(true)
             .with_gl_debug_flag(true)
             .with_shared_lists(&context)
-            .build_windowed(wb, &events_loop)
+            .build_windowed(wb, &event_loop)
             .unwrap();
 
         let (present_ctxt, window) = window.split();
@@ -136,11 +139,6 @@ fn main() -> grr::Result<()> {
                 flags: grr::DebugReport::FULL,
             },
         );
-
-        let LogicalSize {
-            width: w,
-            height: h,
-        } = window.get_inner_size().unwrap();
 
         let vs = grr.create_shader(
             grr::ShaderStage::Vertex,
@@ -186,124 +184,114 @@ fn main() -> grr::Result<()> {
 
         let ctxt_fbo = grr.create_framebuffer()?;
 
+        let size = window.inner_size();
         let present_image = grr.create_image(
             grr::ImageType::D2 {
-                width: w as _,
-                height: h as _,
+                width: size.width as _,
+                height: size.height as _,
                 layers: 1,
                 samples: 1,
             },
-            grr::Format::R8G8B8A8_UNORM,
+            grr::Format::R8G8B8A8_SRGB,
             1,
         )?;
-        let present_image_view = grr.create_image_view(
-            present_image,
-            grr::ImageViewType::D2,
-            grr::Format::R8G8B8A8_UNORM,
-            grr::SubresourceRange {
-                layers: 0..1,
-                levels: 0..1,
-            },
-        )?;
 
-        let mut running = true;
-        while running {
-            events_loop.poll_events(|event| match event {
-                glutin::Event::WindowEvent { event, .. } => match event {
-                    glutin::WindowEvent::CloseRequested => running = false,
-                    glutin::WindowEvent::Resized(size) => {
-                        let dpi_factor = window.get_hidpi_factor();
-                        present_ctxt.make_current().unwrap();
-                        present_ctxt.resize(size.to_physical(dpi_factor));
-                    }
-                    _ => (),
-                },
+        event_loop.run(move |event, _, control_flow| {
+            *control_flow = ControlFlow::Wait;
+
+            match event {
+                Event::WindowEvent {
+                    event: WindowEvent::CloseRequested,
+                    ..
+                } => *control_flow = ControlFlow::Exit,
+                Event::LoopDestroyed => {
+                    grr.delete_shaders(&[vs, fs]);
+                    grr.delete_pipeline(pipeline);
+                    grr.delete_buffer(triangle_data);
+                    grr.delete_vertex_array(vertex_array);
+                }
+                Event::RedrawRequested(_) => {
+                    let size = window.inner_size();
+
+                    context.make_current().unwrap();
+                    grr.bind_pipeline(pipeline);
+                    grr.bind_vertex_array(vertex_array);
+                    grr.bind_vertex_buffers(
+                        vertex_array,
+                        0,
+                        &[grr::VertexBufferView {
+                            buffer: triangle_data,
+                            offset: 0,
+                            stride: (std::mem::size_of::<f32>() * 5) as _,
+                            input_rate: grr::InputRate::Vertex,
+                        }],
+                    );
+
+                    grr.set_viewport(
+                        0,
+                        &[grr::Viewport {
+                            x: 0.0,
+                            y: 0.0,
+                            w: size.width as _,
+                            h: size.height as _,
+                            n: 0.0,
+                            f: 1.0,
+                        }],
+                    );
+                    grr.set_scissor(
+                        0,
+                        &[grr::Region {
+                            x: 0,
+                            y: 0,
+                            w: size.width as _,
+                            h: size.height as _,
+                        }],
+                    );
+
+                    grr.bind_draw_framebuffer(ctxt_fbo);
+                    grr.set_color_attachments(ctxt_fbo, &[0]);
+                    grr.bind_attachments(
+                        ctxt_fbo,
+                        &[(
+                            grr::Attachment::Color(0),
+                            grr::AttachmentView::Image(present_image.as_view()),
+                        )],
+                    );
+
+                    grr.clear_attachment(
+                        ctxt_fbo,
+                        grr::ClearAttachment::ColorFloat(0, [0.5, 0.5, 0.5, 1.0]),
+                    );
+                    grr.draw(grr::Primitive::Triangles, 0..3, 0..1);
+
+                    present_ctxt.make_current().unwrap();
+
+                    swapchain.set_color_attachments(present_fbo, &[0]);
+                    swapchain.bind_attachments(
+                        present_fbo,
+                        &[(
+                            grr::Attachment::Color(0),
+                            grr::AttachmentView::Image(present_image.as_view()),
+                        )],
+                    );
+
+                    let screen = grr::Region {
+                        x: 0,
+                        y: 0,
+                        w: size.width as _,
+                        h: size.height as _,
+                    };
+                    swapchain.blit(
+                        present_fbo,
+                        screen,
+                        grr::Framebuffer::DEFAULT,
+                        screen,
+                        grr::Filter::Linear,
+                    );
+                    present_ctxt.swap_buffers().unwrap();
+                }
                 _ => (),
-            });
-
-            context.make_current().unwrap();
-            grr.bind_pipeline(pipeline);
-            grr.bind_vertex_array(vertex_array);
-            grr.bind_vertex_buffers(
-                vertex_array,
-                0,
-                &[grr::VertexBufferView {
-                    buffer: triangle_data,
-                    offset: 0,
-                    stride: (std::mem::size_of::<f32>() * 5) as _,
-                    input_rate: grr::InputRate::Vertex,
-                }],
-            );
-
-            grr.set_viewport(
-                0,
-                &[grr::Viewport {
-                    x: 0.0,
-                    y: 0.0,
-                    w: w as _,
-                    h: h as _,
-                    n: 0.0,
-                    f: 1.0,
-                }],
-            );
-            grr.set_scissor(
-                0,
-                &[grr::Region {
-                    x: 0,
-                    y: 0,
-                    w: w as _,
-                    h: h as _,
-                }],
-            );
-
-            grr.bind_draw_framebuffer(ctxt_fbo);
-            grr.set_color_attachments(ctxt_fbo, &[0]);
-            grr.bind_attachments(
-                ctxt_fbo,
-                &[(
-                    grr::Attachment::Color(0),
-                    grr::AttachmentView::Image(present_image_view),
-                )],
-            );
-
-            grr.clear_attachment(
-                ctxt_fbo,
-                grr::ClearAttachment::ColorFloat(0, [0.5, 0.5, 0.5, 1.0]),
-            );
-            grr.draw(grr::Primitive::Triangles, 0..3, 0..1);
-
-            present_ctxt.make_current().unwrap();
-
-            swapchain.set_color_attachments(present_fbo, &[0]);
-            swapchain.bind_attachments(
-                present_fbo,
-                &[(
-                    grr::Attachment::Color(0),
-                    grr::AttachmentView::Image(present_image_view),
-                )],
-            );
-
-            let screen = grr::Region {
-                x: 0,
-                y: 0,
-                w: w as _,
-                h: h as _,
-            };
-            swapchain.blit(
-                present_fbo,
-                screen,
-                grr::Framebuffer::DEFAULT,
-                screen,
-                grr::Filter::Linear,
-            );
-            present_ctxt.swap_buffers().unwrap();
-        }
-
-        grr.delete_shaders(&[vs, fs]);
-        grr.delete_pipeline(pipeline);
-        grr.delete_buffer(triangle_data);
-        grr.delete_vertex_array(vertex_array);
+            }
+        })
     }
-
-    Ok(())
 }

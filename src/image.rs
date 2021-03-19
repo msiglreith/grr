@@ -286,10 +286,19 @@ impl Device {
         self.0.CreateTextures(__gl::TEXTURE_BUFFER, 1, &mut image);
         self.get_error()?;
 
-        self.0.TextureBufferRange(image, format as _, buffer.buffer.0, buffer.offset as _, buffer.size as _);
+        self.0.TextureBufferRange(
+            image,
+            format as _,
+            buffer.buffer.0,
+            buffer.offset as _,
+            buffer.size as _,
+        );
         self.get_error()?;
 
-        Ok(Image { raw: image, target: __gl::TEXTURE_BUFFER })
+        Ok(Image {
+            raw: image,
+            target: __gl::TEXTURE_BUFFER,
+        })
     }
 
     /// Delete an images.
