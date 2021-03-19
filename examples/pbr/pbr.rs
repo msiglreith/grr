@@ -172,7 +172,7 @@ fn main() -> anyhow::Result<()> {
 
         let load_image_rgba = |name: &str,
                                format: grr::Format|
-         -> anyhow::Result<(grr::Image, grr::ImageView)> {
+         -> anyhow::Result<grr::Image> {
             let path = format!("{}/{}", base_path, name);
             let img = image::open(&Path::new(&path)).unwrap().to_rgba();
             let img_width = img.width();
@@ -215,28 +215,18 @@ fn main() -> anyhow::Result<()> {
             );
             grr.generate_mipmaps(texture);
 
-            let view = grr.create_image_view(
-                texture,
-                grr::ImageViewType::D2,
-                format,
-                grr::SubresourceRange {
-                    layers: 0..1,
-                    levels: 0..num_levels,
-                },
-            )?;
-
-            Ok((texture, view))
+            Ok(texture)
         };
 
-        let (albedo, albedo_view) =
+        let albedo =
             load_image_rgba("Textures/Cerberus_A.tga", grr::Format::R8G8B8A8_SRGB)?;
-        let (normals, normals_view) =
+        let normals =
             load_image_rgba("Textures/Cerberus_N.tga", grr::Format::R8G8B8A8_UNORM)?;
-        let (metalness, metalness_view) =
+        let metalness =
             load_image_rgba("Textures/Cerberus_M.tga", grr::Format::R8_UNORM)?;
-        let (roughness, roughness_view) =
+        let roughness =
             load_image_rgba("Textures/Cerberus_R.tga", grr::Format::R8_UNORM)?;
-        let (occlusion, occlusion_view) =
+        let occlusion =
             load_image_rgba("Textures/Raw/Cerberus_AO.tga", grr::Format::R8_UNORM)?;
 
         let sampler_trilinear = grr.create_sampler(grr::SamplerDesc {
@@ -350,16 +340,6 @@ fn main() -> anyhow::Result<()> {
             },
             grr::Format::R16G16B16_SFLOAT,
             hdr_image_levels,
-        )?;
-
-        let hdr_texture_view = grr.create_image_view(
-            hdr_texture,
-            grr::ImageViewType::D2,
-            grr::Format::R16G16B16_SFLOAT,
-            grr::SubresourceRange {
-                layers: 0..1,
-                levels: 0..1,
-            },
         )?;
 
         println!("Uploading HDR image into GPU memory");
@@ -560,7 +540,7 @@ fn main() -> anyhow::Result<()> {
             }],
         );
         grr.bind_pipeline(cubemap_proj_pipeline);
-        grr.bind_image_views(0, &[hdr_texture_view]);
+        grr.bind_image_views(0, &[hdr_texture.as_view()]);
         grr.bind_samplers(0, &[hdr_sampler]);
 
         for i in 0..6 {
@@ -630,15 +610,6 @@ fn main() -> anyhow::Result<()> {
             grr::Format::R16G16_SFLOAT,
             1,
         )?;
-        let brdf_lut_view = grr.create_image_view(
-            brdf_lut,
-            grr::ImageViewType::D2,
-            grr::Format::R16G16_SFLOAT,
-            grr::SubresourceRange {
-                layers: 0..1,
-                levels: 0..1,
-            },
-        )?;
 
         let brdf_lut_sampler = grr.create_sampler(grr::SamplerDesc {
             min_filter: grr::Filter::Linear,
@@ -662,7 +633,7 @@ fn main() -> anyhow::Result<()> {
             brdf_fbo,
             &[(
                 grr::Attachment::Color(0),
-                grr::AttachmentView::Image(brdf_lut_view),
+                grr::AttachmentView::Image(brdf_lut.as_view()),
             )],
         );
         grr.set_color_attachments(brdf_fbo, &[0]);
@@ -687,6 +658,8 @@ fn main() -> anyhow::Result<()> {
             }],
         );
         grr.draw(grr::Primitive::Triangles, 0..3, 0..1);
+
+        context.swap_buffers();
 
         // Pre-Pass: Env map irradiance convolution
         let env_irradiance_vs = grr.create_shader(
@@ -976,7 +949,7 @@ fn main() -> anyhow::Result<()> {
 
         let mut frame_time = FrameTime::new();
         event_loop.run(move |event, _, control_flow| {
-            *control_flow = ControlFlow::Wait;
+            *control_flow = ControlFlow::Poll;
 
             match event {
                 Event::WindowEvent {
@@ -992,7 +965,7 @@ fn main() -> anyhow::Result<()> {
                 } => {
                     camera.handle_event(input);
                 }
-                Event::RedrawRequested(_) => {
+                Event::MainEventsCleared => {
                     let size = window.inner_size();
                     let dt = frame_time.update();
                     camera.update(dt);
@@ -1034,6 +1007,7 @@ fn main() -> anyhow::Result<()> {
                     );
                     grr.clear_attachment(grr::Framebuffer::DEFAULT, grr::ClearAttachment::Depth(1.0));
 
+                    /*
                     // Skybox pass
                     grr.bind_pipeline(skybox_pipeline);
                     grr.bind_depth_stencil_state(&depth_stencil_none);
@@ -1048,6 +1022,7 @@ fn main() -> anyhow::Result<()> {
                         ],
                     );
                     grr.draw(grr::Primitive::Triangles, 0..3, 0..1);
+                    */
 
                     grr.bind_pipeline(pbr_pipeline);
                     grr.bind_vertex_array(pbr_vertex_array);
@@ -1075,12 +1050,12 @@ fn main() -> anyhow::Result<()> {
                     grr.bind_image_views(
                         0,
                         &[
-                            albedo_view,
-                            normals_view,
-                            metalness_view,
-                            roughness_view,
-                            occlusion_view,
-                            brdf_lut_view,
+                            albedo.as_view(),
+                            normals.as_view(),
+                            metalness.as_view(),
+                            roughness.as_view(),
+                            occlusion.as_view(),
+                            brdf_lut.as_view(),
                             env_prefiltered_view,
                             env_irradiance_view,
                         ],
