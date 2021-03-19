@@ -71,8 +71,8 @@ fn main() -> anyhow::Result<()> {
                 blue_bits: 8,
                 green_bits: 8,
                 alpha_bits: 0,
-                depth_bits: 0,
-                stencil_bits: 0,
+                depth_bits: 24,
+                stencil_bits: 8,
                 samples: None,
                 srgb: true,
                 double_buffer: true,
@@ -85,7 +85,12 @@ fn main() -> anyhow::Result<()> {
 
         let grr = grr::Device::new(
             |symbol| context.get_proc_address(symbol) as *const _,
-            grr::Debug::Disable,
+            grr::Debug::Enable {
+                callback: |report, _, _, _, msg| {
+                    println!("{:?}: {:?}", report, msg);
+                },
+                flags: grr::DebugReport::FULL,
+            },
         );
 
         let mut importer = Importer::new();
@@ -384,6 +389,8 @@ fn main() -> anyhow::Result<()> {
             border_color: [0.0, 0.0, 0.0, 1.0],
         })?;
 
+        let empty_vertex_array = grr.create_vertex_array(&[])?;
+
         println!("Creating Env Cubemap");
         let env_size = 512;
         let env_cubmap = grr.create_image(
@@ -540,6 +547,7 @@ fn main() -> anyhow::Result<()> {
             }],
         );
         grr.bind_pipeline(cubemap_proj_pipeline);
+        grr.bind_vertex_array(empty_vertex_array);
         grr.bind_image_views(0, &[hdr_texture.as_view()]);
         grr.bind_samplers(0, &[hdr_sampler]);
 
@@ -1007,7 +1015,6 @@ fn main() -> anyhow::Result<()> {
                     );
                     grr.clear_attachment(grr::Framebuffer::DEFAULT, grr::ClearAttachment::Depth(1.0));
 
-                    /*
                     // Skybox pass
                     grr.bind_pipeline(skybox_pipeline);
                     grr.bind_depth_stencil_state(&depth_stencil_none);
@@ -1022,7 +1029,6 @@ fn main() -> anyhow::Result<()> {
                         ],
                     );
                     grr.draw(grr::Primitive::Triangles, 0..3, 0..1);
-                    */
 
                     grr.bind_pipeline(pbr_pipeline);
                     grr.bind_vertex_array(pbr_vertex_array);
