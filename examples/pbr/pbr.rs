@@ -1,11 +1,18 @@
-extern crate nalgebra_glm as glm;
+use nalgebra_glm as glm;
 
 mod camera;
 
 use assimp::import::Importer;
-use glutin::dpi::LogicalSize;
+use raw_gl_context::{GlConfig, GlContext, Profile};
+use winit::{
+    dpi::LogicalSize,
+    event::{Event, WindowEvent},
+    event_loop::{ControlFlow, EventLoop},
+    window::WindowBuilder,
+};
+
 use image::Pixel;
-use std::{error::Error, fs, io, mem, path::Path, slice, time};
+use std::{fs, io, slice, mem, path::Path, time};
 
 const NANOS_PER_SEC: u64 = 1_000_000_000;
 
@@ -47,30 +54,37 @@ fn max_mip_levels_2d(width: u32, height: u32) -> u32 {
     (width.max(height) as f32).log2() as u32 + 1
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> anyhow::Result<()> {
     unsafe {
-        let mut events_loop = glutin::EventsLoop::new();
-        let wb = glutin::WindowBuilder::new()
-            .with_title("grr - PBR sample")
-            .with_dimensions(LogicalSize {
-                width: 1440.0,
-                height: 700.0,
-            });
-        let window = glutin::ContextBuilder::new()
-            .with_vsync(true)
-            .with_srgb(true)
-            .with_gl_debug_flag(true)
-            .build_windowed(wb, &events_loop)?
-            .make_current()
-            .unwrap();
+        let event_loop = EventLoop::new();
+        let window = WindowBuilder::new()
+            .with_title("grr :: pbr")
+            .with_inner_size(LogicalSize::new(1440.0, 700.0))
+            .build(&event_loop)?;
 
-        let LogicalSize {
-            width: w,
-            height: h,
-        } = window.window().get_inner_size().unwrap();
+        let context = GlContext::create(
+            &window,
+            GlConfig {
+                version: (4, 5),
+                profile: Profile::Core,
+                red_bits: 8,
+                blue_bits: 8,
+                green_bits: 8,
+                alpha_bits: 0,
+                depth_bits: 0,
+                stencil_bits: 0,
+                samples: None,
+                srgb: true,
+                double_buffer: true,
+                vsync: true,
+            },
+        )
+        .unwrap();
+
+        context.make_current();
 
         let grr = grr::Device::new(
-            |symbol| window.get_proc_address(symbol) as *const _,
+            |symbol| context.get_proc_address(symbol) as *const _,
             grr::Debug::Disable,
         );
 
@@ -103,8 +117,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             index_data_len,
             grr::MemoryFlags::CPU_MAP_WRITE | grr::MemoryFlags::COHERENT,
         )?;
-
-        println!("{:?}", (num_vertices, num_indices));
 
         let mut base_index = 0;
         let mut base_vertex = 0;
@@ -160,7 +172,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let load_image_rgba = |name: &str,
                                format: grr::Format|
-         -> Result<(grr::Image, grr::ImageView), Box<dyn Error>> {
+         -> anyhow::Result<(grr::Image, grr::ImageView)> {
             let path = format!("{}/{}", base_path, name);
             let img = image::open(&Path::new(&path)).unwrap().to_rgba();
             let img_width = img.width();
@@ -962,145 +974,146 @@ fn main() -> Result<(), Box<dyn Error>> {
         let mut camera =
             camera::Camera::new(glm::vec3(-16.0, 12.0, -50.0), glm::vec3(-0.1, 3.3, 0.0));
 
-        let mut running = true;
         let mut frame_time = FrameTime::new();
-        while running {
-            events_loop.poll_events(|event| match event {
-                glutin::Event::WindowEvent { event, .. } => match event {
-                    glutin::WindowEvent::CloseRequested => running = false,
-                    glutin::WindowEvent::Resized(size) => {
-                        let dpi_factor = window.window().get_hidpi_factor();
-                        window.resize(size.to_physical(dpi_factor));
+        event_loop.run(move |event, _, control_flow| {
+            *control_flow = ControlFlow::Wait;
+
+            match event {
+                Event::WindowEvent {
+                    event: WindowEvent::CloseRequested,
+                    ..
+                } => *control_flow = ControlFlow::Exit,
+                Event::LoopDestroyed => {
+                    grr.delete_images(&[albedo, normals, occlusion, metalness, roughness]);
+                }
+                Event::WindowEvent {
+                    event: WindowEvent::KeyboardInput { input, .. },
+                    ..
+                } => {
+                    camera.handle_event(input);
+                }
+                Event::RedrawRequested(_) => {
+                    let size = window.inner_size();
+                    let dt = frame_time.update();
+                    camera.update(dt);
+
+                    let perspective = glm::perspective(
+                        size.width as f32 / size.height as f32,
+                        glm::half_pi::<f32>() * 0.8,
+                        0.1,
+                        1024.0,
+                    );
+                    let view = camera.view();
+                    let model = glm::rotation(-glm::half_pi::<f32>(), &glm::vec3(1.0, 0.0, 0.0));
+
+                    grr.bind_draw_framebuffer(grr::Framebuffer::DEFAULT);
+                    grr.set_viewport(
+                        0,
+                        &[grr::Viewport {
+                            x: 0.0,
+                            y: 0.0,
+                            w: size.width as _,
+                            h: size.height as _,
+                            n: 0.0,
+                            f: 1.0,
+                        }],
+                    );
+                    grr.set_scissor(
+                        0,
+                        &[grr::Region {
+                            x: 0,
+                            y: 0,
+                            w: size.width as _,
+                            h: size.height as _,
+                        }],
+                    );
+
+                    grr.clear_attachment(
+                        grr::Framebuffer::DEFAULT,
+                        grr::ClearAttachment::ColorFloat(0, [0.5, 0.5, 0.5, 1.0]),
+                    );
+                    grr.clear_attachment(grr::Framebuffer::DEFAULT, grr::ClearAttachment::Depth(1.0));
+
+                    // Skybox pass
+                    grr.bind_pipeline(skybox_pipeline);
+                    grr.bind_depth_stencil_state(&depth_stencil_none);
+                    grr.bind_image_views(0, &[env_cubemap_view]);
+                    grr.bind_samplers(0, &[env_cubemap_sampler]);
+                    grr.bind_uniform_constants(
+                        skybox_pipeline,
+                        0,
+                        &[
+                            grr::Constant::Mat4x4(glm::inverse(&perspective).into()),
+                            grr::Constant::Mat3x3(glm::mat4_to_mat3(&glm::inverse(&view)).into()),
+                        ],
+                    );
+                    grr.draw(grr::Primitive::Triangles, 0..3, 0..1);
+
+                    grr.bind_pipeline(pbr_pipeline);
+                    grr.bind_vertex_array(pbr_vertex_array);
+                    grr.bind_vertex_buffers(
+                        pbr_vertex_array,
+                        0,
+                        &[grr::VertexBufferView {
+                            buffer: mesh_data,
+                            offset: 0,
+                            stride: mem::size_of::<Vertex>() as _,
+                            input_rate: grr::InputRate::Vertex,
+                        }],
+                    );
+                    grr.bind_index_buffer(pbr_vertex_array, index_data);
+                    grr.bind_uniform_constants(
+                        pbr_pipeline,
+                        0,
+                        &[
+                            grr::Constant::Mat4x4(perspective.into()),
+                            grr::Constant::Mat4x4(view.into()),
+                            grr::Constant::Mat4x4(model.into()),
+                            grr::Constant::Vec3(camera.position().into()),
+                        ],
+                    );
+                    grr.bind_image_views(
+                        0,
+                        &[
+                            albedo_view,
+                            normals_view,
+                            metalness_view,
+                            roughness_view,
+                            occlusion_view,
+                            brdf_lut_view,
+                            env_prefiltered_view,
+                            env_irradiance_view,
+                        ],
+                    );
+                    grr.bind_samplers(
+                        0,
+                        &[
+                            sampler_trilinear,
+                            sampler_trilinear,
+                            sampler_trilinear,
+                            sampler_trilinear,
+                            sampler_trilinear,
+                            brdf_lut_sampler,
+                            env_prefiltered_sampler,
+                            env_irradiance_sampler,
+                        ],
+                    );
+                    grr.bind_depth_stencil_state(&depth_stencil_state);
+
+                    for geometry in &geometries {
+                        grr.draw_indexed(
+                            grr::Primitive::Triangles,
+                            grr::IndexTy::U32,
+                            geometry.base_index..geometry.base_index + geometry.num_indices,
+                            0..1,
+                            geometry.base_vertex,
+                        );
                     }
-                    glutin::WindowEvent::KeyboardInput { input, .. } => {
-                        camera.handle_event(input);
-                    }
-                    _ => (),
-                },
+
+                    context.swap_buffers();
+                }
                 _ => (),
-            });
-
-            let dt = frame_time.update();
-            camera.update(dt);
-
-            let perspective = glm::perspective(
-                w as f32 / h as f32,
-                glm::half_pi::<f32>() * 0.8,
-                0.1,
-                1024.0,
-            );
-            let view = camera.view();
-            let model = glm::rotation(-glm::half_pi::<f32>(), &glm::vec3(1.0, 0.0, 0.0));
-
-            grr.bind_draw_framebuffer(grr::Framebuffer::DEFAULT);
-            grr.set_viewport(
-                0,
-                &[grr::Viewport {
-                    x: 0.0,
-                    y: 0.0,
-                    w: w as _,
-                    h: h as _,
-                    n: 0.0,
-                    f: 1.0,
-                }],
-            );
-            grr.set_scissor(
-                0,
-                &[grr::Region {
-                    x: 0,
-                    y: 0,
-                    w: w as _,
-                    h: h as _,
-                }],
-            );
-
-            grr.clear_attachment(
-                grr::Framebuffer::DEFAULT,
-                grr::ClearAttachment::ColorFloat(0, [0.5, 0.5, 0.5, 1.0]),
-            );
-            grr.clear_attachment(grr::Framebuffer::DEFAULT, grr::ClearAttachment::Depth(1.0));
-
-            // Skybox pass
-            grr.bind_pipeline(skybox_pipeline);
-            grr.bind_depth_stencil_state(&depth_stencil_none);
-            grr.bind_image_views(0, &[env_cubemap_view]);
-            grr.bind_samplers(0, &[env_cubemap_sampler]);
-            grr.bind_uniform_constants(
-                skybox_pipeline,
-                0,
-                &[
-                    grr::Constant::Mat4x4(glm::inverse(&perspective).into()),
-                    grr::Constant::Mat3x3(glm::mat4_to_mat3(&glm::inverse(&view)).into()),
-                ],
-            );
-            grr.draw(grr::Primitive::Triangles, 0..3, 0..1);
-
-            grr.bind_pipeline(pbr_pipeline);
-            grr.bind_vertex_array(pbr_vertex_array);
-            grr.bind_vertex_buffers(
-                pbr_vertex_array,
-                0,
-                &[grr::VertexBufferView {
-                    buffer: mesh_data,
-                    offset: 0,
-                    stride: mem::size_of::<Vertex>() as _,
-                    input_rate: grr::InputRate::Vertex,
-                }],
-            );
-            grr.bind_index_buffer(pbr_vertex_array, index_data);
-            grr.bind_uniform_constants(
-                pbr_pipeline,
-                0,
-                &[
-                    grr::Constant::Mat4x4(perspective.into()),
-                    grr::Constant::Mat4x4(view.into()),
-                    grr::Constant::Mat4x4(model.into()),
-                    grr::Constant::Vec3(camera.position().into()),
-                ],
-            );
-            grr.bind_image_views(
-                0,
-                &[
-                    albedo_view,
-                    normals_view,
-                    metalness_view,
-                    roughness_view,
-                    occlusion_view,
-                    brdf_lut_view,
-                    env_prefiltered_view,
-                    env_irradiance_view,
-                ],
-            );
-            grr.bind_samplers(
-                0,
-                &[
-                    sampler_trilinear,
-                    sampler_trilinear,
-                    sampler_trilinear,
-                    sampler_trilinear,
-                    sampler_trilinear,
-                    brdf_lut_sampler,
-                    env_prefiltered_sampler,
-                    env_irradiance_sampler,
-                ],
-            );
-            grr.bind_depth_stencil_state(&depth_stencil_state);
-
-            for geometry in &geometries {
-                grr.draw_indexed(
-                    grr::Primitive::Triangles,
-                    grr::IndexTy::U32,
-                    geometry.base_index..geometry.base_index + geometry.num_indices,
-                    0..1,
-                    geometry.base_vertex,
-                );
             }
-
-            window.swap_buffers().unwrap();
-        }
-
-        grr.delete_images(&[albedo, normals, occlusion, metalness, roughness]);
+        })
     }
-
-    Ok(())
 }

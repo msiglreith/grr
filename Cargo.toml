@@ -21,11 +21,14 @@ bitflags = "1"
 [dev-dependencies]
 assimp = "0.3"
 assimp-sys = "0.3"
-glutin = "0.21"
+winit = "0.24"
+glutin = "0.26"
 image = "0.23"
 nalgebra-glm = "0.4"
 rand = "0.7"
 ndarray = "0.13"
+raw-gl-context = "0.1"
+anyhow = "1"
 
 [build-dependencies]
 gl_generator = "0.14"
