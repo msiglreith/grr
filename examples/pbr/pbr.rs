@@ -12,7 +12,7 @@ use winit::{
 };
 
 use image::Pixel;
-use std::{fs, io, slice, mem, path::Path, time};
+use std::{fs, io, mem, path::Path, slice, time};
 
 const NANOS_PER_SEC: u64 = 1_000_000_000;
 
@@ -175,9 +175,7 @@ fn main() -> anyhow::Result<()> {
         grr.unmap_buffer(mesh_data);
         grr.unmap_buffer(index_data);
 
-        let load_image_rgba = |name: &str,
-                               format: grr::Format|
-         -> anyhow::Result<grr::Image> {
+        let load_image_rgba = |name: &str, format: grr::Format| -> anyhow::Result<grr::Image> {
             let path = format!("{}/{}", base_path, name);
             let img = image::open(&Path::new(&path)).unwrap().to_rgba();
             let img_width = img.width();
@@ -223,16 +221,11 @@ fn main() -> anyhow::Result<()> {
             Ok(texture)
         };
 
-        let albedo =
-            load_image_rgba("Textures/Cerberus_A.tga", grr::Format::R8G8B8A8_SRGB)?;
-        let normals =
-            load_image_rgba("Textures/Cerberus_N.tga", grr::Format::R8G8B8A8_UNORM)?;
-        let metalness =
-            load_image_rgba("Textures/Cerberus_M.tga", grr::Format::R8_UNORM)?;
-        let roughness =
-            load_image_rgba("Textures/Cerberus_R.tga", grr::Format::R8_UNORM)?;
-        let occlusion =
-            load_image_rgba("Textures/Raw/Cerberus_AO.tga", grr::Format::R8_UNORM)?;
+        let albedo = load_image_rgba("Textures/Cerberus_A.tga", grr::Format::R8G8B8A8_SRGB)?;
+        let normals = load_image_rgba("Textures/Cerberus_N.tga", grr::Format::R8G8B8A8_UNORM)?;
+        let metalness = load_image_rgba("Textures/Cerberus_M.tga", grr::Format::R8_UNORM)?;
+        let roughness = load_image_rgba("Textures/Cerberus_R.tga", grr::Format::R8_UNORM)?;
+        let occlusion = load_image_rgba("Textures/Raw/Cerberus_AO.tga", grr::Format::R8_UNORM)?;
 
         let sampler_trilinear = grr.create_sampler(grr::SamplerDesc {
             min_filter: grr::Filter::Linear,
@@ -1013,7 +1006,10 @@ fn main() -> anyhow::Result<()> {
                         grr::Framebuffer::DEFAULT,
                         grr::ClearAttachment::ColorFloat(0, [0.5, 0.5, 0.5, 1.0]),
                     );
-                    grr.clear_attachment(grr::Framebuffer::DEFAULT, grr::ClearAttachment::Depth(1.0));
+                    grr.clear_attachment(
+                        grr::Framebuffer::DEFAULT,
+                        grr::ClearAttachment::Depth(1.0),
+                    );
 
                     // Skybox pass
                     grr.bind_pipeline(skybox_pipeline);

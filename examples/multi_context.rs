@@ -1,10 +1,10 @@
+use core::ffi::c_void;
 use glutin::{
     dpi::LogicalSize,
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
-use core::ffi::c_void;
 
 const VERTEX_SRC: &str = r#"
     #version 450 core
