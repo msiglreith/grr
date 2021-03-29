@@ -15,11 +15,11 @@
 //! extern crate glutin;
 //! extern crate grr;
 //!
-//! fn main() -> Result<(), Box<std::error::Error>> {
-//!     let mut events_loop = glutin::EventsLoop::new();
-//!     let wb = glutin::WindowBuilder::new()
+//! fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     let mut events_loop = glutin::event_loop::EventLoop::new();
+//!     let wb = glutin::window::WindowBuilder::new()
 //!         .with_title("Hello grr!")
-//!         .with_dimensions((1024.0, 768.0).into());
+//!         .with_inner_size(glutin::dpi::LogicalSize::new(1024.0, 768.0));
 //!     let window = unsafe {
 //!         glutin::ContextBuilder::new()
 //!             .with_vsync(true)
