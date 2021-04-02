@@ -22,6 +22,10 @@ jobs:
 
     - name: Install components
       run: rustup component add --toolchain stable rustfmt clippy
+      
+    - if: matrix.os == 'ubuntu-latest'
+      name: Install unix dependencies
+      run: sudo apt install libgl1-mesa-dev
 
     - name: Fetch
       uses: actions-rs/cargo@v1
