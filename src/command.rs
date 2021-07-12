@@ -30,6 +30,12 @@ pub enum Primitive {
     /// The vertices will build a connected list of line segments.
     LineStrip = __gl::LINE_STRIP,
 
+    /// Lines segment loop.
+    ///
+    /// The vertices will build a connected list of line segments,
+    /// where the last vertex also connects to the first.
+    LineLoop = __gl::LINE_LOOP,
+
     /// Triangle list.
     ///
     /// Three consecutive vertices will form triangle.
