@@ -134,6 +134,14 @@ pub enum Constant {
     Uvec3([u32; 3]),
     /// 4 elements 32-bit unsigned integer.
     Uvec4([u32; 4]),
+    /// Boolean value,
+    Bool(bool),
+    /// 2 elements boolean vector.
+    Bvec2([bool; 2]),
+    /// 3 elements boolean vector.
+    Bvec3([bool; 3]),
+    /// 4 elements boolean vector.
+    Bvec4([bool; 4]),
 }
 
 /// Indirect draw command structure.
@@ -236,6 +244,22 @@ impl Device {
                 Constant::Ivec4(v) => {
                     self.0
                         .ProgramUniform4i(pipeline.0, location, v[0], v[1], v[2], v[3]);
+                }
+                Constant::Bool(val) => {
+                    self.0.ProgramUniform1i(pipeline.0, location, *val as _);
+                }
+                Constant::Bvec2(v) => {
+                    self.0
+                        .ProgramUniform2i(pipeline.0, location, v[0] as _, v[1] as _);
+                }
+                Constant::Bvec3(v) => {
+                    self.0
+                        .ProgramUniform3i(pipeline.0, location, v[0] as _, v[1] as _, v[2] as _);
+                }
+                Constant::Bvec4(v) => {
+                    self.0.ProgramUniform4i(
+                        pipeline.0, location, v[0] as _, v[1] as _, v[2] as _, v[3] as _,
+                    );
                 }
                 Constant::Mat2x2(mat) => {
                     self.0.ProgramUniformMatrix2fv(
