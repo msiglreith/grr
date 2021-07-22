@@ -30,13 +30,40 @@ pub enum Primitive {
     /// The vertices will build a connected list of line segments.
     LineStrip = __gl::LINE_STRIP,
 
+    /// Lines segment loop.
+    ///
+    /// The vertices will build a connected list of line segments,
+    /// where the last vertex also connects to the first.
+    LineLoop = __gl::LINE_LOOP,
+
     /// Triangle list.
     ///
     /// Three consecutive vertices will form triangle.
     Triangles = __gl::TRIANGLES,
+
+    /// Triangle strip.
+    ///
+    /// A series of connected triangles. The first three vertices form
+    /// the first triangle, and each subsequent version forms a
+    /// triangle along with the previous two verices. The ordering of
+    /// the vertices is swapped on alternating triangles so that the
+    /// winding direction is consistent among all triangles in the
+    /// strip.
     TriangleStrip = __gl::TRIANGLE_STRIP,
     LinesAdjacency = __gl::LINES_ADJACENCY,
     LinesStripAdjacency = __gl::LINE_STRIP_ADJACENCY,
+
+    /// Triangle list with adjacency information.
+    ///
+    /// Six vertices specify each triangle, along with information
+    /// about vertices adjacent to that triangle. If vertices (0, 1,
+    /// 2, 3, 4, 5) are specified, then:
+    ///
+    /// * (0, 2, 4) form the vertices of the actual triangle.
+    /// * (0, 1, 2), (2, 3, 4), and (4, 5, 0) would form triangles
+    ///   that are adjacent to the main triangle.
+    ///
+    /// Only geometry shaders have access to the adjacent vertices.
     TrianglesAdjacency = __gl::TRIANGLES_ADJACENCY,
     TrianglesStripAdjacency = __gl::TRIANGLE_STRIP_ADJACENCY,
     Patches = __gl::PATCHES,
@@ -134,6 +161,14 @@ pub enum Constant {
     Uvec3([u32; 3]),
     /// 4 elements 32-bit unsigned integer.
     Uvec4([u32; 4]),
+    /// Boolean value,
+    Bool(bool),
+    /// 2-element boolean vector.
+    Bvec2([bool; 2]),
+    /// 3-element boolean vector.
+    Bvec3([bool; 3]),
+    /// 4-element boolean vector.
+    Bvec4([bool; 4]),
 }
 
 /// Indirect draw command structure.
@@ -236,6 +271,22 @@ impl Device {
                 Constant::Ivec4(v) => {
                     self.0
                         .ProgramUniform4i(pipeline.0, location, v[0], v[1], v[2], v[3]);
+                }
+                Constant::Bool(val) => {
+                    self.0.ProgramUniform1i(pipeline.0, location, *val as _);
+                }
+                Constant::Bvec2(v) => {
+                    self.0
+                        .ProgramUniform2i(pipeline.0, location, v[0] as _, v[1] as _);
+                }
+                Constant::Bvec3(v) => {
+                    self.0
+                        .ProgramUniform3i(pipeline.0, location, v[0] as _, v[1] as _, v[2] as _);
+                }
+                Constant::Bvec4(v) => {
+                    self.0.ProgramUniform4i(
+                        pipeline.0, location, v[0] as _, v[1] as _, v[2] as _, v[3] as _,
+                    );
                 }
                 Constant::Mat2x2(mat) => {
                     self.0.ProgramUniformMatrix2fv(
