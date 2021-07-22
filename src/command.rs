@@ -40,9 +40,30 @@ pub enum Primitive {
     ///
     /// Three consecutive vertices will form triangle.
     Triangles = __gl::TRIANGLES,
+
+    /// Triangle strip.
+    ///
+    /// A series of connected triangles. The first three vertices form
+    /// the first triangle, and each subsequent version forms a
+    /// triangle along with the previous two verices. The ordering of
+    /// the vertices is swapped on alternating triangles so that the
+    /// winding direction is consistent among all triangles in the
+    /// strip.
     TriangleStrip = __gl::TRIANGLE_STRIP,
     LinesAdjacency = __gl::LINES_ADJACENCY,
     LinesStripAdjacency = __gl::LINE_STRIP_ADJACENCY,
+
+    /// Triangle list with adjacency information.
+    ///
+    /// Six vertices specify each triangle, along with information
+    /// about vertices adjacent to that triangle. If vertices (0, 1,
+    /// 2, 3, 4, 5) are specified, then:
+    ///
+    /// * (0, 2, 4) form the vertices of the actual triangle.
+    /// * (0, 1, 2), (2, 3, 4), and (4, 5, 0) would form triangles
+    ///   that are adjacent to the main triangle.
+    ///
+    /// Only geometry shaders have access to the adjacent vertices.
     TrianglesAdjacency = __gl::TRIANGLES_ADJACENCY,
     TrianglesStripAdjacency = __gl::TRIANGLE_STRIP_ADJACENCY,
     Patches = __gl::PATCHES,
@@ -142,11 +163,11 @@ pub enum Constant {
     Uvec4([u32; 4]),
     /// Boolean value,
     Bool(bool),
-    /// 2 elements boolean vector.
+    /// 2-element boolean vector.
     Bvec2([bool; 2]),
-    /// 3 elements boolean vector.
+    /// 3-element boolean vector.
     Bvec3([bool; 3]),
-    /// 4 elements boolean vector.
+    /// 4-element boolean vector.
     Bvec4([bool; 4]),
 }
 
